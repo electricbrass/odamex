@@ -22,7 +22,7 @@ if(WIN32)
   list(APPEND CLIENT_SDL_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/client.rc")
 endif()
 
-# Include console folders if compiling 
+# Include console folders if compiling
 if (GCONSOLE)
   if (NSWITCH)
     set(CLIENT_DIR ${CLIENT_DIR} switch)  # Nintendo Switch
@@ -64,6 +64,12 @@ if(UNIX AND NOT APPLE)
     include_directories(${X11_INCLUDE_DIR})
     link_libraries(${X11_LIBRARIES})
   endif()
+  find_package(Fontconfig)
+  if(Fontconfig_FOUND)
+    add_definitions(-DFONTCONFIG)
+    include_directories(${Fontconfig_INCLUDE_DIRS})
+    link_libraries(${Fontconfig_LIBRARIES})
+  endif()
 endif()
 
 # PortMidi configuration
@@ -76,7 +82,7 @@ if(ENABLE_PORTMIDI)
     set(PORTMIDI_LIBRARY "portmidi")
     set(PORTMIDI_LIBRARIES ${PORTMIDI_LIBRARY})
     set(PORTMIDI_DIR ../libraries/portmidi)
-    set(PORTMIDI_INCLUDE_DIR ${PORTMIDI_DIR}/pm_common/ ${PORTMIDI_DIR}/porttime/)  
+    set(PORTMIDI_INCLUDE_DIR ${PORTMIDI_DIR}/pm_common/ ${PORTMIDI_DIR}/porttime/)
 
     if(APPLE)
       find_library(COREFOUNDATION_LIBRARY CoreFoundation)

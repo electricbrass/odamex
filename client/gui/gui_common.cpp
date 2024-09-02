@@ -55,8 +55,20 @@ Fl_Image* GUIRes::icon_odamex_128()
 #ifdef _WIN32
 
 #include <windows.h>
-#define LOAD_FONT(PATH) AddFontResourceEx((PATH),FR_PRIVATE,0)
+#define LOAD_FONT(PATH) (bool)AddFontResourceEx((PATH),FR_PRIVATE,0)
 #define UNLOAD_FONT(PATH) RemoveFontResourceEx((PATH),FR_PRIVATE,0)
+
+#elif defined(FONTCONFIG)
+
+#include <fontconfig/fontconfig.h>
+#define USE_XFT 1
+#define LOAD_FONT(PATH) (bool)FcConfigAppFontAddFile(NULL,(const FcChar8*)(PATH))
+#define UNLOAD_FONT(PATH) FcConfigAppFontClear(NULL)
+
+#else
+
+bool LOAD_FONT() { return false; }
+void UNLOAD_FONT() {}
 
 #endif
 
@@ -67,7 +79,7 @@ bool GUI_FontLoader::load_font(std::string path, std::string name)
 	if (m_font_loaded)
 	{
 		UNLOAD_FONT(m_loaded_path.c_str());
-		m_font_loaded = 0;
+		m_font_loaded = true;
 	}
 
 	m_font_loaded = LOAD_FONT(path.c_str());
