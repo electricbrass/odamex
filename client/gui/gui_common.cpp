@@ -67,8 +67,8 @@ Fl_Image* GUIRes::icon_odamex_128()
 
 #else
 
-bool LOAD_FONT() { return false; }
-void UNLOAD_FONT() {}
+bool LOAD_FONT(const char*) { return false; }
+void UNLOAD_FONT(const char*) {}
 
 #endif
 
