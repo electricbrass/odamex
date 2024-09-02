@@ -43,6 +43,7 @@
 
 #include "i_system.h"
 #include "w_ident.h"
+#include <FL/fl_draw.H>
 
 // -- Externals --
 
@@ -122,6 +123,7 @@ class BootWindow : public Fl_Window
 	BootWindow(int X, int Y, int W, int H, const char* L)
 	    : Fl_Window(X, Y, W, H, L), m_IWADs()
 	{
+		fl_font(FL_COURIER, 12);
 		OPTIONS_LIST.push_back(std::make_pair("No Monsters", "-nomonsters"));
 		OPTIONS_LIST.push_back(std::make_pair("Fast Monsters", "-fast"));
 		OPTIONS_LIST.push_back(std::make_pair("Respawn Monsters", "-respawn"));
@@ -131,7 +133,9 @@ class BootWindow : public Fl_Window
 			{
 				tabs->callback(tabsCB, static_cast<void*>(this));
 				tabs->when(FL_WHEN_CHANGED);
+				fl_font(fl_font(), fl_size());
 				m_tabIWAD = new Fl_Group(0, 25, 425, 175, "Game Select");
+				m_tabIWAD->labelfont(fl_font());
 				{
 					Fl_Box* logo = new Fl_Box(10, 35, 115, 155);
 					logo->image(GUIRes::icon_odamex_128());
@@ -139,6 +143,7 @@ class BootWindow : public Fl_Window
 				} // Fl_Box* logo
 				{
 					m_IWADBrowser = new Fl_Hold_Browser(135, 35, 280, 155);
+					m_IWADBrowser->textfont(fl_font());
 					m_IWADBrowser->callback(BootWindow::doPlayCB, static_cast<void*>(this));
 					m_IWADBrowser->when(FL_WHEN_ENTER_KEY);
 				} // Fl_Browser* m_IWADBrowser
@@ -146,8 +151,10 @@ class BootWindow : public Fl_Window
 			} // Fl_Group* tabIWAD
 			{
 				m_tabPWADs = new Fl_Group(0, 25, 425, 175, "PWAD Select");
+				m_tabPWADs->labelfont(fl_font());
 				{
 					m_PWADSelectBrowser = new Fl_Check_Browser(10, 35, 183, 155);
+					m_PWADSelectBrowser->textfont(fl_font());
 					m_PWADSelectBrowser->callback(BootWindow::scanCheckedPWADsCB,
 					                              static_cast<void*>(this));
 					m_PWADSelectBrowser->when(FL_WHEN_CHANGED);
@@ -157,6 +164,7 @@ class BootWindow : public Fl_Window
 				} // Fl_Hold_Browser* m_PWADOrderBrowser
 				{
 					Fl_Box* o = new Fl_Box(203, 35, 182, 20, "Change Load Order");
+					o->labelfont(fl_font());
 				} // Fl_Box* o
 				{
 					Fl_Button* doWADUp = new Fl_Button(395, 90, 20, 20, "@2<<");
@@ -175,16 +183,19 @@ class BootWindow : public Fl_Window
 				m_tabPWADs->end();
 			} // Fl_Group* tabPWADs
 			{
-				Fl_Group* tabGameOptions = 
+				Fl_Group* tabGameOptions =
 					new Fl_Group(0, 25, 425, 175, "Game Options");
+				tabGameOptions->labelfont(fl_font());
 				{
 					Fl_Box* o = new Fl_Box(
 					    10, 35, 405, 20,
 					    "Set gameplay options to modify your experience.");
+					o->labelfont(fl_font());
 					o->align(Fl_Align(132 | FL_ALIGN_INSIDE));
 				} // Fl_Box* o
 				{
 					m_gameOptionsBrowser = new Fl_Check_Browser(10, 65, 405, 125);
+					m_gameOptionsBrowser->textfont(fl_font());
 					for (std::vector<std::pair<std::string, std::string> >::const_iterator it = OPTIONS_LIST.begin();
 		    	 		 it != OPTIONS_LIST.end(); ++it)
 					{
@@ -197,15 +208,17 @@ class BootWindow : public Fl_Window
 			{
 				Fl_Group* tabWADDirs =
 				    new Fl_Group(0, 25, 425, 175, "Resource Locations");
-				tabWADDirs->hide();
+				tabWADDirs->labelfont(fl_font());
 				{
 					Fl_Box* o = new Fl_Box(
 					    10, 35, 405, 20,
 					    "Add folders containing WAD files here so Odamex can find them.");
+					o->labelfont(fl_font());
 					o->align(Fl_Align(132 | FL_ALIGN_INSIDE));
 				} // Fl_Box* o
 				{
 					m_WADDirList = new Fl_Hold_Browser(10, 65, 375, 125);
+					m_WADDirList->textfont(fl_font());
 				} // Fl_Browser* wadDirList
 				{
 					Fl_Button* doDirAdd = new Fl_Button(395, 65, 20, 20, "@+");
@@ -232,16 +245,19 @@ class BootWindow : public Fl_Window
 		{
 			Fl_Check_Button* notAgain =
 			    new Fl_Check_Button(10, 210, 20, 20, "Don\'t Show This Again");
+			notAgain->labelfont(fl_font());
 			notAgain->down_box(FL_DOWN_BOX);
 			notAgain->callback(BootWindow::doDontShowCB);
 			notAgain->value(::i_skipbootwin);
 		} // Fl_Check_Button* notAgain
 		{
 			Fl_Button* doQuit = new Fl_Button(275, 210, 65, 20, "Quit");
+			doQuit->labelfont(fl_font());
 			doQuit->callback(BootWindow::doQuitCB);
 		} // Fl_Button* doQuit
 		{
 			Fl_Return_Button* doPlay = new Fl_Return_Button(350, 210, 65, 20, "Play!");
+			doPlay->labelfont(fl_font());
 			doPlay->callback(BootWindow::doPlayCB, static_cast<void*>(this));
 		} // Fl_Return_Button* doPlay
 		end();
