@@ -22,13 +22,28 @@
 //-----------------------------------------------------------------------------
 
 #pragma once
+#include <string>
 
 class Fl_Image;
 class Fl_Window;
+typedef int Fl_Font;
 
 void GUI_SetIcon(Fl_Window* win);
 
 struct GUIRes
 {
 	static Fl_Image* icon_odamex_128();
+};
+
+class GUI_FontLoader
+{
+  private:
+	int m_font_loaded;
+	std::string m_loaded_path;
+	const Fl_Font m_font;
+  public:
+	Fl_Font font();
+	bool load_font(std::string path, std::string name);
+	GUI_FontLoader(Fl_Font f);
+	~GUI_FontLoader();
 };

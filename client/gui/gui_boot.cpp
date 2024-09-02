@@ -96,7 +96,6 @@ static void EraseSelected(scannedPWADPtrs_t& mut, scannedPWAD_t* pwad)
 	}
 }
 
-const scannedIWAD_t* g_SelectedIWAD;
 scannedWADs_t g_SelectedWADs;
 
 const int WINDOW_WIDTH = 425;
@@ -121,10 +120,12 @@ class BootWindow : public Fl_Window
 
   public:
 	BootWindow(int X, int Y, int W, int H, const char* L)
-	    : Fl_Window(X, Y, W, H, L), m_IWADs()
+	    : Fl_Window(X, Y, W, H, L), m_IWADs(), m_PWADs()
 	{
-		Fl::set_font(FL_FREE_FONT, "Open Sans SemiCondensed SemiBold");
-		fl_font(FL_FREE_FONT, 10);
+		GUI_FontLoader fload = GUI_FontLoader(FL_FREE_FONT);
+		if (fload.load_font("OpenSans_SemiCondensed-SemiBold.ttf", "Open Sans SemiCondensed SemiBold"))
+			fl_font(fload.font(), 10);
+
 		OPTIONS_LIST.push_back(std::make_pair("No Monsters", "-nomonsters"));
 		OPTIONS_LIST.push_back(std::make_pair("Fast Monsters", "-fast"));
 		OPTIONS_LIST.push_back(std::make_pair("Respawn Monsters", "-respawn"));

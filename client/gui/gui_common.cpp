@@ -51,3 +51,45 @@ Fl_Image* GUIRes::icon_odamex_128()
 	                                          __icon_odamex_128_png_len);
 	return image;
 }
+
+#ifdef _WIN32
+
+#include <windows.h>
+#define LOAD_FONT(PATH) AddFontResourceEx((PATH),FR_PRIVATE,0)
+#define UNLOAD_FONT(PATH) RemoveFontResourceEx((PATH),FR_PRIVATE,0)
+
+#endif
+
+GUI_FontLoader::GUI_FontLoader(Fl_Font f) : m_font(f), m_font_loaded(0), m_loaded_path() {}
+
+bool GUI_FontLoader::load_font(std::string path, std::string name)
+{
+	if (m_font_loaded)
+	{
+		UNLOAD_FONT(m_loaded_path.c_str());
+		m_font_loaded = 0;
+	}
+
+	m_font_loaded = LOAD_FONT(path.c_str());
+
+	if (m_font_loaded)
+	{
+		m_loaded_path = path;
+		Fl::set_font(m_font, name.c_str());
+		return true;
+	}
+	return false;
+}
+
+GUI_FontLoader::~GUI_FontLoader()
+{
+	if (m_font_loaded)
+	{
+		UNLOAD_FONT(m_loaded_path.c_str());
+	}
+}
+
+Fl_Font GUI_FontLoader::font()
+{
+	return m_font;
+}
