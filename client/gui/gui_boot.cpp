@@ -123,7 +123,8 @@ class BootWindow : public Fl_Window
 	BootWindow(int X, int Y, int W, int H, const char* L)
 	    : Fl_Window(X, Y, W, H, L), m_IWADs()
 	{
-		fl_font(FL_COURIER, 12);
+		Fl::set_font(FL_FREE_FONT, "Open Sans SemiCondensed SemiBold");
+		fl_font(FL_FREE_FONT, 10);
 		OPTIONS_LIST.push_back(std::make_pair("No Monsters", "-nomonsters"));
 		OPTIONS_LIST.push_back(std::make_pair("Fast Monsters", "-fast"));
 		OPTIONS_LIST.push_back(std::make_pair("Respawn Monsters", "-respawn"));
