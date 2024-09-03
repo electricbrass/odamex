@@ -251,6 +251,11 @@ if(TARGET SDL2::SDL2 OR TARGET SDL::SDL)
 
   odamex_copy_libs(odamex)
   odamex_copy_wad(odamex)
+  add_custom_command(
+    TARGET odamex
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/media/OpenSans_SemiCondensed-SemiBold.ttf $<TARGET_FILE_DIR:odamex>
+  )
 
   set(MACOSX_BUNDLE_BUNDLE_NAME ${CMAKE_PROJECT_NAME})
   set(MACOSX_BUNDLE_INFO_STRING "ODAMEX and its likeness © ${PROJECT_COPYRIGHT} Odamex team.")
