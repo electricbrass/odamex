@@ -43,7 +43,7 @@ class GUI_FontLoader
 	const Fl_Font m_font;
   public:
 	Fl_Font font();
-	bool load_font(std::string path, std::string name);
+	bool load_font(const std::string& path, const std::string& name);
 	GUI_FontLoader(Fl_Font f);
 	~GUI_FontLoader();
 };

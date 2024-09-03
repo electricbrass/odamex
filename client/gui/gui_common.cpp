@@ -74,7 +74,7 @@ void UNLOAD_FONT(const char*) {}
 
 GUI_FontLoader::GUI_FontLoader(Fl_Font f) : m_font(f), m_font_loaded(0), m_loaded_path() {}
 
-bool GUI_FontLoader::load_font(std::string path, std::string name)
+bool GUI_FontLoader::load_font(const std::string& path, const std::string& name)
 {
 	if (m_font_loaded)
 	{
