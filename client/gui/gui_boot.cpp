@@ -38,12 +38,13 @@
 #include "FL/Fl_Tabs.H"
 #include "FL/Fl_Window.H"
 #include "FL/fl_ask.H"
+#include <FL/fl_draw.H>
 
 #include "gui_common.h"
 
 #include "i_system.h"
 #include "w_ident.h"
-#include <FL/fl_draw.H>
+#include "m_fileio.h"
 
 // -- Externals --
 
@@ -123,7 +124,7 @@ class BootWindow : public Fl_Window
 	    : Fl_Window(X, Y, W, H, L), m_IWADs(), m_PWADs()
 	{
 		GUI_FontLoader fload = GUI_FontLoader(FL_FREE_FONT);
-		if (fload.load_font("." PATHSEP "OpenSans_SemiCondensed-SemiBold.ttf", "Open Sans SemiCondensed SemiBold"))
+		if (fload.load_font(M_GetBinaryDir() + PATHSEP + "OpenSans_SemiCondensed-SemiBold.ttf", "Open Sans SemiCondensed SemiBold"))
 			fl_font(fload.font(), 10);
 
 		OPTIONS_LIST.push_back(std::make_pair("No Monsters", "-nomonsters"));
