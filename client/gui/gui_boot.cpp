@@ -123,7 +123,7 @@ class BootWindow : public Fl_Window
 	    : Fl_Window(X, Y, W, H, L), m_IWADs(), m_PWADs()
 	{
 		GUI_FontLoader fload = GUI_FontLoader(FL_FREE_FONT);
-		if (fload.load_font("OpenSans_SemiCondensed-SemiBold.ttf", "Open Sans SemiCondensed SemiBold"))
+		if (fload.load_font("." PATHSEP "OpenSans_SemiCondensed-SemiBold.ttf", "Open Sans SemiCondensed SemiBold"))
 			fl_font(fload.font(), 10);
 
 		OPTIONS_LIST.push_back(std::make_pair("No Monsters", "-nomonsters"));
