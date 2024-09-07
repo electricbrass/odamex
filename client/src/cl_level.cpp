@@ -71,6 +71,7 @@ EXTERN_CVAR(sv_monstersrespawn)
 EXTERN_CVAR(sv_gravity)
 EXTERN_CVAR(sv_aircontrol)
 EXTERN_CVAR(g_resetinvonexit)
+EXTERN_CVAR(g_thingfilter)
 
 // Start time for timing demos
 dtime_t starttime;
@@ -144,7 +145,7 @@ BEGIN_COMMAND (wad) // denis - changes wads
 	CL_QuitNetGame(NQ_SILENT);
 	S_StopMusic();
 	currentmusic = gameinfo.titleMusic.c_str();
-	
+
 	S_StartMusic(currentmusic.c_str());
 }
 END_COMMAND (wad)
@@ -157,7 +158,7 @@ EXTERN_CVAR(sv_allowjump)
 
 //
 // G_DoNewGame
-// Is called whenever a new Singleplayer game will be started. 
+// Is called whenever a new Singleplayer game will be started.
 //
 void G_DoNewGame (void)
 {
@@ -211,6 +212,9 @@ void G_InitNew (const char *mapname)
 			level.flags &= ~LEVEL_VISITED;
 		}
 	}
+
+	if(G_GetCurrentSkill().spawn_multi)
+		g_thingfilter = -1;
 
 	cvar_t::UnlatchCVars ();
 
@@ -291,7 +295,7 @@ void G_InitNew (const char *mapname)
 	viewactive = true;
 
 	D_SetupUserInfo();
-	
+
 	level.mapname = mapname;
 
 	// [AM}] WDL stats (for testing purposes)
@@ -687,7 +691,7 @@ void G_WorldDone()
 	// Sort out default options to pass to F_StartFinale
 	finale_options_t options = { 0 };
 	options.music = !level.intermusic.empty() ? level.intermusic.c_str() : thiscluster.messagemusic.c_str();
-	
+
 	if (!level.interbackdrop.empty())
 	{
 		options.flat = level.interbackdrop.c_str();
@@ -700,7 +704,7 @@ void G_WorldDone()
 	{
 		options.flat = &thiscluster.finaleflat[0];
 	}
-	
+
 	if (secretexit)
 	{
 		options.text = (!level.intertextsecret.empty()) ? level.intertextsecret.c_str() : thiscluster.exittext;

@@ -135,6 +135,7 @@ EXTERN_CVAR (sv_allowexit)
 EXTERN_CVAR (sv_nomonsters)
 EXTERN_CVAR (sv_monstersrespawn)
 EXTERN_CVAR (sv_fastmonsters)
+EXTERN_CVAR (g_thingfilter)
 EXTERN_CVAR (sv_freelook)
 EXTERN_CVAR (sv_allowjump)
 EXTERN_CVAR (sv_allowredscreen)
@@ -482,7 +483,7 @@ void D_DoAdvanceDemo (void)
 
             gamestate = GS_DEMOSCREEN;
             pagename = gameinfo.titlePage.c_str();
-            
+
             currentmusic = gameinfo.titleMusic.c_str();
 
             S_StartMusic(currentmusic.c_str());
@@ -513,7 +514,7 @@ void D_DoAdvanceDemo (void)
 					pagetic = 170;
                 pagename = gameinfo.titlePage.c_str();
                 currentmusic = gameinfo.titleMusic.c_str();
-                
+
                 S_StartMusic(currentmusic.c_str());
             }
             else
@@ -709,7 +710,7 @@ void STACK_ARGS D_Shutdown()
 	// stop sound effects and music
 	S_Stop();
 	S_Deinit();
-	
+
 	// shutdown automap
 	AM_Stop();
 
@@ -894,7 +895,7 @@ void D_DoomMain()
 
 	if (devparm)
 		Printf(PRINT_HIGH, "%s", GStrings(D_DEVSTR));        // D_DEVSTR
- 
+
 	// set the default value for vid_ticker based on the presence of -devparm
 	if (devparm)
 		vid_ticker.SetDefault("1");
@@ -910,6 +911,10 @@ void D_DoomMain()
 
 	// Pistol start
 	g_resetinvonexit = Args.CheckParm("-pistolstart");
+
+	// Multiplayer things
+	if (Args.CheckParm("-netthings"))
+		g_thingfilter = -1;
 
 	// get skill / episode / map from parms
 	strcpy(startmap, (gameinfo.flags & GI_MAPxx) ? "MAP01" : "E1M1");
@@ -1037,7 +1042,7 @@ void D_DoomMain()
 		Printf(PRINT_HIGH, "Type connect <address> or use the Odamex Launcher to connect to a game.\n");
     Printf(PRINT_HIGH, "\n");
 
-	// Play a demo, start a map, or show the title screen	
+	// Play a demo, start a map, or show the title screen
 	if (singledemo)
 	{
 		G_DoPlayDemo();
