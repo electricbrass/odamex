@@ -7607,7 +7607,7 @@ mobjinfo_t doom_mobjinfo[::NUMMOBJTYPES] = {
 void D_Init_DEHEXTRA_Frames(void)
 {
 	// [Blair] Combine all the state tables.
-	for (int i = 0; i < ::num_state_t_types; i++)
+	for (int i = 0; i < ::num_state_t_types(); i++)
 	{
 		// [CMB] TODO: this will need to be adjusted based on the highest index added by dsdhacked
 		// [CMB] TODO: currently it only takes into account the highest index for doom states (S_MUSHROOM) and odastates (S_GIB0)
@@ -7649,7 +7649,7 @@ void D_Init_DEHEXTRA_Frames(void)
 		states[i].flags |= STATEF_SKILL5FAST;
 
 	// Start all MBF21 content here.
-	for (int i = 0; i < ::num_mobjinfo_types ; i++)
+	for (int i = 0; i < ::num_mobjinfo_types() ; i++)
 	{
 		mobjinfo[i].altspeed = NO_ALTSPEED;
 		mobjinfo[i].infighting_group = IG_DEFAULT;

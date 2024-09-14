@@ -28,6 +28,7 @@
 // Needed for action function pointer handling.
 #include "dthinker.h"
 #include "farchive.h"
+#include "odamex_objects.h"
 
 typedef enum
 {
@@ -233,8 +234,8 @@ typedef enum
 
 // [CMD] TODO: new types and function to allocate sprnames for dsdhacked
 extern const char* doom_sprnames[];
-extern const char** sprnames;;
-extern int num_spritenum_t_types;
+extern DoomObjectContainer<const char*, spritenum_t> sprnames;
+extern size_t num_spritenum_t_types();
 
 inline FArchive &operator<< (FArchive &arc, spritenum_t i) { DWORD out; out = i; return arc << out; }
 inline FArchive &operator>> (FArchive &arc, spritenum_t &i) { DWORD in; arc >> in; i = (spritenum_t)in; return arc; }
@@ -1397,8 +1398,11 @@ typedef struct
 } state_t;
 
 // [CMB] TODO: new types and function to allocate states for dsdhacked
+/*
 extern state_t* states;
-extern int num_state_t_types;
+*/
+extern DoomObjectContainer<state_t, statenum_t> states;
+extern size_t num_state_t_types(); // [CMB] TODO converted to function to just make code work for now
 
 #define STATEF_NONE 0
 #define STATEF_SKILL5FAST BIT(0) // tics halve on nightmare skill
@@ -1738,8 +1742,8 @@ typedef struct _mobjinfo
 
 // [CMB] TODO: new types and function to allocate mobjinfo for dsdhacked
 extern mobjinfo_t doom_mobjinfo[];
-extern mobjinfo_t* mobjinfo;
-extern int num_mobjinfo_types;
+extern DoomObjectContainer<mobjinfo_t, mobjtype_t> mobjinfo;
+extern size_t num_mobjinfo_types();
 
 inline FArchive &operator<< (FArchive &arc, mobjinfo_t *info)
 {
