@@ -852,11 +852,23 @@ void D_DoomMain()
 
 	if (!pwads.empty())
 	{
+		const std::vector<std::string>& wad_exts = M_FileTypeExts(OFILE_WAD);
+		const std::vector<std::string>& deh_exts = M_FileTypeExts(OFILE_DEH);
 		for (size_t i = 0; i < pwads.size(); i++)
 		{
 			OWantFile file;
-			OWantFile::make(file, pwads[i], OFILE_WAD);
-			newwadfiles.push_back(file);
+			OWantFile::make(file, pwads[i], OFILE_UNKNOWN);
+			const std::string extension = StdStringToUpper(file.getExt());
+			if (std::find(deh_exts.begin(), deh_exts.end(), extension) != deh_exts.end())
+			{
+				OWantFile::make(file, pwads[i], OFILE_DEH);
+				newpatchfiles.push_back(file);
+			}
+			if (std::find(wad_exts.begin(), wad_exts.end(), extension) != wad_exts.end())
+			{
+				OWantFile::make(file, pwads[i], OFILE_WAD);
+				newwadfiles.push_back(file);
+			}
 		}
 	}
 
