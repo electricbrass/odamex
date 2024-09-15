@@ -11,7 +11,7 @@
 #include "info.h" // doom object definitions - including enums with negative indices
 
 /*
-extern state_t odastates[]; //statenum_t 
+extern state_t odastates[]; //statenum_t
 extern mobjinfo_t odathings[]; //mobjtype_t
 extern const char* odasprnames[]; // spritenum_t
 
@@ -46,7 +46,7 @@ class DoomObjectContainer {
 	// convert to ObjType* to allow pointer arithmetic
 	operator ObjType*(void) const;
 	operator ObjType*(void);
-	
+
 	size_t capacity() const;
 	size_t size() const;
 	void clear();
@@ -111,10 +111,10 @@ ObjType& DoomObjectContainer<ObjType, IdxType>::operator[](int idx)
 {
 	// similar to std::unordered_map::operator[] we re-size and return the zero'd out
 	// ObjType
-	//if ((size_t)idx > this->capacity())
-	//{
-	//	this->resize(this->capacity() * 2);
-	//}
+	if ((size_t)idx > this->capacity())
+	{
+		this->resize(this->capacity() * 2);
+	}
 	return this->container[(size_t)idx];
 }
 
