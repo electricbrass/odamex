@@ -125,6 +125,25 @@ std::string M_GetWriteDir()
 #endif
 }
 
+std::string M_GetDownloadDir()
+{
+#if defined(_XBOX)
+	return "T:" PATHSEP;
+#else
+	// Does the user folder exist?
+	std::string downloadPath = M_GetUserDir() + PATHSEP "downloads";
+	int ok = SHCreateDirectoryEx(NULL, downloadPath.c_str(), NULL);
+	if (ok == ERROR_SUCCESS || ok == ERROR_ALREADY_EXISTS)
+	{
+		return M_CleanPath(downloadPath);
+	}
+	else
+	{
+		I_FatalError("Failed to create %s directory.\n", downloadPath.c_str());
+	}
+#endif
+}
+
 std::string M_GetScreenshotDir()
 {
 #if defined(_XBOX)

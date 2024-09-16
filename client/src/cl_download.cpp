@@ -321,7 +321,7 @@ static StringTokens GetDownloadDirs()
 #endif
 
 	D_AddSearchDir(dirs, waddirs.cstring(), PATHLISTSEPCHAR);
-	dirs.push_back(M_GetUserDir());
+	dirs.push_back(M_GetDownloadDir());
 
 #ifdef __SWITCH__
 	dirs.push_back("./wads");

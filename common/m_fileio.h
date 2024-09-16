@@ -83,6 +83,13 @@ std::string M_GetUserDir();
 std::string M_GetWriteDir();
 
 /**
+ * @brief Get the directory that downloaded wads and other files
+ *        shall be written into. If the directory does not exist, it will
+ *        be created.
+ */
+std::string M_GetDownloadDir();
+
+/**
  * @brief Resolve a file name into a user directory.
  *
  * @detail This function is OS-specific.
