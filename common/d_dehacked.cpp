@@ -461,7 +461,7 @@ static size_t filelen = 0; // Be quiet, gcc
 
 static void PrintUnknown(const char* key, const char* loc, const size_t idx)
 {
-	DPrintf("Unknown key %s encountered in %s (%" PRIuSIZE ").\n", key, loc, idx);
+	DPrintf("Unknown key %s encountered in %s (%zu).\n", key, loc, idx);
 }
 
 static int HandleMode(const char* mode, int num)
@@ -1015,7 +1015,7 @@ static int PatchThing(int thingy)
 	thingNum--;
 	if (thingNum < 0)
 	{
-		DPrintf("Thing %" PRIuSIZE " out of range.\n", thingNum);
+		DPrintf("Thing %zu out of range.\n", thingNum);
 	}
     if(thingNum >= ::num_mobjinfo_types())
     {
@@ -1036,7 +1036,7 @@ static int PatchThing(int thingy)
 		info = &mobjinfo[thingNum];
 		*ednum = *&info->doomednum;
 #if defined _DEBUG
-		DPrintf("Thing %" PRIuSIZE " found.\n", thingNum);
+		DPrintf("Thing %zu found.\n", thingNum);
 #endif
 	}
 

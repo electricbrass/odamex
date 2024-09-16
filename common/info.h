@@ -1,4 +1,4 @@
-// Emacs style mode select   -*- C++ -*- 
+// Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
 // $Id$
@@ -204,7 +204,7 @@ typedef enum
 	SPR_GIB7,
 	// [RH] Dummy for unknown mapthing
 	SPR_UNKN,
-		
+
 	//	[Toke - CTF]
 	SPR_BSOK,
 	SPR_RSOK,
@@ -219,7 +219,7 @@ typedef enum
 	SPR_GFLG,
 	SPR_GDWN,
 	SPR_GCAR,
-	
+
 	SPR_TLGL,
 
 	SPR_WPBF,
@@ -231,6 +231,11 @@ typedef enum
 	NUMSPRITES
 
 } spritenum_t;
+
+inline auto format_as(spritenum_t eSpriteNum)
+{
+	return fmt::underlying(eSpriteNum);
+}
 
 // [CMD] TODO: new types and function to allocate sprnames for dsdhacked
 extern const char* doom_sprnames[];
@@ -1210,7 +1215,7 @@ typedef enum
 	S_TECH2LAMP3,
 	S_TECH2LAMP4,
 
-	S_TNT1, // add state for invisible sprite         // phares 3/8/98 
+	S_TNT1, // add state for invisible sprite         // phares 3/8/98
 
 	S_GRENADE,   // killough 8/9/98: grenade launcher
 	S_DETONATE,  // killough 8/9/98: detonation of objects
@@ -1244,11 +1249,11 @@ typedef enum
 	S_DOGS_RAISE4,
 	S_DOGS_RAISE5,
 	S_DOGS_RAISE6,
-	
+
 	S_OLDBFG1,  // killough 7/11/98: the old BFG's 43 firing frames
 	S_OLDBFG42 = S_OLDBFG1 + 41,
 	S_OLDBFG43,
-	
+
 
 	S_PLS1BALL,      // killough 7/19/98: first plasma fireball in the beta
 	S_PLS1BALL2,
@@ -1370,6 +1375,11 @@ typedef enum
 
 	NUMSTATES
 } statenum_t;
+
+inline auto format_as(statenum_t eStateNum)
+{
+	return fmt::underlying(eStateNum);
+}
 
 inline FArchive &operator<< (FArchive &arc, statenum_t i) { DWORD out; out = i; return arc << out; }
 inline FArchive &operator>> (FArchive &arc, statenum_t &i) { DWORD in; arc >> in; i = (statenum_t)in; return arc; }
@@ -1633,8 +1643,8 @@ typedef enum {
 	MT_BCAR,
 	MT_RCAR,
 	// -----------------------------------
-	
-	MT_BRIDGE,	
+
+	MT_BRIDGE,
 	MT_MAPSPOT,
 	MT_MAPSPOTGRAVITY,
 	MT_BRIDGE32,
@@ -1669,6 +1679,11 @@ typedef enum {
 	NUMMOBJTYPES
 
 } mobjtype_t;
+
+inline auto format_as(mobjtype_t eType)
+{
+	return fmt::underlying(eType);
+}
 
 inline FArchive &operator<< (FArchive &arc, mobjtype_t i) { DWORD out; out = i; return arc << out; }
 inline FArchive &operator>> (FArchive &arc, mobjtype_t &i) { DWORD in; arc >> in; i = (mobjtype_t)in; return arc; }
@@ -1720,7 +1735,7 @@ typedef struct _mobjinfo
 	int damage;
 	const char *activesound;	// [RH] not int
 	int flags;
-	int flags2;	
+	int flags2;
 	statenum_t raisestate;
 	int translucency;
 	const char *name;

@@ -641,8 +641,11 @@ void R_Init()
 void STACK_ARGS R_Shutdown()
 {
     R_FreeTranslationTables();
+
+	R_ClearSkyDefs();
     I_FreeSurface(screenblocks_surface);
     I_FreeSurface(scaled_screenblocks_surface);
+
 }
 
 
