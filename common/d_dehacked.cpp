@@ -608,9 +608,9 @@ void D_UndoDehPatch()
 	}
 	*/
 
-	D_Initialize_sprnames(doomBackup.backupSprnames.ptr(), ::NUMSPRITES);
-	D_Initialize_States(doomBackup.backupStates.ptr(), ::NUMSTATES);
-	D_Initialize_Mobjinfo(doomBackup.backupMobjInfo.ptr(), ::NUMMOBJTYPES);
+	D_Initialize_sprnames(doomBackup.backupSprnames.ptr(), ::NUMSPRITES, SPR_TROO);
+	D_Initialize_States(doomBackup.backupStates.ptr(), ::NUMSTATES, S_NULL);
+	D_Initialize_Mobjinfo(doomBackup.backupMobjInfo.ptr(), ::NUMMOBJTYPES, MT_PLAYER);
 	
 	extern bool isFast;
 	isFast = false;
@@ -1018,11 +1018,6 @@ static int PatchThing(int thingy)
         DPrintf("Thing %" PRIuSIZE " requires allocation.\n", thingNum);
 #endif
         D_EnsureMobjInfoCapacity(thingNum);
-		/*
-        mobjinfo_t* newthing = (mobjinfo_t*) M_Malloc(sizeof(mobjinfo_t));
-        mobjinfo[thingNum] = *newthing;
-        info = newthing;
-		*/
 		info = &mobjinfo[thingNum];
 		*ednum = *&info->doomednum;
     }
@@ -1692,7 +1687,7 @@ static int PatchSprite(int sprNum)
 
 		if (offset >= 0 && offset < ::num_spritenum_t_types())
 		{
-			sprnames.insert(strdup(OrgSprNames[offset]), sprNum);
+			sprnames.insert(strdup(OrgSprNames[offset]), (spritenum_t) sprNum);
 		}
 		else
 		{

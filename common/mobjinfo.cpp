@@ -7,7 +7,7 @@ void D_ResetMobjInfo(mobjinfo_t* m, mobjtype_t idx);
 DoomObjectContainer<mobjinfo_t, mobjtype_t> mobjinfo(::NUMMOBJTYPES, &D_ResetMobjInfo);
 size_t num_mobjinfo_types()
 {
-	return mobjinfo.capacity();
+	return mobjinfo.size();
 }
 
 
@@ -22,15 +22,16 @@ void D_ResetMobjInfo(mobjinfo_t* m, mobjtype_t idx)
 	m->translucency = 0x10000;
 }
 
-void D_Initialize_Mobjinfo(mobjinfo_t* source, int count) 
+void D_Initialize_Mobjinfo(mobjinfo_t* source, int count, mobjtype_t start)
 {
 	mobjinfo.clear();
-	mobjinfo.resize(count);
 	if (source)
 	{
+		mobjtype_t idx = start;
 		for (int i = 0; i < count; i++)
 		{
-			mobjinfo[i] = source[i];
+			mobjinfo.insert(source[i], idx);
+			idx = mobjtype_t(i + 1);
 		}
 	}
 #if defined _DEBUG
@@ -40,10 +41,10 @@ void D_Initialize_Mobjinfo(mobjinfo_t* source, int count)
 
 void D_EnsureMobjInfoCapacity(int limit)
 {
-	int newCapacity = mobjinfo.capacity();
-	while (limit >= newCapacity)
+	int newSize = mobjinfo.size();
+	while (limit >= newSize)
 	{
-		newCapacity *= 2;
+		newSize *= 2;
 	}
-	mobjinfo.resize(newCapacity);
+	mobjinfo.resize(newSize);
 }
