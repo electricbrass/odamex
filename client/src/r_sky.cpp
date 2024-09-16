@@ -51,9 +51,8 @@ EXTERN_CVAR(r_skypalette)
 // sky mapping
 //
 int 		skyflatnum;
-// MIA TODO: remove sky1 variables
 int 		sky1texture,    sky2texture;
-fixed_t		sky1texturemid, sky2texturemid;
+fixed_t		defaultskytexturemid;
 fixed_t		skyscale;
 int			skystretch;
 fixed_t		skyheight;
@@ -74,7 +73,6 @@ CVAR_FUNC_IMPL(r_stretchsky)
 }
 
 char SKYFLATNAME[8] = "F_SKY1";
-
 
 static tallpost_t* skyposts[MAXWIDTH];
 static byte transparentskybuffer[MAXWIDTH][512]; // holds foreground sky with transparency to blit to the screen
@@ -174,8 +172,6 @@ static void R_InitXToViewAngle()
 
 void R_GenerateLookup(int texnum, int *const errors); // from r_data.cpp
 
-
-// MIA TODO: iterate over skies to do this stuff
 void R_InitSkyMap()
 {
 	fixed_t fskyheight;
@@ -187,30 +183,18 @@ void R_InitSkyMap()
 	if (gamestate != GS_LEVEL)
 		return;
 
-	for (auto& skypair : skylookup)
-	{
-		// do the stuff below for each sky maybe???
-	}
+	sky_t* defaultsky = skyflatlookup[skyflatnum];
 
-	// sky_t* defaultsky = skyflatlookup[skyflatnum];
-
-	if (sky2texture && textureheight[sky1texture] != textureheight[sky2texture])
-	{
-		Printf (PRINT_HIGH,"\x1f+Both sky textures must be the same height.\x1f-\n");
-		sky2texture = sky1texture;
-	}
-
-	fskyheight = textureheight[sky1texture];
-	// fskyheight = textureheight[defaultsky->background.texnum];
+	fskyheight = textureheight[defaultsky->background.texnum];
 
 	if (fskyheight <= (128 << FRACBITS))
 	{
-		sky1texturemid = 200/2*FRACUNIT;
+		defaultskytexturemid = 200/2*FRACUNIT;
 		skystretch = (r_stretchsky == 1) || consoleplayer().spectator || (r_stretchsky == 2 && sv_freelook && cl_mouselook);
 	}
 	else
 	{
-		sky1texturemid = 199<<FRACBITS;//textureheight[sky1texture]-1;
+		defaultskytexturemid = 199<<FRACBITS;
 		skystretch = 0;
 	}
 	skyheight = fskyheight << skystretch;
@@ -585,9 +569,9 @@ void R_SetDefaultSky(const char* sky)
 }
 
 //
-// R_BlastSkyBackgroundColumn
+// R_BlastSkyColumn
 //
-static inline void R_BlastSkyBackgroundColumn(void (*drawfunc)(void))
+static inline void R_BlastSkyColumn(void (*drawfunc)(void))
 {
 	if (dcol.yl <= dcol.yh)
 	{
@@ -597,9 +581,9 @@ static inline void R_BlastSkyBackgroundColumn(void (*drawfunc)(void))
 	}
 }
 
-inline void SkyBackgroundColumnBlaster()
+inline void SkyColumnBlaster()
 {
-	R_BlastSkyBackgroundColumn(colfunc);
+	R_BlastSkyColumn(colfunc);
 }
 
 inline bool R_PostDataIsTransparent(byte* data)
@@ -609,56 +593,6 @@ inline bool R_PostDataIsTransparent(byte* data)
 		return true;
 	}
 	return false;
-}
-
-//
-// R_BlastSkyForegroundColumn
-//
-static inline void R_BlastSkyForegroundColumn(void (*drawfunc)(void))
-{
-	if (dcol.yl <= dcol.yh)
-	{
-		tallpost_t* post = dcol.post;
-
-		int yl = dcol.yl;
-		int yh = dcol.yh;
-
-		while (!post->end())
-		{
-			dcol.yl = yl;
-			dcol.yh = yh;
-
-			dcol.texturefrac = dcol.texturemid - (post->topdelta << FRACBITS) + (dcol.yl - centery + 1) * dcol.iscale;
-
-			if (dcol.texturefrac < 0)
-			{
-				int cnt = (FixedDiv(-dcol.texturefrac, dcol.iscale) + FRACUNIT - 1) >> FRACBITS;
-				dcol.yl += cnt;
-				dcol.texturefrac += cnt * dcol.iscale;
-			}
-
-			const fixed_t endfrac = dcol.texturefrac + (dcol.yh - dcol.yl) * dcol.iscale;
-			const fixed_t maxfrac = post->length << FRACBITS;
-
-			if (endfrac >= maxfrac)
-			{
-				int cnt = (FixedDiv(endfrac - maxfrac - 1, dcol.iscale) + FRACUNIT - 1) >> FRACBITS;
-				dcol.yh -= cnt;
-			}
-
-			dcol.source = post->data();
-
-			if (dcol.yl >= 0 && dcol.yh < viewheight && dcol.yl <= dcol.yh)
-				drawfunc();
-
-			post = post->next();
-		}
-	}
-}
-
-inline void SkyForegroundColumnBlaster()
-{
-	R_BlastSkyForegroundColumn(colfunc);
 }
 
 bool R_IsSkyFlat(int flatnum)
@@ -694,8 +628,8 @@ void R_RenderSkyRange(visplane_t* pl)
 	fixed_t sky2scalex = INT2FIXED(1);
 	fixed_t sky1scaley = INT2FIXED(1);
 	fixed_t sky2scaley = INT2FIXED(1);
-	fixed_t sky1mid = sky1texturemid;
-	fixed_t sky2mid = sky2texturemid;
+	fixed_t sky1mid = defaultskytexturemid;
+	fixed_t sky2mid = defaultskytexturemid;
 
 	if (skyflat != skyflatlookup.end())
 	{
@@ -758,7 +692,7 @@ void R_RenderSkyRange(visplane_t* pl)
 		front_offset = (-side->textureoffset) >> 6;
 
 		// Vertical offset allows careful sky positioning.
-		sky1texturemid = side->rowoffset - 28*FRACUNIT;
+		defaultskytexturemid = side->rowoffset - 28*FRACUNIT;
 
 		// We sometimes flip the picture horizontally.
 		//
@@ -808,7 +742,7 @@ void R_RenderSkyRange(visplane_t* pl)
 		}
 
 		R_RenderColumnRange(pl->minx, pl->maxx, (int*)pl->top, (int*)pl->bottom,
-				skyposts, SkyBackgroundColumnBlaster, false, columnmethod);
+				skyposts, SkyColumnBlaster, false, columnmethod);
 	}
 
 	dcol.iscale = FixedMul(skyiscale, sky1scaley) >> skystretch;
@@ -827,7 +761,7 @@ void R_RenderSkyRange(visplane_t* pl)
 		}
 
 		R_RenderColumnRange(pl->minx, pl->maxx, (int*)pl->top, (int*)pl->bottom,
-			skyposts, SkyBackgroundColumnBlaster, false, columnmethod);
+			skyposts, SkyColumnBlaster, false, columnmethod);
 	}
 	else
 	{
@@ -837,54 +771,55 @@ void R_RenderSkyRange(visplane_t* pl)
 			sky1colnum = FIXED2INT(FixedMul(INT2FIXED(sky1colnum), sky1scalex));
 			tallpost_t* skypost = R_GetTextureColumn(frontskytex, sky1colnum);
 
+			int count = MIN<int> (512, textureheight[frontskytex] >> FRACBITS);
+			int destpostlen = 0;
+
 			tallpost_t* destpost = (tallpost_t*)transparentskybuffer[x];
 
 			tallpost_t* orig = destpost;
-			// this method sometimes ends up with a few 0 length posts, which isn't an issue but could be improved
-			while (!skypost->end())
+
+			destpost->topdelta = 0;
+
+			while (destpostlen < count)
 			{
-				bool transfound = false;
-				int desttopdelta = 0;
-				for (int i = 0; i < skypost->length; i++)
+				int remaining = count - destpostlen; // pixels remaining to be replenished
+
+				if (skypost->topdelta == destpostlen)
 				{
-					if (R_PostDataIsTransparent(skypost->data() + i))
-					{
-						if (!transfound)
-						{
-							transfound = true;
-							std::memcpy(destpost->data(), skypost->data() + desttopdelta, i - desttopdelta);
-							destpost->length = i - desttopdelta;
-							destpost->topdelta = skypost->topdelta + desttopdelta;
-						}
-					}
-					else
-					{
-						if (transfound)
-						{
-							desttopdelta = i;
-							destpost = destpost->next();
-						}
-						transfound = false;
-					}
+					// valid first sky, grab its data and advance the pixel
+					memcpy(destpost->data() + destpostlen, skypost->data(), skypost->length);
+					destpostlen += skypost->length;
 				}
-				if (!transfound)
+				else
 				{
-					std::memcpy(destpost->data(), skypost->data() + desttopdelta, skypost->length - desttopdelta);
-					destpost->length = skypost->length - desttopdelta;
-					destpost->topdelta = skypost->topdelta + desttopdelta;
+					// sky1 top delta is less than current pixel, lets get palette 0 up to the pixel
+					int cursky1delta = abs((skypost->end() ? remaining : skypost->topdelta) - destpostlen);
+					int translen = cursky1delta > remaining ? remaining : cursky1delta;
+					memset(destpost->data() + destpostlen, 0,
+					       translen);
+					destpostlen += translen;
 				}
-				destpost = destpost->next();
-				skypost = skypost->next();
+
+				if (!skypost->next()->end() && destpostlen >= skypost->topdelta + skypost->length)
+				{
+					skypost = skypost->next();
+				}
+
+				destpost->length = destpostlen;
 			}
 
+			// finish the post up.
+			destpost = destpost->next();
 			destpost->length = 0;
 			destpost->writeend();
 
 			skyposts[x] = orig;
 		}
 
+		R_SetSkyForegroundDrawFuncs();
+
 		R_RenderColumnRange(pl->minx, pl->maxx, (int*)pl->top, (int*)pl->bottom,
-			skyposts, SkyForegroundColumnBlaster, false, columnmethod);
+			skyposts, SkyColumnBlaster, false, columnmethod);
 	}
 
 	R_ResetDrawFuncs();
