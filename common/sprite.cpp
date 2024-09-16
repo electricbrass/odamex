@@ -4,35 +4,25 @@
 #include <string.h>
 
 #include "sprite.h"
-#include "odamex_objects.h"
+#include "doom_obj_container.h"
 
 #include <sstream>
 
 //----------------------------------------------------------------------------------------------
-template <>
-DoomObjectContainer<const char*, spritenum_t>::~DoomObjectContainer()
+
+template<>
+inline void DoomObjectContainer<const char*, spritenum_t>::clear()
 {
 	if (this->container != nullptr)
 	{
 		for (int i = 0; i < this->num_types; i++)
 		{
-			free((char*)this->container[i]);
+			char* p = (char*)this->container[i];
+			M_Free(p);
 		}
-		M_Free_Ref(this->container);
 	}
 }
 
-template<>
-void DoomObjectContainer<const char*, spritenum_t>::clear()
-{
-	if (this->container != nullptr)
-	{
-		for (int i = 0; i < this->num_types; i++)
-		{
-			free((char*)this->container[i]);
-		}
-	}
-}
 //----------------------------------------------------------------------------------------------
 
 // global variables from info.h

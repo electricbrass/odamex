@@ -28,7 +28,7 @@
 // Needed for action function pointer handling.
 #include "dthinker.h"
 #include "farchive.h"
-#include "odamex_objects.h"
+#include "doom_obj_container.h"
 
 typedef enum
 {
