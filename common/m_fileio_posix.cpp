@@ -177,6 +177,37 @@ std::string M_GetWriteDir()
 	return path;
 }
 
+std::string M_GetDownloadDir()
+{
+	// Our path is relative to the home directory.
+	std::string path = M_GetHomeDir();
+	if (!M_IsPathSep(*(path.end() - 1)))
+	{
+		path += PATHSEP;
+	}
+	path += ".odamex" PATHSEP "downloads";
+
+	// Create the directory.
+	struct stat info;
+	if (stat(path.c_str(), &info) == -1)
+	{
+		if (mkdir(path.c_str(), S_IRUSR | S_IWUSR | S_IXUSR) == -1)
+		{
+			I_FatalError("Failed to create %s directory:\n%s", path.c_str(),
+			             strerror(errno));
+		}
+	}
+	else
+	{
+		if (!S_ISDIR(info.st_mode))
+		{
+			I_FatalError("%s must be a directory", path.c_str());
+		}
+	}
+
+	return path;
+}
+
 std::string M_GetScreenshotDir()
 {
 	// Our path is relative to the home directory.
