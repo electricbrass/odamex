@@ -345,7 +345,7 @@ odaproto::svc::SpawnMobj SVC_SpawnMobj(AActor* mo)
 	cur->set_netid(mo->netid);
 
 	// denis - sending state fixes monster ghosts appearing under doors
-	cur->set_statenum(STATE_NUM(mo)); 
+	cur->set_statenum(STATE_NUM(mo));
 
 	if (mo->type == MT_FOUNTAIN)
 	{
@@ -614,7 +614,7 @@ odaproto::svc::KillMobj SVC_KillMobj(AActor* source, AActor* target, AActor* inf
 	tgt->set_rndindex(target->rndindex);
 
 	// [SL] 2012-12-26 - Get real position since this actor is at
-	// a reconciled position with sv_unlag 1
+	// a reconciled position due to unlag
 	fixed_t xoffs = 0, yoffs = 0, zoffs = 0;
 	if (target->player)
 	{
