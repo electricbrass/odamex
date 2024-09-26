@@ -300,3 +300,203 @@ BEGIN_COMMAND(cvardoc)
 	Printf("Wrote %ld bytes to \"%s\"\n", bytes, path.c_str());
 }
 END_COMMAND(cvardoc)
+
+/**
+ * @brief Render cvar information as Markdown, formatted to match the GitHub wiki page.
+ *
+ * @param out Output buffer to write to.
+ * @param cvar Cvar to read.
+ */
+static void MdCvarRow(std::string& out, const cvar_t& cvar)
+{
+	std::vector<std::string> info;
+	std::string type = "";
+	switch (cvar.type())
+	{
+	case CVARTYPE_BOOL:
+		type = " [bool]";
+		break;
+	case CVARTYPE_BYTE:
+		type = " [byte]";
+		break;
+	case CVARTYPE_WORD:
+		type = " [short]";
+		break;
+	case CVARTYPE_INT:
+		type = " [number]";
+		break;
+	case CVARTYPE_FLOAT:
+		type = " [float]";
+		break;
+	case CVARTYPE_STRING:
+		type = " [string]";
+		break;
+	case CVARTYPE_NONE:
+	case CVARTYPE_MAX:
+		return;
+		break;
+	}
+
+	// Default and range
+	switch (cvar.type())
+	{
+	case CVARTYPE_BOOL: {
+		int val = atoi(cvar.getDefault().c_str());
+		info.push_back(val == 0 ? "Default: False" : "Default: True");
+		break;
+	}
+	case CVARTYPE_BYTE:
+	case CVARTYPE_WORD:
+	case CVARTYPE_INT: {
+		std::string buffer;
+		int val = atoi(cvar.getDefault().c_str());
+		StrFormat(buffer, "Default: %d", val);
+		info.push_back(buffer);
+
+		if (cvar.getMinValue() != -FLT_MAX)
+		{
+			StrFormat(buffer, "Min: %d", static_cast<int>(cvar.getMinValue()));
+			info.push_back(buffer);
+		}
+
+		if (cvar.getMaxValue() != FLT_MAX)
+		{
+			StrFormat(buffer, "Max: %d", static_cast<int>(cvar.getMaxValue()));
+			info.push_back(buffer);
+		}
+
+		break;
+	}
+	case CVARTYPE_FLOAT: {
+		std::string buffer;
+		float val = atof(cvar.getDefault().c_str());
+		StrFormat(buffer, "Default: %f", val);
+		info.push_back(buffer);
+
+		if (cvar.getMinValue() != -FLT_MAX)
+		{
+			StrFormat(buffer, "Min: %f", cvar.getMinValue());
+			info.push_back(buffer);
+		}
+
+		if (cvar.getMaxValue() != FLT_MAX)
+		{
+			StrFormat(buffer, "Max: %f", cvar.getMaxValue());
+			info.push_back(buffer);
+		}
+
+		break;
+	}
+	case CVARTYPE_STRING:
+		if (!cvar.getDefault().empty())
+		{
+			std::string buf;
+			StrFormat(buf, "Default: \"%s\"", cvar.getDefault().c_str());
+			info.push_back(buf);
+		}
+		break;
+	case CVARTYPE_NONE:
+	case CVARTYPE_MAX:
+		return;
+		break;
+	}
+
+	if (cvar.flags() & CVAR_USERINFO)
+		info.push_back("Added to userinfo");
+	if (cvar.flags() & CVAR_SERVERINFO)
+		info.push_back("Servers tell clients when changed");
+	if (cvar.flags() & CVAR_NOSET)
+		info.push_back("Can't be set");
+	if (cvar.flags() & CVAR_LATCH)
+		info.push_back("Latched");
+	if (cvar.flags() & CVAR_UNSETTABLE)
+		info.push_back("Can be unset");
+	if (cvar.flags() & CVAR_NOENABLEDISABLE)
+		info.push_back("No Enable/Disable");
+	if (cvar.flags() & CVAR_SERVERARCHIVE)
+		info.push_back("Saved on the server");
+	if (cvar.flags() & CVAR_CLIENTARCHIVE)
+		info.push_back("Saved on the client");
+
+	std::string flagstr = JoinStrings(info, ", ");
+
+	const char* ROW = "\n\n`%s%s`\n"
+	                  "<dd>"
+	                  "\n\n*%s*"
+	                  "\n\n%s"
+	                  "</dd>";
+	StrFormat(out, ROW, cvar.name(), type.c_str(), flagstr.c_str(), cvar.helptext());
+}
+
+BEGIN_COMMAND(cvardocmd)
+{
+	std::string buffer;
+	std::string path = M_GetWriteDir();
+	if (!M_IsPathSep(*(path.end() - 1)))
+	{
+		path += PATHSEP;
+	}
+
+#ifdef CLIENT_APP
+	path += "odamex_cvardoc.md";
+#else
+	path += "odasrv_cvardoc.md";
+#endif
+
+	// Try and open a file in our write directory.
+	FILE* fh = fopen(path.c_str(), "wt+");
+	if (fh == NULL)
+	{
+		Printf("error: Could not open \"%s\" for writing.\n", path.c_str());
+		return;
+	}
+
+	// First the header.
+	std::string title;
+	StrFormat(title, "%s %s Console Variables", CS_STRING, DOTVERSIONSTR);
+	fwrite(buffer.data(), sizeof(char), buffer.size(), fh);
+
+	// Then the title and initial paragraph.
+	const char* PREAMBLE =
+	    "## %s"
+	    "\n\n"
+	    "These are the console variables known to the " CS_STRING " as of revision %s."
+	    "\n\n"
+	    "In order to understand some of the documentation below, it's important to get "
+	    "some definitions out of the way first. Console variables fall into the following categories:\n"
+		"- `[bool]` means that the setting is a boolean, either `0/false` for off or `1/true` for on.\n"
+		"- `[byte]` is a whole number (integer) from 0-255.\n"
+		"- `[short]` is a whole number (integer) from 0-65535.\n"
+		"- `[number]` is a whole number that falls into neither of the prior categories.\n"
+		"- `[float]` is a number than can have a decimal point.\n"
+		"- `[string]` is a text string (e.g., `\"My website\"`), and likely should be enclosed in quotation marks (especially if there are spaces present in your desired string). If you want newlines/returns in your text strings, you use the `\n` escape character. E.g., `\"My website:\nhttps://odamex.net\"`."
+	    "\n\n";
+
+	StrFormat(buffer, PREAMBLE, title.c_str(), NiceVersion());
+	fwrite(buffer.data(), sizeof(char), buffer.size(), fh);
+
+	// Initial tag for cvars.
+	fputs("<dl>", fh);
+
+	// Stamp out our CVars
+	CvarView view = GetSortedCvarView();
+	for (CvarView::const_iterator it = view.begin(); it != view.end(); ++it)
+	{
+		// TODO: place section headers
+		MdCvarRow(buffer, **it);
+		fwrite(buffer.data(), sizeof(char), buffer.size(), fh);
+	}
+
+	// Ending tag for cvars.
+	fputs("</dl>", fh);
+
+	// Lastly the footer.
+	fwrite(buffer.data(), sizeof(char), buffer.size(), fh);
+
+	long bytes = ftell(fh);
+	fclose(fh);
+
+	// Success!
+	Printf("Wrote %ld bytes to \"%s\"\n", bytes, path.c_str());
+}
+END_COMMAND(cvardocmd)
