@@ -490,9 +490,6 @@ BEGIN_COMMAND(cvardocmd)
 	// Ending tag for cvars.
 	fputs("</dl>", fh);
 
-	// Lastly the footer.
-	fwrite(buffer.data(), sizeof(char), buffer.size(), fh);
-
 	long bytes = ftell(fh);
 	fclose(fh);
 
