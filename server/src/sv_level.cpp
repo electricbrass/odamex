@@ -310,10 +310,6 @@ void G_RestartMap() {
 		AddCommandString(sv_endmapscript.cstring());
 }
 
-BEGIN_COMMAND (nextmap) {
-	G_ExitLevel(0, 1);
-} END_COMMAND (nextmap)
-
 BEGIN_COMMAND (forcenextmap) {
 	G_ChangeMap();
 } END_COMMAND (forcenextmap)

@@ -519,6 +519,10 @@ BEGIN_COMMAND (map)
 }
 END_COMMAND (map)
 
+BEGIN_COMMAND (nextmap) {
+	G_ExitLevel(0, 1);
+} END_COMMAND (nextmap)
+
 char *CalcMapName(int episode, int level)
 {
 	static char lumpname[9];
