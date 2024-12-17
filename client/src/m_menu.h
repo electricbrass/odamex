@@ -102,6 +102,7 @@ typedef enum {
 	listelement,
 	joyactive,
 	joyaxis,
+	listwheel,
 	nochoice
 } itemtype;
 
@@ -142,6 +143,8 @@ typedef struct menuitem_s {
 	} e;
 } menuitem_t;
 
+// todo: use listwheel with lfunc as callback that takes one of the ints from a b or c as the index of the list to do smth with except how does the function know the list
+
 typedef struct menu_s {
 	char			title[9];
 	int				lastOn;
@@ -149,7 +152,7 @@ typedef struct menu_s {
 	int				indent;
 	menuitem_t	   *items;
 	int				scrolltop;
-	int				scrollpos;	
+	int				scrollpos;
 	void			(*refreshfunc)();	// Callback func for M_OptResponder
 } menu_t;
 

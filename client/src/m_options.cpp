@@ -54,9 +54,10 @@
 #include "i_music.h"
 #include "i_musicsystem.h"
 
-
 #include "m_misc.h"
 #include "cl_demo.h"
+
+#include "g_skill.h"
 
 // Data.
 #include "m_menu.h"
@@ -278,7 +279,7 @@ static void CompatOptions (void);
 static void NetworkOptions (void);
 static void WeaponOptions (void);
 static void GoToConsole (void);
-static void GoToConsole (void);
+static void LevelSelect (void);
 void Reset2Defaults (void);
 void Reset2Saved (void);
 
@@ -299,6 +300,7 @@ static menuitem_t OptionItems[] =
 	{ more,		"Set Video Mode",		{NULL},					{0.0}, {0.0},	{0.0}, {(value_t *)SetVidMode} },
     { redtext,	" ",					{NULL},					{0.0}, {0.0},	{0.0}, {NULL} },
 	{ more,		"Go To Console",		{NULL},					{0.0}, {0.0},	{0.0}, {(value_t *)GoToConsole} },
+	{ more,		"Level Select",			{NULL},					{0.0}, {0.0},	{0.0}, {(value_t *)LevelSelect} },
     { redtext,	" ",					{NULL},					{0.0}, {0.0},	{0.0}, {NULL} },
 	{ discrete,	"Always Run",			{&cl_run},				{2.0}, {0.0},	{0.0}, {OnOff} },
  	{ discrete, "Skip Boot Window",		{&i_skipbootwin},		{2.0}, {0.0},	{0.0}, {OnOff} },
@@ -635,6 +637,41 @@ menu_t CompatMenu = {
 	0,
 	0,
 	NULL,
+};
+
+/*=======================================
+ *
+ * Level Select Menu
+ *
+ *=======================================*/
+EXTERN_CVAR (sv_skill)
+
+static menuitem_t LevSelItems[] ={
+	{listwheel, "", {NULL}, {0.0}, {0.0}, {0.0}, {NULL}}, // map list -- completely unimplemented
+	{redtext, "", {NULL}, {0.0}, {0.0}, {0.0}, {NULL}}, // spacing
+	{whitetext, "By: American McGee", {NULL}, {0.0}, {0.0}, {0.0}, {NULL}}, // author -- need to be able to modify this based on currently highlighted level, want a separate item to make listwheel more general purpose
+	{redtext, "", {NULL}, {0.0}, {0.0}, {0.0}, {NULL}}, // spacing
+	{slider, "Skill Level", {&sv_skill}, {0.0}, {0.0}, {1.0}, {NULL}}, // skill -- slider is weird, this doesnt work: sv_skill is latched, and we dont want this to modify it if start game isnt selected
+	{redtext, "", {NULL}, {0.0}, {0.0}, {0.0}, {NULL}}, // spacing
+	{more, "Start Game", {NULL}, {0.0}, {0.0}, {0.0}, {NULL}}, // start game
+};
+
+static void M_UpdateLevelSelect()
+{
+	const static size_t menu_length = ARRAY_LENGTH(LevSelItems);
+	const static size_t skill_index = M_FindCvarInMenu(sv_skill, LevSelItems, menu_length);
+	LevSelItems[skill_index].c.rightval = static_cast<float>(skillnum);
+}
+
+menu_t LevelSelectMenu = {
+	"M_LEVSEL",
+	1,
+	ARRAY_LENGTH(LevSelItems),
+	144,
+	LevSelItems,
+	0,
+	0,
+	&M_UpdateLevelSelect,
 };
 
 
@@ -1627,6 +1664,10 @@ void M_OptDrawer (void)
 				|| WaitingForAxis || testingmode))
 				screen->DrawPatchClean (W_CachePatch ("LITLCURS"), item->a.selmode * 104 + 8, y);
 		}
+		else if (item->type == listwheel)
+		{
+			// MIA TODO: draw list wheels
+		}
 		else
 		{
 			width = V_StringWidth (item->label);
@@ -2521,6 +2562,12 @@ void SoundOptions (void) // [Ralphis] for sound menu
 void CompatOptions (void) // [Ralphis] for compatibility menu
 {
 	M_SwitchMenu (&CompatMenu);
+}
+
+void LevelSelect (void) // [electricbrass] for level select
+{
+	// TODO: populate the list for the level select
+	M_SwitchMenu (&LevelSelectMenu);
 }
 
 void NetworkOptions (void)
