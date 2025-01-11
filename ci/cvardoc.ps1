@@ -22,7 +22,7 @@ Copy-Item -Path `
 
 Set-Location "cvardoc"
 
-.\odamex.exe +exec "cvardoc.cfg" +logfile "odamex.log" +developer 1
+.\odamex.exe +exec "cvardoc.cfg" -novideo +logfile "odamex.log" +developer 1
 
 ls
 
