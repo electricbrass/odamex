@@ -1,11 +1,11 @@
 name: Windows
 
-on: 
+on:
   push:
     branches-ignore:
     - 'release/[0-9]+.[0-9]+.[0-9]+'
   pull_request:
-    
+
 
 jobs:
   pre_job:
@@ -80,6 +80,13 @@ jobs:
       with:
         name: Odamex-Win-x64
         path: 'build/artifact/*'
+    - name: Prepare updated wiki pages
+      run: ./ci/cvardoc.ps1
+    - name: Checkout wiki
+      uses: actions/checkout@v4
+      with:
+        repository: ${{github.repository}}.wiki
+        path: build\wiki
   build-x32:
     name: Build (Visual Studio, 32-bit)
     runs-on: windows-latest

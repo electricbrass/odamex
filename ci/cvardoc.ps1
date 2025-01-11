@@ -1,7 +1,7 @@
 Set-PSDebug -Trace 1
 
 Set-Location "build"
-New-Item -Name "wiki-cvardoc" -ItemType "directory" | Out-Null
+New-Item -Name "cvardoc" -ItemType "directory" | Out-Null
 
 # Copy all built files into cvardoc directory
 Copy-Item -Path `
@@ -18,12 +18,18 @@ Copy-Item -Path `
     "C:\Windows\System32\msvcp140.dll", `
     "C:\Windows\System32\vcruntime140.dll", `
     "C:\Windows\System32\vcruntime140_1.dll" `
-    -Destination "wiki-cvardoc"
+    -Destination "cvardoc"
 
-Set-Location "wiki-cvardoc"
+Set-Location "cvardoc"
 
-.\odamex.exe -iwad fake.wad +exec "cvardoc.cfg"
-.\odasrv.exe +exec "cvardoc.cfg"
+.\odamex.exe +exec "cvardoc.cfg" +logfile "odamex.log" +developer 1
+
+ls
+
+Get-Content ".\odamex.log"
+
+Get-Content ".\odamex_cvardoc.md"
+# .\odasrv.exe +exec "cvardoc.cfg"
 
 Set-Location ..
 Set-Location ..
