@@ -936,8 +936,8 @@ void R_DrawSprite (vissprite_t *spr)
 	{
 		if (spr->FakeFlat != FAKED_AboveCeiling)
 		{
-			fixed_t h = P_FloorHeight(spr->heightsec);
-			h = (centeryfrac - FixedMul(h - viewz, spr->yscale)) >> FRACBITS;
+			fixed64_t h = P_FloorHeight(spr->heightsec);
+			h = (FIXED2FIXED64(centeryfrac) - FixedMul64(FIXED2FIXED64(h - viewz), FIXED2FIXED64(spr->yscale))) >> FRACBITS64;
 
 			if (spr->FakeFlat == FAKED_BelowFloor)
 			{ // seen below floor: clip top
@@ -952,8 +952,8 @@ void R_DrawSprite (vissprite_t *spr)
 		}
 		if (spr->FakeFlat != FAKED_BelowFloor)
 		{
-			fixed_t h = P_CeilingHeight(spr->heightsec);
-			h = (centeryfrac - FixedMul(h - viewz, spr->yscale)) >> FRACBITS;
+			fixed64_t h = P_CeilingHeight(spr->heightsec);
+			h = (FIXED2FIXED64(centeryfrac) - FixedMul64(FIXED2FIXED64(h - viewz), FIXED2FIXED64(spr->yscale))) >> FRACBITS64;
 
 			if (spr->FakeFlat == FAKED_AboveCeiling)
 			{ // seen above ceiling: clip bottom
