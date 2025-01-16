@@ -647,7 +647,11 @@ menu_t CompatMenu = {
 EXTERN_CVAR (sv_skill)
 
 static menuitem_t LevSelItems[] ={
-	{listwheel, "", {NULL}, {0.0}, {0.0}, {0.0}, {NULL}}, // map list -- completely unimplemented
+	{levelsel, "", {NULL}, {0.0}, {0.0}, {0.0}, {NULL}}, // map list -- completely unimplemented
+	{levelsel, "", {NULL}, {0.0}, {0.0}, {0.0}, {NULL}}, // map list -- completely unimplemented
+	{levelsel, "", {NULL}, {0.0}, {0.0}, {0.0}, {NULL}}, // map list -- completely unimplemented
+	{levelsel, "", {NULL}, {0.0}, {0.0}, {0.0}, {NULL}}, // map list -- completely unimplemented
+	{levelsel, "", {NULL}, {0.0}, {0.0}, {0.0}, {NULL}}, // map list -- completely unimplemented
 	{redtext, "", {NULL}, {0.0}, {0.0}, {0.0}, {NULL}}, // spacing
 	{whitetext, "By: American McGee", {NULL}, {0.0}, {0.0}, {0.0}, {NULL}}, // author -- need to be able to modify this based on currently highlighted level, want a separate item to make listwheel more general purpose
 	{redtext, "", {NULL}, {0.0}, {0.0}, {0.0}, {NULL}}, // spacing
@@ -1664,9 +1668,18 @@ void M_OptDrawer (void)
 				|| WaitingForAxis || testingmode))
 				screen->DrawPatchClean (W_CachePatch ("LITLCURS"), item->a.selmode * 104 + 8, y);
 		}
-		else if (item->type == listwheel)
+		else if (item->type == levelsel)
 		{
-			// MIA TODO: draw list wheels
+			const level_pwad_info_t& info = getLevelInfos().at(i);
+			std::string str = info.clearlabel ? info.level_name : fmt::format("{}: {}", info.label.empty() ? info.mapname : info.label, info.level_name);
+			width = V_StringWidth (str.c_str());
+			if (i == 0 || i == 4)
+				color = CR_DARKGRAY;
+			else if (i == 1 || i == 3)
+				color = CR_WHITE;
+			else
+				color = CR_RED;
+			screen->DrawTextCleanMove (color, 160 - width / 2, y, str.c_str());
 		}
 		else
 		{

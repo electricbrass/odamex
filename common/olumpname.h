@@ -99,3 +99,6 @@ struct std::hash<OLumpName>
 		return val;
 	}
 };
+
+auto inline format_as(OLumpName& s) { return s.data(); }
+auto inline format_as(const OLumpName& s) { return s.data(); }
