@@ -25,75 +25,83 @@
 #include "oscanner.h"
 #include "w_wad.h"
 
-typedef void (*OptionTypeFunctionPtr)(OScanner&, int*, unsigned int);
+typedef void (*OptionTypeFunctionPtr)(unsigned int, unsigned int*, unsigned int);
 
-struct mbf21_option_t
+void OptionTypeBool(unsigned int value, unsigned int* data, unsigned int flag)
 {
-    const char* name;
-    OptionTypeFunctionPtr fn;
-    int* data;
-    unsigned int flags = 0;
-};
-
-void OptionTypeBool(OScanner& os, int* data, unsigned int flag)
-{
-    os.mustScanInt();
     // just treat non-zero as true
-    if (os.getTokenInt())
+    if (value)
         *data |= flag;
     else
         *data &= ~flag;
 }
 
-void OptionTypeInt(OScanner& os, int* data, unsigned int max)
+void OptionTypeInt(unsigned int value, unsigned int* data, unsigned int max)
 {
-    os.mustScanInt();
-    *data = clamp(os.getTokenInt(), 0, (int) max);
+    *data = clamp(value, 0u, max);
 }
 
-static constexpr int NUM_MBF21_OPTIONS = 36;
+struct mbf21_option_t
+{
+    const char* name;
+    unsigned int* data = nullptr;
+    unsigned int flags = 0;
+    OptionTypeFunctionPtr fn = &OptionTypeBool;
+};
 
-static constexpr std::array<mbf21_option_t, NUM_MBF21_OPTIONS> options = {{
-    { "weapon_recoil", &OptionTypeBool, nullptr },
-    { "monsters_remember", &OptionTypeBool, nullptr },
-    { "monster_infighting", &OptionTypeBool, nullptr },
-    { "monster_backing", &OptionTypeBool, nullptr },
-    { "monster_avoid_hazards", &OptionTypeBool, nullptr },
-    { "monkeys", &OptionTypeBool, nullptr },
-    { "monster_friction", &OptionTypeBool, nullptr },
-    { "help_friends", &OptionTypeBool, nullptr },
-    { "player_helpers", &OptionTypeInt, nullptr, 3 },
-    { "friend_distance", &OptionTypeInt, nullptr, 999 },
-    { "dog_jumping", &OptionTypeBool, nullptr },
-    { "comp_telefrag", &OptionTypeBool, nullptr },
-    { "comp_dropoff", &OptionTypeBool, nullptr },
-    { "comp_vile", &OptionTypeBool, nullptr },
-    { "comp_pain", &OptionTypeBool, nullptr },
-    { "comp_skull", &OptionTypeBool, nullptr },
-    { "comp_blazing", &OptionTypeBool, nullptr },
-    { "comp_doorlight", &OptionTypeBool, nullptr },
-    { "comp_model", &OptionTypeBool, nullptr },
-    { "comp_god", &OptionTypeBool, nullptr },
-    { "comp_fallof", &OptionTypeBool, nullptr },
-    { "comp_floors", &OptionTypeBool, nullptr },
-    { "comp_skymap", &OptionTypeBool, nullptr },
-    { "comp_pursuit", &OptionTypeBool, nullptr },
-    { "comp_doorstuck", &OptionTypeBool, nullptr },
-    { "comp_staylift", &OptionTypeBool, nullptr },
-    { "comp_zombie", &OptionTypeBool, nullptr },
-    { "comp_stairs", &OptionTypeBool, nullptr },
-    { "comp_infcheat", &OptionTypeBool, nullptr },
-    { "comp_zerotags", &OptionTypeBool, nullptr },
-    { "comp_respawn", &OptionTypeBool, nullptr },
-    { "comp_soul", &OptionTypeBool, nullptr },
-    { "comp_ledgeblock", &OptionTypeBool, nullptr },
-    { "comp_friendlyspawn", &OptionTypeBool, nullptr },
-    { "comp_voodooscroller", &OptionTypeBool, nullptr },
-    { "comp_reservedlineflag", &OptionTypeBool, nullptr }
-}};
+struct OptionsSetter
+{
+    std::vector<mbf21_option_t> options;
+    OptionsSetter(level_pwad_info_t& ref)
+    {
+        options = {
+            { "weapon_recoil" },
+            { "monsters_remember" },
+            { "monster_infighting" },
+            { "monster_backing" },
+            { "monster_avoid_hazards" },
+            { "monkeys" },
+            { "monster_friction" },
+            { "help_friends" },
+            { "player_helpers", nullptr, 3, &OptionTypeInt },
+            { "friend_distance", nullptr, 999, &OptionTypeInt },
+            { "dog_jumping" },
+            { "comp_telefrag" },
+            { "comp_dropoff" },
+            { "comp_vile" },
+            { "comp_pain", &ref.flags, LEVEL_COMPAT_LIMITPAIN },
+            { "comp_skull" },
+            { "comp_blazing" },
+            { "comp_doorlight" },
+            { "comp_model" },
+            { "comp_god" },
+            { "comp_falloff" },
+            { "comp_floors" },
+            { "comp_skymap" },
+            { "comp_pursuit" },
+            { "comp_doorstuck" },
+            { "comp_staylift" },
+            { "comp_zombie" },
+            { "comp_stairs" },
+            { "comp_infcheat" },
+            { "comp_zerotags" },
+            { "comp_respawn" },
+            { "comp_soul" },
+            { "comp_ledgeblock" },
+            { "comp_friendlyspawn" },
+            { "comp_voodooscroller" },
+            { "comp_reservedlineflag" }
+        };
+    }
+};
+
+static std::vector<std::pair<std::string, uint32_t>> modifiedOptions;
 
 void G_ParseOptions()
 {
+    modifiedOptions.clear();
+    level_pwad_info_t dummy = level_pwad_info_t();
+    OptionsSetter setter(dummy);
     int lump = -1;
 	while ((lump = W_FindLump("OPTIONS", lump)) != -1)
 	{
@@ -108,20 +116,19 @@ void G_ParseOptions()
 
         while (os.scan())
         {
-            auto it = options.begin();
-            for (; it != options.end(); it++)
+            auto it = setter.options.begin();
+            for (; it != setter.options.end(); it++)
             {
                 if (os.compareTokenNoCase(it->name))
                 {
-                    if (it->data == nullptr)
-                        os.warning("Unimplemented OPTIONS key \"%s\"", os.getToken());
-                    else
-                        it->fn(os, it->data, it->flags);
+                    std::string name = os.getToken();
+                    os.mustScanInt();
+                    modifiedOptions.emplace_back(name, os.getTokenInt());
                     break;
                 }
             }
 
-            if (it == options.end())
+            if (it == setter.options.end())
             {
                 os.warning("Unknown OPTIONS key \"%s\"", os.getToken());
                 // skip the value
