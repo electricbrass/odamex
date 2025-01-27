@@ -68,6 +68,7 @@
 #include "w_wad.h"
 #include "z_zone.h"
 #include "g_musinfo.h"
+#include "g_options.h"
 
 #include "w_ident.h"
 
@@ -216,6 +217,7 @@ void D_Init()
 	S_ParseSndInfo();
 	G_ParseHordeDefs();
 	G_ReadCOMPLVL();
+	G_ParseOptions();
 
 	if (first_time)
 		PrintFmt(PRINT_HIGH, "P_Init: Init Playloop state.\n");
@@ -293,7 +295,6 @@ void D_DoomMain()
 	// Always log by default
 	if (!LOG.is_open())
 		C_DoCommand("logfile");
-
 
 	OWantFiles newwadfiles, newpatchfiles;
 

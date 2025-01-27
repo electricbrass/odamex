@@ -86,6 +86,7 @@
 #include "gui_boot.h"
 #include "g_musinfo.h"
 #include "g_episode.h"
+#include "g_options.h"
 
 extern size_t got_heapsize;
 
@@ -704,6 +705,7 @@ void D_Init()
 	S_ParseSndInfo();
 	G_ParseHordeDefs();
 	G_ReadCOMPLVL();
+	G_ParseOptions();
 
 	// init the menu subsystem
 	if (first_time)
