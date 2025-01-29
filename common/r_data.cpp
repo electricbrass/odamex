@@ -413,40 +413,24 @@ void R_GenerateLookup(int texnum, int *const errors)
 	texturecomposite[texnum] = 0;
 	int csize = 0;
 
-	// [RH] Always create a composite texture for multipatch textures
-	// or tall textures in order to keep things simpler.
-	bool needcomposite = (texture->patchcount > 1 || texture->height > 254);
-
-	// [SL] Check for columns without patches.
-	// If a texture has columns without patches, generate a composite for
-	// the texture, which will create empty posts and prevent crashes.
-	for (int x = 0; x < texture->width && !needcomposite; x++)
+	int x = texture->width;
+	while (--x >= 0)
 	{
-		if (patchcount[x] == 0)
-			needcomposite = true;
-	}
+		// killough 1/25/98, 4/9/98:
+		//
+		// Fix Medusa bug, by adding room for column header
+		// and trailer bytes for each post in merged column.
+		// For now, just allocate conservatively 4 bytes
+		// per post per patch per column, since we don't
+		// yet know how many posts the merged column will
+		// require, and it's bounded above by this limit.
 
-	if (needcomposite)
-	{
-		int x = texture->width;
-		while (--x >= 0)
-		{
-			// killough 1/25/98, 4/9/98:
-			//
-			// Fix Medusa bug, by adding room for column header
-			// and trailer bytes for each post in merged column.
-			// For now, just allocate conservatively 4 bytes
-			// per post per patch per column, since we don't
-			// yet know how many posts the merged column will
-			// require, and it's bounded above by this limit.
+		collump[x] = -1;				// mark lump as in need of compositing
 
-			collump[x] = -1;				// mark lump as multipatched
+		texturecolumnofs[texnum][x] = csize;
 
-			texturecolumnofs[texnum][x] = csize;
-
-			// 4 header bytes per post + column height + 2 byte terminator
-			csize += 4 * postcount[x] + 2 + texture->height;
-		}
+		// 4 header bytes per post + column height + 2 byte terminator
+		csize += 4 * postcount[x] + 2 + texture->height;
 	}
 
 	texturecompositesize[texnum] = csize;
@@ -905,7 +889,7 @@ void R_InitColormaps()
 				int r = pal->basecolors[*map].getr();
 				int g = pal->basecolors[*map].getg();
 				int b = pal->basecolors[*map].getb();
-				
+
 				W_GetOLumpName(fakecmaps[j].name, i);
 
 				for (int k = 1; k < 256; k++)

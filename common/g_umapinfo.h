@@ -20,4 +20,4 @@
 
 #pragma once
 
-void ParseUMapInfoLump(int lump, const char* lumpname);
+void ParseUMapInfoLump(int lump, const OLumpName& lumpname);

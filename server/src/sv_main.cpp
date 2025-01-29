@@ -75,7 +75,7 @@
 
 #include "server.pb.h"
 
-extern void G_DeferedInitNew (const char *mapname);
+extern void G_DeferedInitNew (const OLumpName& mapname);
 extern level_locals_t level;
 
 // Unnatural Level Progression.  True if we've used 'map' or another command
@@ -103,7 +103,6 @@ bool keysfound[NUMCARDS];		// Ch0wW : Found keys
 EXTERN_CVAR(sv_motd)
 EXTERN_CVAR(sv_hostname)
 EXTERN_CVAR(sv_email)
-EXTERN_CVAR(sv_waddownload)
 EXTERN_CVAR(sv_maxrate)
 EXTERN_CVAR(sv_emptyreset)
 EXTERN_CVAR(sv_emptyfreeze)
@@ -3880,6 +3879,24 @@ void SV_Cheat(player_t &player)
 		}
 
 	}
+	else if (cheatType == 2)
+	{
+		const char* wantsummon = MSG_ReadString();
+
+		if (!CHEAT_AreCheatsEnabled())
+			return;
+
+		AActor* actor = CHEAT_Summon(&player, wantsummon, false);
+
+		if (actor == NULL)
+			return;
+
+		for (Players::iterator it = players.begin(); it != players.end(); ++it)
+		{
+			client_t* cl = &it->client;
+			SV_SendMobjToClient(actor, cl);
+		}
+	}
 }
 
 void SV_WantWad(player_t &player)
@@ -4047,8 +4064,6 @@ void SV_ParseCommands(player_t &player)
 		}
 	 }
 }
-
-EXTERN_CVAR (sv_download_test)
 
 
 static void TimeCheck()
@@ -4243,7 +4258,7 @@ void SV_RunTics()
 		else
 		{
 			// [AM] Make a copy of mapname for safety's sake.
-			OLumpName mapname = ::level.mapname.c_str();
+			OLumpName mapname = ::level.mapname;
 			G_InitNew(mapname);
 		}
 	}

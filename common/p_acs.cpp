@@ -2191,7 +2191,19 @@ void DLevelScript::RunScript ()
 			break;
 		}
 
-		pcd = NEXTBYTE;
+		if (fmt == ACS_LittleEnhanced)
+		{
+			pcd = getbyte(pc);
+			if (pcd >= 240)
+			{
+				pcd = 240 + ((pcd - 240) << 8) + getbyte(pc);
+			}
+		}
+		else
+		{
+			pcd = NEXTWORD;
+		}
+
 		switch (pcd)
 		{
 		default:

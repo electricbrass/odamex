@@ -1256,7 +1256,7 @@ fixed_t P_FindShortestTextureAround (sector_t *sec)
 	int minsize = MAXINT;
 	side_t *side;
 	int i;
-	int mintex = co_boomphys ? 1 : 0;
+	int mintex = (co_boomphys && !(level.flags & LEVEL_COMPAT_SHORTTEX)) ? 1 : 0;
 
 	for (i = 0; i < sec->linecount; i++)
 	{
@@ -1291,7 +1291,7 @@ fixed_t P_FindShortestUpperAround (sector_t *sec)
 	int minsize = MAXINT;
 	side_t *side;
 	int i;
-	int mintex = co_boomphys ? 1 : 0;
+	int mintex = (co_boomphys && !(level.flags & LEVEL_COMPAT_SHORTTEX)) ? 1 : 0;
 
 	for (i = 0; i < sec->linecount; i++)
 	{

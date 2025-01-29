@@ -389,7 +389,7 @@ static void ParseAlias(OScanner& os)
 	g_aliasMap.insert(std::make_pair(alias, otype));
 }
 
-static void ParseHordeDef(const int lump, const char* name)
+static void ParseHordeDef(const int lump, const OLumpName& name)
 {
 	const char* buffer = static_cast<char*>(W_CacheLumpNum(lump, PU_STATIC));
 

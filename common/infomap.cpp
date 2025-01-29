@@ -26,6 +26,8 @@
 
 #include "hashtable.h"
 
+#include "c_dispatch.h"
+
 typedef OHashTable<std::string, mobjtype_t> MobjMap;
 
 /**
@@ -312,6 +314,7 @@ mobjtype_t P_NameToMobj(const std::string& name)
 	}
 
 	MobjMap::iterator it = ::g_MonsterMap.find(name);
+
 	if (it == ::g_MonsterMap.end())
 	{
 		return MT_NULL;
@@ -320,7 +323,8 @@ mobjtype_t P_NameToMobj(const std::string& name)
 }
 
 /**
- * @brief Convert a UMAPINFO/ZDoom class name to a MT Mobj index. Case insensitive for UMAPINFO
+ * @brief Convert a UMAPINFO/ZDoom class name to a MT Mobj index. Case insensitive for
+ * UMAPINFO
  */
 mobjtype_t P_INameToMobj(const std::string& name)
 {
@@ -398,3 +402,44 @@ weapontype_t P_NameToWeapon(const std::string& name)
 
 	return wp_none;
 }
+
+typedef std::pair<std::string, mobjtype_t> MobjPair;
+
+// Hashtables don't work with std::sort
+// This is a half measure to sort it without
+// Messing with the internals of hashtable.
+std::vector<MobjPair> OrderedMobjMap()
+{
+	std::vector<MobjPair> orderedVector;
+
+	for (MobjMap::iterator it = ::g_MonsterMap.begin(); it != ::g_MonsterMap.end(); ++it)
+	{
+		orderedVector.push_back(MobjPair(it->first, it->second));
+	}
+
+	std::sort(orderedVector.begin(), orderedVector.end(),
+			[](const auto& left, const auto& right) {
+		    return left.second < right.second;
+			});
+
+	return orderedVector;
+}
+
+BEGIN_COMMAND(dumpactors)
+{
+	if (::g_MonsterMap.empty())
+	{
+		InitMap();
+	}
+
+	std::vector<MobjPair> infomap = OrderedMobjMap();
+
+	PrintFmt(PRINT_HIGH, "Total amount of actors: {}\n", infomap.size());
+
+	for (std::vector<MobjPair>::iterator it = infomap.begin(); it != infomap.end();
+	     ++it)
+	{
+		PrintFmt(PRINT_HIGH, "{}\n", it->first);
+	}
+}
+END_COMMAND(dumpactors)

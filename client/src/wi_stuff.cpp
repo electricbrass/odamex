@@ -205,7 +205,7 @@ struct wi_animation_t
 	std::vector<wi_animationstate_t>* states;
 };
 
-static wi_animation_t* animation;
+static wi_animation_t animation;
 
 //
 // CODE
@@ -332,38 +332,33 @@ static void WI_updateAnimationStates(std::vector<wi_animationstate_t>& states)
 
 static void WI_updateAnimation(bool enteringcondition)
 {
-	if (!animation)
-	{
-		return;
-	}
-
-	animation->states = nullptr;
+	animation.states = nullptr;
 
 	if (!enteringcondition && exitanim)
 	{
-		animation->states = &animation->exiting_states;
+		animation.states = &animation.exiting_states;
 	}
 	else if (enteranim)
 	{
-		animation->states = &animation->entering_states;
+		animation.states = &animation.entering_states;
 	}
 
-	if (!animation->states)
+	if (!animation.states)
 		return;
 
-	WI_updateAnimationStates(*animation->states);
+	WI_updateAnimationStates(*animation.states);
 }
 
 static void WI_drawAnimation(void)
 {
-	if (!animation || !animation->states)
+	if (!animation.states)
 	{
 		return;
 	}
 
 	int scaled_x = (inter_width - 320) / 2;
 	DCanvas* canvas = anim_surface->getDefaultCanvas();
-	for (const auto& state : *animation->states)
+	for (const auto& state : *animation.states)
 	{
 		const interlevelframe_t& frame = state.frames.at(state.frame_index);
 		patch_t* patch = W_CachePatch(frame.imagelumpnum);
@@ -409,19 +404,14 @@ static void WI_initAnimationStates(std::vector<wi_animationstate_t>& out,
 
 static void WI_initAnimation(void)
 {
-	if (!animation)
-	{
-		return;
-	}
-
 	if (exitanim)
 	{
-		WI_initAnimationStates(animation->exiting_states, exitanim->layers, false);
+		WI_initAnimationStates(animation.exiting_states, exitanim->layers, false);
 	}
 
 	if (enteranim)
 	{
-		WI_initAnimationStates(animation->entering_states, enteranim->layers, true);
+		WI_initAnimationStates(animation.entering_states, enteranim->layers, true);
 	}
 
 	return;
@@ -507,9 +497,7 @@ static int WI_DrawName (const char *str, int x, int y)
 	::V_ColorMap = translationref_t(::Ranges + CR_GREY * 256);
 	while (*str)
 	{
-		char charname[9];
-		snprintf (charname, 9, "FONTB%02u", toupper(*str) - 32);
-		int lump = W_CheckNumForName(charname);
+		int lump = W_CheckNumForName(fmt::format("FONTB{:02d}", toupper(*str) - 32));
 
 		if (lump != -1)
 		{
@@ -1039,8 +1027,7 @@ void WI_drawNetgameStats()
 		// Display player names online!
 		if (!demoplayback)
 		{
-			std::string str = fmt::sprintf("%s", it->userinfo.netname.c_str());
-			WI_DrawSmallName(str.c_str(), x+10, y+24);
+			WI_DrawSmallName(it->userinfo.netname.c_str(), x+10, y+24);
 		}
 
 		x += NG_SPACINGX;
@@ -1161,6 +1148,10 @@ void WI_updateStats()
 			{
 				if (enteranim != nullptr && !enteranim->musiclump.empty())
 					S_ChangeMusic(enteranim->musiclump.c_str(), true);
+				else if (!nextlevel.zintermusic.empty())
+					S_ChangeMusic(nextlevel.zintermusic.c_str(), true);
+				else
+					S_ChangeMusic(gameinfo.intermissionMusic.c_str(), true);
 				// background
 				const char* bg_lump = enteranim == nullptr ? enterpic.c_str() : enteranim->backgroundlump.c_str();
 				const patch_t* bg_patch = W_CachePatch(bg_lump);
@@ -1275,9 +1266,17 @@ void WI_Ticker()
 
 	if (bcnt == 1)
 	{
+		level_pwad_info_t& currentlevel = getLevelInfos().findByName(wbs->current);
+
 		// intermission music
 		if (exitanim != nullptr && !exitanim->musiclump.empty())
 			S_ChangeMusic (exitanim->musiclump.c_str(), true);
+		else if (W_CheckNumForName(wbs->winner ? "D_OWIN" : "D_OLOSE") != -1)
+			S_ChangeMusic (wbs->winner ? "D_OWIN" : "D_OLOSE", true);
+		else if (W_CheckNumForName(wbs->winner ? "D_STWIN" : "D_STLOSE") != -1)
+			S_ChangeMusic (wbs->winner ? "D_STWIN" : "D_STLOSE", true);
+		else if (!currentlevel.zintermusic.empty())
+			S_ChangeMusic (currentlevel.zintermusic.c_str(), true);
 		else
 			S_ChangeMusic (gameinfo.intermissionMusic.c_str(), true);
 	}
@@ -1350,38 +1349,44 @@ static int WI_CalcWidth (const char *str)
 
 void WI_loadData()
 {
+	exitanim = enteranim = nullptr;
 	LevelInfos& levels = getLevelInfos();
 	level_pwad_info_t& currentlevel = levels.findByName(wbs->current);
 	level_pwad_info_t& nextlevel = levels.findByName(wbs->next);
 
-	animation = new wi_animation_t();
+	OLumpName winanim;
+	OLumpName winpic;
+	if (W_CheckNumForName(wbs->winner ? "WINANIM" : "LOSEANIM") != -1)
+		winanim = wbs->winner ? "WINANIM" : "LOSEANIM";
+	else if (W_CheckNumForName(wbs->winner ? "WINERPIC" : "LOSERPIC") != -1)
+		winpic = wbs->winner ? "WINERPIC" : "LOSERPIC";
 
-	if (!currentlevel.exitanim.empty())
-	{
-		exitanim = WI_GetInterlevel(currentlevel.exitanim.c_str());
-	} else if (!currentlevel.exitscript.empty())
-	{
-		exitanim = WI_GetIntermissionScript(currentlevel.exitscript.c_str());
-	}
+	animation = wi_animation_t();
+
+	if (!winanim.empty())
+		exitanim = WI_GetInterlevel(winanim);
+	else if (!currentlevel.exitanim.empty())
+		exitanim = WI_GetInterlevel(currentlevel.exitanim);
+	else if (!currentlevel.exitscript.empty())
+		exitanim = WI_GetIntermissionScript(currentlevel.exitscript);
+
 	if (!nextlevel.enteranim.empty())
-	{
-		enteranim = WI_GetInterlevel(nextlevel.enteranim.c_str());
-	} else if (!nextlevel.enterscript.empty())
-	{
-		enteranim = WI_GetIntermissionScript(nextlevel.enterscript.c_str());
-	}
+		enteranim = WI_GetInterlevel(nextlevel.enteranim);
+	else if (!nextlevel.enterscript.empty())
+		enteranim = WI_GetIntermissionScript(nextlevel.enterscript);
+
 	WI_initAnimation();
 
-	char name[17];
+	OLumpName name;
 
 	if (exitanim != nullptr)
-		strcpy(name, exitanim->backgroundlump.c_str());
-	else if (currentlevel.exitpic[0] != '\0')
-		strcpy(name, currentlevel.exitpic.c_str());
-	else if ((gameinfo.flags & GI_MAPxx) || ((gameinfo.flags & GI_MENUHACK_RETAIL) && wbs->epsd >= 3))
-		strcpy(name, "INTERPIC");
+		name = exitanim->backgroundlump;
+	else if (!winpic.empty())
+		name = winpic;
+	else if (!currentlevel.exitpic.empty())
+		name = currentlevel.exitpic;
 	else
-		snprintf(name, 17, "WIMAP%d", wbs->epsd);
+		name = "INTERPIC";
 
 	// background
 	const patch_t* bg_patch = W_CachePatch(name);
@@ -1421,8 +1426,8 @@ void WI_loadData()
 	for (int i = 0; i < 10; i++)
 	{
 		// numbers 0-9
-		snprintf(name, 17, "WINUM%d", i);
-			num[i] = W_CachePatchHandle(name, PU_STATIC);
+		name = fmt::format("WINUM{}", i);
+		num[i] = W_CachePatchHandle(name.c_str(), PU_STATIC);
 	}
 
 	wiminus = W_CachePatchHandle("WIMINUS", PU_STATIC);
@@ -1505,16 +1510,13 @@ void WI_loadData()
 	// [Nes] Classic vanilla lifebars.
 	for (int i = 0; i < 4; i++)
 	{
-		sprintf(name, "STPB%d", i);
-		faceclassic[i] = W_CachePatchHandle(name, PU_STATIC);
+		name = fmt::format("STPB{}", i);
+		faceclassic[i] = W_CachePatchHandle(name.c_str(), PU_STATIC);
 	}
 }
 
 void WI_unloadData()
 {
-	exitanim = enteranim = nullptr;
-	delete animation;
-
 	for (int i = 0; i < 10; i++)
 		num[i].clear();
 
@@ -1534,7 +1536,7 @@ void WI_unloadData()
 	p.clear();
 
 	for (int i = 0; i < 4; i++)
-		faceclassic[i ].clear();
+		faceclassic[i].clear();
 }
 
 void WI_Drawer()

@@ -172,6 +172,23 @@ const char& OLumpName::operator[](const size_t pos) const
 	return m_data[pos];
 }
 
+OLumpName OLumpName::substr(const size_t pos, size_t npos) const
+{
+	const size_t s = size();
+
+	if (pos > 7 || pos > s)
+	{
+		throw std::out_of_range(fmt::format("Attempted to access OLumpName at position {} when the size was {}", pos, s));
+	}
+	if (npos > s)
+	{
+		npos = s;
+	}
+	OLumpName out;
+	strncpy(out.m_data, m_data + pos, npos);
+	return out;
+}
+
 // string operations
 
 const char* OLumpName::c_str() const

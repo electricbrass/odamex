@@ -47,9 +47,6 @@ CVAR(			sv_motd, "Welcome to Odamex", "Message Of The Day to display to clients 
 CVAR(			sv_email, "email@domain.com", "Administrator email address",
 				CVARTYPE_STRING, CVAR_SERVERARCHIVE | CVAR_SERVERINFO | CVAR_NOENABLEDISABLE)
 
-CVAR(			sv_waddownload,	"0", "Allow downloading of WAD files from this server",
-				CVARTYPE_BOOL, CVAR_SERVERARCHIVE | CVAR_SERVERINFO)
-
 CVAR(			sv_emptyreset, "0", "Reloads the current map when all players leave",
 				CVARTYPE_BOOL, CVAR_SERVERARCHIVE)
 
@@ -99,9 +96,6 @@ CVAR(			sv_nextmap, "", "Set to the next map to be played",
 				CVARTYPE_STRING, CVAR_NOSET | CVAR_NOENABLEDISABLE)
 
 CVAR_FUNC_DECL(	sv_shufflemaplist, "0", "Randomly shuffle the maplist",
-				CVARTYPE_BOOL, CVAR_SERVERARCHIVE)
-
-CVAR(			sv_mapliststayonwad, "0", "Stay on the current wad when changing maps, proceed to next maplist entry when the wad is finished",
 				CVARTYPE_BOOL, CVAR_SERVERARCHIVE)
 
 // Network settings
@@ -231,9 +225,6 @@ CVAR(			sv_callvote_timelimit, "0", "Clients can vote a new timelimit.",
 CVAR(			sv_dmfarspawn, "0", "EXPERIMENTAL: When enabled in DM, players will spawn at the farthest point " \
                 "from each other.",
 				CVARTYPE_BOOL, CVAR_SERVERARCHIVE | CVAR_LATCH | CVAR_SERVERINFO)
-
-CVAR(sv_download_test, "0", "Experimental download optimization testing",
-	CVARTYPE_BOOL, CVAR_SERVERARCHIVE)
 
 // Hacky abominations that should be purged with fire and brimstone
 // =================================================================

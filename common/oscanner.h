@@ -26,7 +26,7 @@
 
 struct OScannerConfig
 {
-	const char* lumpName;
+	OLumpName lumpName;
 	bool semiComments;
 	bool cComments;
 };
@@ -87,14 +87,14 @@ class OScanner
 	template <typename... ARGS>
 	void warning(const fmt::string_view format, const ARGS&... args) const
 	{
-		Printf(PRINT_WARNING, "Parse Warning: %s:%d: %s\n", m_config.lumpName,
+		PrintFmt(PRINT_WARNING, "Parse Warning: {}:{}: {}\n", m_config.lumpName,
 		       m_lineNumber, fmt::sprintf(format, args...));
 	}
 
 	template <typename... ARGS>
 	void error(const fmt::string_view format, const ARGS&... args) const
 	{
-		I_Error("Parse Error: %s:%d: %s", m_config.lumpName, m_lineNumber,
+		I_Error("Parse Error: %s:%d: %s", m_config.lumpName.c_str(), m_lineNumber,
 		        fmt::sprintf(format, args...));
 	}
 };

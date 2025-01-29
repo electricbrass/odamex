@@ -76,7 +76,6 @@ EXTERN_CVAR (sv_warmup)
 EXTERN_CVAR (sv_timelimit)
 EXTERN_CVAR (sv_teamsinplay)
 EXTERN_CVAR(g_resetinvonexit)
-EXTERN_CVAR(sv_mapliststayonwad)
 
 extern int mapchange;
 extern std::string forcedlastmap;
@@ -108,13 +107,11 @@ bool isFast = false;
 //
 static OLumpName d_mapname;
 
-std::string G_NextMap();
+OLumpName G_NextMap();
 
-void G_DeferedInitNew (const char* mapname)
+void G_DeferedInitNew (const OLumpName& mapname)
 {
-	const std::string mapnamestr = mapname;
-
-	if (iequals(mapnamestr.substr(0, 7).c_str(), "EndGame"))
+	if (mapname.substr(0, 7).c_str() == "EndGame")
 	{
 		if (mapname[7] == '1' ||
 			mapname[7] == '2' ||
@@ -201,26 +198,26 @@ bool isLastMap()
 }
 
 // Returns the next map, assuming there is no maplist.
-std::string G_NextMap()
+OLumpName G_NextMap()
 {
-	std::string next = level.nextmap.c_str();
+	OLumpName next = level.nextmap;
 
 	if (gamestate == GS_STARTUP || (sv_gametype != GM_COOP && forcedlastmap.empty()) || next.empty())
 	{
 		// if not coop, and lastmap is not specified, stay on same level
 		// [ML] 1/25/10: OR if next is empty
-		next = level.mapname.c_str();
+		next = level.mapname;
 	}
 	else if (secretexit && W_CheckNumForName(level.secretmap.c_str()) != -1)
 	{
 		// if we hit a secret exit switch, go there instead.
-		next = level.secretmap.c_str();
+		next = level.secretmap;
 	}
 
 	// NES - exiting a Doom 1 episode moves to the next episode,
 	// rather than always going back to E1M1
 	if (level.nextmap == "" || level.mapname == forcedlastmap ||
-			iequals(next.substr(0, 7), "EndGame") ||
+			iequals(next.substr(0, 7).c_str(), "EndGame") ||
 			(gamemode == retail_chex && iequals(level.nextmap.c_str(), "E1M6")))
 	{
 		if (gameinfo.flags & GI_MAPxx || gamemode == shareware ||
@@ -245,7 +242,7 @@ void G_ChangeMap()
 	// Skip the maplist to go to the desired level in case of a lobby map.
 	if (level.flags & LEVEL_LOBBYSPECIAL && level.nextmap[0])
 	{
-		G_DeferedInitNew(level.nextmap.c_str());
+		G_DeferedInitNew(level.nextmap);
 	}
 	else
 	{
@@ -262,8 +259,7 @@ void G_ChangeMap()
 			if ((!forcedlastmap.empty() && !isLastMap()) || !Maplist::instance().get_next_index(next_index))
 			{
 				// We don't have a maplist, so grab the next 'natural' map lump.
-				std::string next = G_NextMap();
-				G_DeferedInitNew((char*)next.c_str());
+				G_DeferedInitNew(G_NextMap());
 			}
 			else
 			{

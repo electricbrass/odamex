@@ -1123,9 +1123,9 @@ void P_PlayerThink (player_t *player)
 	// Handle air supply
 	if (player->mo->waterlevel < 3 || player->powers[pw_ironfeet] || player->cheats & CF_GODMODE)
 	{
-		player->air_finished = level.time + 10*TICRATE;
+		player->air_finished = level.time + level.airsupply * TICRATE;
 	}
-	else if (player->air_finished <= level.time && !(level.time & 31))
+	else if (level.airsupply != 0 && player->air_finished <= level.time && !(level.time & 31))
 	{
 		P_DamageMobj (player->mo, NULL, NULL, 2 + 2*((level.time-player->air_finished)/TICRATE), MOD_WATER, DMG_NO_ARMOR);
 	}

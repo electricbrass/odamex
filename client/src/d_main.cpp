@@ -911,7 +911,7 @@ void D_DoomMain()
 		g_thingfilter = -1;
 
 	// get skill / episode / map from parms
-	startmap = EpisodeMaps[0].c_str();
+	startmap = EpisodeMaps[0];
 
 	const char* val = Args.CheckValue("-skill");
 	if (val)

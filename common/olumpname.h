@@ -54,6 +54,7 @@ class OLumpName
 	const char& at(const size_t pos) const;
 	char& operator[](const size_t pos);
 	const char& operator[](const size_t pos) const;
+	OLumpName substr(const size_t pos = 0, size_t npos = 7) const;
 
 	// string operations
 	const char* c_str() const;
@@ -99,3 +100,5 @@ struct std::hash<OLumpName>
 		return val;
 	}
 };
+
+auto inline format_as(const OLumpName& s) { return s.data(); }

@@ -101,6 +101,6 @@ struct interlevel_t
     std::vector<interlevellayer_t> layers;
 };
 
-interlevel_t* WI_GetInterlevel(const char* lumpname);
-interlevel_t* WI_GetIntermissionScript(const char* lumpname);
+interlevel_t* WI_GetInterlevel(const OLumpName& lumpname);
+interlevel_t* WI_GetIntermissionScript(const OLumpName& lumpname);
 void WI_ClearInterlevels();

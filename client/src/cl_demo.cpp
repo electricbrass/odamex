@@ -1076,9 +1076,9 @@ void NetDemo::writeLauncherSequence(buf_t *netbuffer)
 	MSG_WriteBool	(netbuffer, false);	// sv_fastmonsters
 	MSG_WriteBool	(netbuffer, false);	// sv_allowjump
 	MSG_WriteBool	(netbuffer, false);	// sv_freelook
-	MSG_WriteBool	(netbuffer, false);	// sv_waddownload
+	MSG_WriteBool	(netbuffer, false);	// sv_waddownload -- removed
 	MSG_WriteBool	(netbuffer, false);	// sv_emptyreset
-	MSG_WriteBool	(netbuffer, false);	// sv_cleanmaps
+	MSG_WriteBool	(netbuffer, false);	// sv_cleanmaps -- removed
 	MSG_WriteBool	(netbuffer, false);	// sv_fragexitswitch
 
 	for (Players::const_iterator it = players.begin();it != players.end();++it)

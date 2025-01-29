@@ -646,7 +646,7 @@ void R_InitSkiesForLevel()
 	}
 }
 
-void R_SetDefaultSky(const char* sky)
+void R_SetDefaultSky(const OLumpName& sky)
 {
 	sky_t* skydef = R_GetSky(sky, true);
 	// make sure that if mapinfo sets a scroll speed we use that

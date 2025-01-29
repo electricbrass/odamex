@@ -60,7 +60,7 @@ typedef struct gameinfo_s
 	OLumpName titleMusic;
 	int titleTime;
 	int advisoryTime;
-	bool noLoopFinaleMusic; 
+	bool noLoopFinaleMusic;
 	int pageTime;
 	char chatSound[MAX_SNDNAME + 1];
 	OLumpName finaleMusic;
@@ -71,7 +71,7 @@ typedef struct gameinfo_s
 	int maxSwitch;
 	OLumpName borderFlat;
 	gameborder_t border;
-	bool intermissionCounter; 
+	bool intermissionCounter;
 	OLumpName intermissionMusic;
 	int defKickback;
 	OLumpName endoom;
@@ -121,7 +121,7 @@ typedef struct gameinfo_s
 		, textScreenY(0)
 		, titleString("Unknown IWAD")
 	{}
-	
+
 } gameinfo_t;
 
-extern gameinfo_t gameinfo;
+inline gameinfo_t gameinfo;

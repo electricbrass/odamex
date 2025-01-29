@@ -378,14 +378,20 @@ BOOL P_Move (AActor *actor)
 		// open any specials
 		if (actor->flags & MF_FLOAT && floatok)
 		{
+			fixed_t savedz = actor->z;
 			// must adjust height
 			if (actor->z < tmfloorz)
 				actor->z += FLOATSPEED;
 			else
 				actor->z -= FLOATSPEED;
 
-			actor->flags |= MF_INFLOAT;
-			return true;
+			// [RH] Check to make sure there's nothing in the way of the float
+			if (P_TestMobjZ(actor))
+			{
+				actor->flags |= MF_INFLOAT;
+				return true;
+			}
+			actor->z = savedz;
 		}
 
 		if (spechit.empty())

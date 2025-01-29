@@ -664,6 +664,28 @@ int W_CheckNumForName(const char *name, int namespc)
 }
 
 //
+// W_CheckNumForName
+// Returns -1 if name not found.
+//
+// Rewritten by Lee Killough to use hash table for performance. Significantly
+// cuts down on time -- increases Doom performance over 300%. This is the
+// single most important optimization of the original Doom sources, because
+// lump name lookup is used so often, and the original Doom used a sequential
+// search. For large wads with > 1000 lumps this meant an average of over
+// 500 were probed during every search. Now the average is under 2 probes per
+// search. There is no significant benefit to packing the names into longwords
+// with this new hashing algorithm, because the work to do the packing is
+// just as much work as simply doing the string comparisons with the new
+// algorithm, which minimizes the expected number of comparisons to under 2.
+//
+// [SL] taken from prboom-plus
+//
+int W_CheckNumForName(const OLumpName& name, int namespc)
+{
+	return W_CheckNumForName(name.c_str(), namespc);
+}
+
+//
 // W_GetNumForName
 // Calls W_CheckNumForName, but bombs out if not found.
 //
@@ -684,7 +706,7 @@ int W_GetNumForName(const char* name, int namespc)
 // W_GetNumForName
 // Calls W_CheckNumForName, but bombs out if not found.
 //
-int W_GetNumForName(OLumpName& name, int namespc)
+int W_GetNumForName(const OLumpName& name, int namespc)
 {
 	return W_GetNumForName(name.c_str(), namespc);
 }
@@ -796,7 +818,7 @@ void W_GetLumpName(char *to, unsigned lump)
 }
 
 //
-// W_GetLumpName
+// W_GetOLumpName
 //
 void W_GetOLumpName(OLumpName& to, unsigned lump)
 {
@@ -848,7 +870,7 @@ void* W_CacheLumpName(const char* name, const zoneTag_e tag)
 //
 // W_CacheLumpName
 //
-void* W_CacheLumpName(OLumpName& name, const zoneTag_e tag)
+void* W_CacheLumpName(const OLumpName& name, const zoneTag_e tag)
 {
 	return W_CacheLumpNum(W_GetNumForName(name.c_str()), tag);
 }
@@ -913,9 +935,9 @@ patch_t* W_CachePatch(const char* name, const zoneTag_e tag)
 	// denis - todo - would be good to replace non-existant patches with a default '404' patch
 }
 
-patch_t* W_CachePatch(OLumpName& name, const zoneTag_e tag)
+patch_t* W_CachePatch(const OLumpName& name, const zoneTag_e tag)
 {
-	return W_CachePatch(W_GetNumForName(name.c_str()), tag);
+	return W_CachePatch(W_GetNumForName(name), tag);
 	// denis - todo - would be good to replace non-existant patches with a default '404'
 	// patch
 }
@@ -933,6 +955,14 @@ lumpHandle_t W_CachePatchHandle(const int lumpNum, const zoneTag_e tag)
  * @brief Cache a patch by name and namespace and return a handle to it.
  */
 lumpHandle_t W_CachePatchHandle(const char* name, const zoneTag_e tag, const int ns)
+{
+	return W_CachePatchHandle(W_GetNumForName(name, ns), tag);
+}
+
+/**
+ * @brief Cache a patch by name and namespace and return a handle to it.
+ */
+lumpHandle_t W_CachePatchHandle(const OLumpName& name, const zoneTag_e tag, const int ns)
 {
 	return W_CachePatchHandle(W_GetNumForName(name, ns), tag);
 }

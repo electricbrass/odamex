@@ -591,12 +591,20 @@ scannedWADs_t GUI_BootWindow()
 	// deforms the window.
 	Fl::keyboard_screen_scaling(0);
 
+	// find arguments for fltk
+	DArgs fltkargs = DArgs();
+	fltkargs.AppendArg(::Args.GetArg(0));
+	const char* rawargs = ::Args.CheckValue("-fltk");
+	if (rawargs != nullptr)
+		for (auto& arg : TokenizeString(rawargs, " "))
+			fltkargs.AppendArg(arg.c_str());
+
 	BootWindow* win = MakeBootWindow();
 	win->initWADDirs();
 	win->updateWADDirBrowser();
 	win->rescanIWADs();
 	win->position((Fl::w() - win->w()) / 2, (Fl::h() - win->h()) / 2);
-	win->show(::Args.NumArgs(), (char**)::Args.GetArgv().data());
+	win->show(fltkargs.NumArgs(), (char**)fltkargs.GetArgv().data());
 
 	// Blocks until the boot window has been closed.
 	Fl::run();

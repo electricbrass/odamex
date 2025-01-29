@@ -28,25 +28,25 @@
 size_t C_BasePrint(const int printlevel, const char* color_code, const std::string& str);
 
 template <typename... ARGS>
-int Printf(const fmt::string_view format, const ARGS&... args)
+size_t Printf(const fmt::string_view format, const ARGS&... args)
 {
 	return C_BasePrint(PRINT_HIGH, TEXTCOLOR_NORMAL, fmt::sprintf(format, args...));
 }
 
 template <typename... ARGS>
-int Printf(const int printlevel, const fmt::string_view format, const ARGS&... args)
+size_t Printf(const int printlevel, const fmt::string_view format, const ARGS&... args)
 {
 	return C_BasePrint(printlevel, TEXTCOLOR_NORMAL, fmt::sprintf(format, args...));
 }
 
 template <typename... ARGS>
-int Printf_Bold(const fmt::string_view format, const ARGS&... args)
+size_t Printf_Bold(const fmt::string_view format, const ARGS&... args)
 {
 	return C_BasePrint(PRINT_HIGH, TEXTCOLOR_BOLD, fmt::sprintf(format, args...));
 }
 
 template <typename... ARGS>
-int DPrintf(const fmt::string_view format, const ARGS&... args)
+size_t DPrintf(const fmt::string_view format, const ARGS&... args)
 {
 	if (::developer || ::devparm)
 	{
@@ -57,13 +57,13 @@ int DPrintf(const fmt::string_view format, const ARGS&... args)
 }
 
 template <typename... ARGS>
-int PrintFmt(const fmt::string_view format, const ARGS&... args)
+size_t PrintFmt(const fmt::string_view format, const ARGS&... args)
 {
 	return C_BasePrint(PRINT_HIGH, TEXTCOLOR_NORMAL, fmt::format(format, args...));
 }
 
 template <typename... ARGS>
-int PrintFmt(const int printlevel, const fmt::string_view format, const ARGS&... args)
+size_t PrintFmt(const int printlevel, const fmt::string_view format, const ARGS&... args)
 {
 	return C_BasePrint(printlevel, TEXTCOLOR_NORMAL, fmt::format(format, args...));
 }

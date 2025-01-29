@@ -89,12 +89,19 @@ colorpreset_t D_ColorPreset (const char *colorpreset);
 
 #define SAVESTRINGSIZE	24
 
+enum class oldmenustring_t
+{
+	NONE,
+	SAVEGAME,
+	PLAYERNAME
+};
+
 // we are going to be entering a savegame string
-int 				genStringEnter;
-int					genStringLen;	// [RH] Max # of chars that can be entered
+oldmenustring_t		genStringEnter;
+size_t				genStringLen;	// [RH] Max # of chars that can be entered
 void	(*genStringEnd)(int slot);
 int 				saveSlot;		// which slot to save in
-int 				saveCharIndex;	// which char we're editing
+size_t 				saveCharIndex;	// which char we're editing
 // old save description before edit
 char				saveOldString[SAVESTRINGSIZE];
 
@@ -248,8 +255,6 @@ oldmenu_t MainDef =
 	97,64,
 	0
 };
-
-
 
 //
 // EPISODE SELECT
@@ -701,7 +706,7 @@ void M_DrawSave()
 		screen->DrawTextCleanMove (CR_RED, LoadDef.x, LoadDef.y+LINEHEIGHT*i, savegamestrings[i]);
 	}
 
-	if (genStringEnter)
+	if (genStringEnter != oldmenustring_t::NONE)
 	{
 		i = V_StringWidth(savegamestrings[saveSlot]);
 		screen->DrawTextCleanMove (CR_RED, LoadDef.x + i, LoadDef.y+LINEHEIGHT*saveSlot, "_");
@@ -734,7 +739,7 @@ void M_SaveSelect (int choice)
 	const tm *lt = localtime(&ti);
 
 	// we are going to be intercepting all chars
-	genStringEnter = 1;
+	genStringEnter = oldmenustring_t::SAVEGAME;
 	genStringEnd = M_DoSave;
 	genStringLen = SAVESTRINGSIZE-1;
 
@@ -1343,6 +1348,33 @@ static forceinline void R_RenderFire(int x, int y)
 	fire_surface->unlock();
 }
 
+template<typename PIXEL_T>
+static forceinline void R_RenderFire(int x, int y)
+{
+	IWindowSurface* surface = I_GetPrimarySurface();
+	int surface_pitch = surface->getPitchInPixels();
+
+	fire_surface->lock();
+
+	for (int b = 0; b < fire_surface_height; b++)
+	{
+		PIXEL_T* to = (PIXEL_T*)surface->getBuffer() + y * surface_pitch + x;
+		const palindex_t* from = (palindex_t*)fire_surface->getBuffer() + b * fire_surface->getPitch();
+		y += CleanYfac;
+
+		for (int a = 0; a < fire_surface_width; a++, to += CleanXfac, from++)
+		{
+			for (int c = CleanYfac; c; c--)
+			{
+				for (int i = 0; i < CleanXfac; ++i)
+					*(to + surface_pitch * c + i) = R_FirePixel<PIXEL_T>(*from);
+			}
+		}
+	}
+
+	fire_surface->unlock();
+}
+
 static void M_PlayerSetupDrawer()
 {
 	const int x1 = (I_GetSurfaceWidth() / 2) - (160 * CleanXfac);
@@ -1372,7 +1404,7 @@ static void M_PlayerSetupDrawer()
 	screen->DrawTextCleanMove (CR_RED, PSetupDef.x + 56, PSetupDef.y, savegamestrings[0]);
 
 	// Draw cursor for either of the above
-	if (genStringEnter)
+	if (genStringEnter != oldmenustring_t::NONE)
 		screen->DrawTextCleanMove(CR_RED, PSetupDef.x + V_StringWidth(savegamestrings[saveSlot]) + 56,
 							PSetupDef.y + ((saveSlot == 0) ? 0 : LINEHEIGHT), "_");
 
@@ -1459,6 +1491,16 @@ static void M_PlayerSetupDrawer()
 				else if (CleanXfac == 3) R_RenderFire<3, palindex_t>(x, y);
 				else if (CleanXfac == 4) R_RenderFire<4, palindex_t>(x, y);
 				else if (CleanXfac == 5) R_RenderFire<5, palindex_t>(x, y);
+				else if (CleanXfac == 6) R_RenderFire<6, palindex_t>(x, y);
+				else if (CleanXfac == 7) R_RenderFire<7, palindex_t>(x, y);
+				else if (CleanXfac == 8) R_RenderFire<8, palindex_t>(x, y);
+				else if (CleanXfac == 9) R_RenderFire<9, palindex_t>(x, y);
+				else if (CleanXfac == 10) R_RenderFire<10, palindex_t>(x, y);
+				else if (CleanXfac == 11) R_RenderFire<11, palindex_t>(x, y);
+				else if (CleanXfac == 12) R_RenderFire<12, palindex_t>(x, y);
+				else if (CleanXfac == 13) R_RenderFire<13, palindex_t>(x, y);
+				else if (CleanXfac == 14) R_RenderFire<14, palindex_t>(x, y);
+				else R_RenderFire<palindex_t>(x, y);
 			}
 			else
 			{
@@ -1468,6 +1510,16 @@ static void M_PlayerSetupDrawer()
 				else if (CleanXfac == 3) R_RenderFire<3, argb_t>(x, y);
 				else if (CleanXfac == 4) R_RenderFire<4, argb_t>(x, y);
 				else if (CleanXfac == 5) R_RenderFire<5, argb_t>(x, y);
+				else if (CleanXfac == 6) R_RenderFire<6, argb_t>(x, y);
+				else if (CleanXfac == 7) R_RenderFire<7, argb_t>(x, y);
+				else if (CleanXfac == 8) R_RenderFire<8, argb_t>(x, y);
+				else if (CleanXfac == 9) R_RenderFire<9, argb_t>(x, y);
+				else if (CleanXfac == 10) R_RenderFire<10, argb_t>(x, y);
+				else if (CleanXfac == 11) R_RenderFire<11, argb_t>(x, y);
+				else if (CleanXfac == 12) R_RenderFire<12, argb_t>(x, y);
+				else if (CleanXfac == 13) R_RenderFire<13, argb_t>(x, y);
+				else if (CleanXfac == 14) R_RenderFire<14, argb_t>(x, y);
+				else R_RenderFire<argb_t>(x, y);
 			}
 
 			fire_surface->unlock();
@@ -1494,8 +1546,8 @@ static void M_PlayerSetupDrawer()
 	// Draw team setting
 	{
 		const team_t team = D_TeamByName(cl_team.cstring());
-		const int x = V_StringWidth ("Prefered Team") + 8 + PSetupDef.x;
-		screen->DrawTextCleanMove (CR_RED, PSetupDef.x, PSetupDef.y + LINEHEIGHT, "Prefered Team");
+		const int x = V_StringWidth ("Preferred Team") + 8 + PSetupDef.x;
+		screen->DrawTextCleanMove (CR_RED, PSetupDef.x, PSetupDef.y + LINEHEIGHT, "Preferred Team");
 		screen->DrawTextCleanMove (CR_GREY, x, PSetupDef.y + LINEHEIGHT, team == TEAM_NONE ? "NONE" : GetTeamInfo(team)->ColorStringUpper.c_str());
 	}
 
@@ -1659,7 +1711,7 @@ static void M_ChangeColorPreset (int choice)
 static void M_EditPlayerName (int choice)
 {
 	// we are going to be intercepting all chars
-	genStringEnter = 1;
+	genStringEnter = oldmenustring_t::PLAYERNAME;
 	genStringEnd = M_PlayerNameChanged;
 	genStringLen = MAXPLAYERNAME;
 
@@ -1672,10 +1724,7 @@ static void M_EditPlayerName (int choice)
 
 static void M_PlayerNameChanged (int choice)
 {
-	char command[SAVESTRINGSIZE+8+2];
-
-	snprintf (command, 34, "cl_name \"%s\"", savegamestrings[0]);
-	AddCommandString (command);
+	AddCommandString (fmt::format("cl_name \"{}\"", savegamestrings[0]));
 }
 /*
 static void M_PlayerTeamChanged (int choice)
@@ -1876,7 +1925,7 @@ bool M_Responder (event_t* ev)
 
 	// Save Game string input
 	// [RH] and Player Name string input
-	if (genStringEnter)
+	if (genStringEnter != oldmenustring_t::NONE)
 	{
 		if (ch == OKEY_BACKSPACE)
 		{
@@ -1888,14 +1937,16 @@ bool M_Responder (event_t* ev)
 		}
 		else if (Key_IsCancelKey(ch))
 		{
-			genStringEnter = 0;
-			M_ClearMenus();
+			if (genStringEnter == oldmenustring_t::SAVEGAME)
+				M_ClearMenus();
+			genStringEnter = oldmenustring_t::NONE;
 			strcpy(&savegamestrings[saveSlot][0], saveOldString);
 		}
 		else if (Key_IsAcceptKey(ch))
 		{
-			genStringEnter = 0;
-			M_ClearMenus();
+			if (genStringEnter == oldmenustring_t::SAVEGAME)
+				M_ClearMenus();
+			genStringEnter = oldmenustring_t::NONE;
 			if (savegamestrings[saveSlot][0])
 				genStringEnd(saveSlot);	// [RH] Function to call when enter is pressed
 		}

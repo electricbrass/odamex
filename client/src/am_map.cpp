@@ -703,12 +703,9 @@ void AM_initColors(const bool overlayed)
 //
 void AM_loadPics()
 {
-	char namebuf[9];
-
 	for (int i = 0; i < 10; i++)
 	{
-		snprintf(namebuf, 9, "AMMNUM%d", i);
-		marknums[i] = W_CachePatchHandle(namebuf, PU_STATIC);
+		marknums[i] = W_CachePatchHandle(fmt::format("AMMNUM{}", i), PU_STATIC);
 	}
 }
 

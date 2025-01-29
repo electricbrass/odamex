@@ -1,4 +1,4 @@
-// Emacs style mode select   -*- C++ -*- 
+// Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
 // $Id$
@@ -16,7 +16,7 @@
 // GNU General Public License for more details.
 //
 // DESCRIPTION:
-//    
+//
 // A limited replacement for std::string featuring string interning.
 // When an OString is compared for equality with another OString, an integer
 // hash of the string is used for extremely quick comparison rather than
@@ -119,9 +119,9 @@ public:
 	template <class InputIterator>
 	OString(InputIterator first, InputIterator last);
 
-	
+
 	// ------------------------------------------------------------------------
-	// destructor 
+	// destructor
 	// ------------------------------------------------------------------------
 
 	~OString();
@@ -224,11 +224,11 @@ public:
 
 
 	// ------------------------------------------------------------------------
-	// at 
+	// at
 	// ------------------------------------------------------------------------
 
 	const char& at(size_t pos) const;
-	
+
 
 	// ------------------------------------------------------------------------
 	// assign
@@ -506,7 +506,7 @@ private:
 	static StringLookupTable*	mStringLookup;
 	static std::string*			mEmptyString;
 	static constexpr StringIdType	mEmptyStringId = 0;
-	
+
 
 	// ------------------------------------------------------------------------
 	// startup / shutdown
@@ -522,7 +522,7 @@ private:
 	// Generates a 32-bit hash value from a string.
 	// ------------------------------------------------------------------------
 
-	inline static HashedStringType hash(const char* s, size_t n = npos) 
+	inline static HashedStringType hash(const char* s, size_t n = npos)
 	{
 		HashedStringType val = 0;
 		for (; *s != 0 && n != 0; s++, n--)
@@ -537,7 +537,7 @@ private:
 	// Checks if a string is already in the string table.
 	// ------------------------------------------------------------------------
 
-	inline StringRecord* lookupByHash(const HashedStringType hash_value) 
+	inline StringRecord* lookupByHash(const HashedStringType hash_value)
 	{
 		StringLookupTable::const_iterator lookupit = mStringLookup->find(hash_value);
 		if (lookupit != mStringLookup->end())
@@ -549,7 +549,7 @@ private:
 		}
 		return NULL;	// not_found
 	}
-	
+
 
 	// ------------------------------------------------------------------------
 	// increaseRefCount
@@ -602,11 +602,11 @@ private:
 			const StringIdType id = mStrings->insert(StringRecord(str, 0, length));
 			rec = &mStrings->get(id);
 			mStringLookup->insert(std::pair<HashedStringType, StringIdType>(hash_value, id));
-		}	
+		}
 		return rec;
 	}
 
-	
+
 	// ------------------------------------------------------------------------
 	// removeString
 	//
@@ -639,7 +639,7 @@ private:
 			return *mEmptyString;
 
 		assert(mStrings->find(mId) != mStrings->end());
-		return mStrings->get(mId).mString; 
+		return mStrings->get(mId).mString;
 	}
 
 
@@ -661,10 +661,11 @@ template <> struct hashfunc<OString>
 
 
 // ----------------------------------------------------------------------------
-// utility functions 
+// utility functions
 // ----------------------------------------------------------------------------
 
 OString OStringToUpper(const char* s, size_t n = OString::npos);
 OString OStringToUpper(const OString& str);
 OString OStringToLower(const char* s, size_t n = OString::npos);
 OString OStringToLower(const OString& str);
+auto inline format_as(const OString& str) { return str.data(); }

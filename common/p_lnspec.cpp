@@ -432,7 +432,7 @@ FUNC(LS_NOP)
 
 FUNC(LS_NOTIMP)
 {
-	Printf(PRINT_HIGH, "Line special not implemented yet: special number %d", ln->special);
+	Printf(PRINT_HIGH, "Line special not implemented yet.");
 	return false;
 }
 

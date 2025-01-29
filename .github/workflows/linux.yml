@@ -70,6 +70,22 @@ jobs:
       run: bash ci/ubuntu-buildgen.sh
     - name: Run build
       run: cmake --build ./build/
+  build-arm:
+    name: Build (ARM64)
+    needs: pre_job
+    if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
+    runs-on: ubuntu-24.04-arm
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
+    - name: Prepare build
+      run: bash ci/ubuntu-buildgen.sh
+    - name: Turn on problem matcher
+      uses: ammaraskar/gcc-problem-matcher@master
+    - name: Run build
+      run: cmake --build ./build/
   build-centos:
     name: Build (Fedora 28)
     needs: pre_job

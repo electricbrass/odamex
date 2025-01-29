@@ -971,7 +971,7 @@ void C_ExecCmdLineParams (bool onlyset, bool onlylogfile)
 	if (onlylogfile && !didlogfile) AddCommandString("version");
 }
 
-BEGIN_COMMAND (dumpactors)
+BEGIN_COMMAND (actorlist)
 {
 	AActor *mo;
 	TThinkerIterator<AActor> iterator;
@@ -981,7 +981,7 @@ BEGIN_COMMAND (dumpactors)
 		Printf (PRINT_HIGH, "%s (%x, %x, %x | %x) state: %zd tics: %d\n", mobjinfo[mo->type]->name, mo->x, mo->y, mo->z, mo->angle, mo->state->statenum, mo->tics);
 	}
 }
-END_COMMAND (dumpactors)
+END_COMMAND(actorlist)
 
 BEGIN_COMMAND(logfile)
 {

@@ -645,7 +645,7 @@ void R_RenderMaskedSegRange(drawseg_t* ds, int x1, int x2)
 
 	const int64_t topscreenclip = int64_t(centery) << 2*FRACBITS;
 	const int64_t botscreenclip = int64_t(centery - viewheight) << 2*FRACBITS;
- 
+
 	// top of texture entirely below screen?
 	if (int64_t(dcol.texturemid) * ds->scale1 <= botscreenclip &&
 		int64_t(dcol.texturemid) * ds->scale2 <= botscreenclip)
@@ -678,7 +678,7 @@ void R_RenderMaskedSegRange(drawseg_t* ds, int x1, int x2)
 	mfloorclip = ds->sprbottomclip;
 	mceilingclip = ds->sprtopclip;
 
-	dcol.textureheight = 512*FRACUNIT;
+	dcol.textureheight = 0;
 
 	// draw the columns
 	// TODO: change negonearray to the actual top/bottom
@@ -796,7 +796,7 @@ void R_PrepWall(fixed_t px1, fixed_t py1, fixed_t px2, fixed_t py2, fixed_t dist
 		// calculate the upper and lower heights of the walls in the back
 		R_FillWallHeightArray(walltopb, start, stop, rw_backcz1, rw_backcz2, scale1, scale2);
 		R_FillWallHeightArray(wallbottomb, start, stop, rw_backfz1, rw_backfz2, scale1, scale2);
-	
+
 		constexpr fixed_t tolerance = FRACUNIT / 2;
 
 		// determine if an upper texture is showing

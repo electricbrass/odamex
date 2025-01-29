@@ -53,7 +53,7 @@ static IWindowSurface* finale_surface = NULL;
 // Draw the bunny scroll on 2 surfaces
 // and clip them against the screen
 static IWindowSurface* bunny1_surface = NULL;
-static IWindowSurface* bunny2_surface = NULL; 
+static IWindowSurface* bunny2_surface = NULL;
 
 // Stage of animation:
 //	0 = text, 1 = art screen, 2 = character cast
@@ -332,14 +332,14 @@ void F_TextWrite ()
 	switch (finalelumptype)
 	{
 	case FINALE_GRAPHIC:
-		lump = W_CheckNumForName(finalelump.c_str(), ns_global);
+		lump = W_CheckNumForName(finalelump, ns_global);
 		if (lump >= 0)
 		{
 			screen->DrawPatchFullScreen(W_CachePatch(lump, PU_CACHE), true);
 		}
 		break;
 	case FINALE_FLAT:
-		lump = W_CheckNumForName(finalelump.c_str(), ns_flats);
+		lump = W_CheckNumForName(finalelump, ns_flats);
 		if (lump >= 0)
 		{
 			// Support high resolution flats
@@ -806,7 +806,7 @@ void F_BunnyScroll()
 // Draws an endpic on the finale canvas.
 // If using a normal 320x200 endpic,
 // It will be scaled to fit the viewport.
-// 
+//
 // If using a widescreen endpic, it will
 // be scaled keeping aspect ratio to fill
 // the screen and may be too wide for the
@@ -830,7 +830,7 @@ void F_DrawEndPic(const char* page)
 
 	const int x = (primary_surface->getWidth() - width) / 2;
 	const int y = (primary_surface->getHeight() - height) / 2;
-	
+
 	// draw the background to the surface
 	finale_surface->lock();
 

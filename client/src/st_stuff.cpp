@@ -450,7 +450,7 @@ short ST_StatusBarWidth(int surface_width, int surface_height)
 		return 0;
 	}
 
-	
+
 	// [AM] Scale status bar width according to height, unless there isn't
 	//      enough room for it.  Fixes widescreen status bar scaling.
 	// [ML] A couple of minor changes for true 4:3 correctness...
@@ -631,7 +631,7 @@ BEGIN_COMMAND (chase)
 			return;
 
 		CHEAT_DoCheat(&consoleplayer(), CHT_CHASECAM);
-		
+
 	}
 }
 END_COMMAND (chase)
@@ -640,7 +640,7 @@ BEGIN_COMMAND (idmus)
 {
 	if (argc > 1)
 	{
-		char *map;
+		OLumpName map;
 		if (gameinfo.flags & GI_MAPxx)
 		{
 			const int l = atoi(argv[1]);
@@ -1008,17 +1008,14 @@ void ST_drawWidgets(bool force_refresh)
 	w_faces.update(force_refresh);
 
 	for (int i = 0; i < 3; i++)
-	{
 		w_keyboxes[i].update(force_refresh);
-	}
 
 	if (!G_IsCoopGame())
-	{
 		w_frags.update(force_refresh);
-	}
 
-	w_lives.update(true, !G_IsLivesGame()); // Force refreshing to avoid tens
-	                                       // to be hidden by Doomguy's face
+	if (G_IsLivesGame())
+		w_lives.update(true); // Force refreshing to avoid tens
+		                      // to be hidden by Doomguy's face
 }
 
 
@@ -1123,13 +1120,13 @@ void ST_Drawer()
 				surface->blitcrop(stbar_surface, 0, 0, stbar_surface->getWidth(), stbar_surface->getHeight(),
 						ST_X, ST_Y, ST_WIDTH, ST_HEIGHT);
 		}
-		
+
 		// refresh all widgets
 		ST_drawWidgets(st_needrefresh);
 
 		if (st_scale)
 			surface->blitcrop(stnum_surface, 0, 0, stnum_surface->getWidth(), stnum_surface->getHeight(),
-					ST_X, ST_Y, ST_WIDTH, ST_HEIGHT);	
+					ST_X, ST_Y, ST_WIDTH, ST_HEIGHT);
 
 		stbar_surface->unlock();
 		stnum_surface->unlock();
@@ -1373,7 +1370,7 @@ void ST_Start()
 
 	for (int i = 0; i < 3; i++)
 		keyboxes[i] = -1;
-	
+
 	ST_initNew();
 
 	ST_createWidgets();

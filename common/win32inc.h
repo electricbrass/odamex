@@ -65,21 +65,4 @@
     #if (defined _MSC_VER)
         #define strncasecmp _strnicmp
     #endif
-
-    // C99 functions
-    //
-    // Missing from MSVC++ older than 2015, implementation in
-    // common/sprintf.cpp.
-    //
-    // We must use this implementation because _snprintf and
-    // _vsnprintf do not have the same behavior as their C99
-    // counterparts, and are thus unsafe to substitute.
-    #if defined(_MSC_VER) && _MSC_VER < 1900
-        int snprintf(char *s, size_t n, const char *fmt, ...);
-        int vsnprintf(char *s, size_t n, const char *fmt, va_list ap);
-    #endif
-
-    #if defined(_MSC_VER) && _MSC_VER < 1800
-        #define va_copy(d,s)((d) = (s))
-    #endif
 #endif // WIN32

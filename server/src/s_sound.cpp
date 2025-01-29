@@ -449,10 +449,8 @@ void S_ParseSndInfo()
 				else if (os.compareTokenNoCase("map"))
 				{
 					// Hexen-style $MAP command
-					char mapname[8];
-
 					os.mustScanInt();
-					snprintf(mapname, 8, "MAP%02d", os.getTokenInt());
+					OLumpName mapname = fmt::format("MAP{:02d}", os.getTokenInt());
 					level_pwad_info_t& info = getLevelInfos().findByName(mapname);
 					os.mustScan();
 					if (info.mapname[0])

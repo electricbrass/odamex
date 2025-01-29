@@ -92,14 +92,14 @@ jsonlumpresult_t WI_ParseInterlevelFrame(const Json::Value& frame, interlevelfra
 	}
 
 	output.imagelump = image.asString();
-	output.imagelumpnum = W_CheckNumForName(output.imagelump.c_str());
+	output.imagelumpnum = W_CheckNumForName(output.imagelump);
 	if (output.imagelumpnum < 0)
 	{
 		// TNT1A0 used for transparent by Legacy of Rust
-		output.imagelumpnum = W_GetNumForName(output.imagelump.c_str(), ns_sprites);
+		output.imagelumpnum = W_GetNumForName(output.imagelump, ns_sprites);
 	}
 	output.altimagelump = altimage.asString();
-	output.altimagelumpnum = W_CheckNumForName(output.altimagelump.c_str());
+	output.altimagelumpnum = W_CheckNumForName(output.altimagelump);
 	output.type = static_cast<interlevelframe_t::frametype_t>(type.asInt());
 	output.duration = (int)(duration.asDouble() * TICRATE);
 	output.maxduration = (int)(maxduration.asDouble() * TICRATE);
@@ -162,7 +162,7 @@ jsonlumpresult_t WI_ParseInterlevelLayer(const Json::Value& anim, interlevellaye
 	return jsonlumpresult_t::SUCCESS;
 }
 
-interlevel_t* WI_GetInterlevel(const char* lumpname)
+interlevel_t* WI_GetInterlevel(const OLumpName& lumpname)
 {
 	auto found = interlevelstorage.find(lumpname);
 	if (found != interlevelstorage.end())
@@ -198,7 +198,7 @@ interlevel_t* WI_GetInterlevel(const char* lumpname)
 	jsonlumpresult_t result =  M_ParseJSONLump(lumpname, "interlevel", { 1, 0, 0 }, ParseInterlevel);
 	if (result != jsonlumpresult_t::SUCCESS)
 	{
-		I_Error("R_GetInterlevel: Interlevel JSON error in lump %s: %s", lumpname, M_JSONLumpResultToString(result));
+		I_Error("R_GetInterlevel: Interlevel JSON error in lump %s: %s", lumpname.c_str(), M_JSONLumpResultToString(result));
 		return nullptr;
 	}
 
@@ -226,23 +226,22 @@ int ValidateMapName(const OLumpName& mapname)
 {
 	// Check if the given map name can be expressed as a gameepisode/gamemap pair and be
 	// reconstructed from it.
-	char lumpname[9];
+	OLumpName lumpname;
 	int epi = -1, map = -1;
 
 	if (gamemode != commercial)
 	{
 		if (sscanf(mapname.c_str(), "E%dM%d", &epi, &map) != 2)
 			return 0;
-		snprintf(lumpname, 9, "E%dM%d", epi, map);
+		lumpname = fmt::format("E{}M{}", epi, map);
 	}
 	else
 	{
 		if (sscanf(mapname.c_str(), "MAP%d", &map) != 1)
 			return 0;
-		snprintf(lumpname, 9, "MAP%02d", map);
-		epi = 1;
+		lumpname = fmt::format("MAP{:02d}", map);
 	}
-	return !strcmp(mapname.c_str(), lumpname);
+	return mapname == lumpname;
 }
 
 // some of the zdoom intermission conditions are the same as the logical OR of 2 id24 conditions
@@ -256,7 +255,7 @@ void WI_ParseZDoomPic(OScanner& os, std::vector<interlevelanim_t>& anims, interl
 	int y = os.getTokenInt();
 	os.mustScan(8);
 	OLumpName picname = os.getToken();
-	int picnum = W_GetNumForName(picname.c_str());
+	int picnum = W_GetNumForName(picname);
 	if (!twoanims && cond2.condition != animcondition_t::None)
 		anims.emplace_back(std::vector<interlevelframe_t>{interlevelframe_t{picname, picnum, "", -1, interlevelframe_t::DurationInf, 0, 0}}, std::vector<interlevelcond_t>{cond1, cond2}, x, y);
 	else
@@ -287,10 +286,10 @@ void WI_ParseZDoomAnim(OScanner& os, std::vector<interlevelanim_t>& anims, inter
 	{
 		if (!os.isIdentifier())
 		{
-			os.error("Expected identifier, got \"%s\".", os.getToken().c_str());
+			os.error("Expected identifier, got \"%s\".", os.getToken());
 		}
 		OLumpName framename = os.getToken();
-		int framenum = W_GetNumForName(framename.c_str());
+		int framenum = W_GetNumForName(framename);
 		interlevelframe_t::frametype_t type = (i == 0 ?
 			static_cast<interlevelframe_t::frametype_t>(interlevelframe_t::DurationFixed | interlevelframe_t::RandomStart) :
 			interlevelframe_t::DurationFixed);
@@ -309,7 +308,7 @@ void WI_ParseZDoomAnim(OScanner& os, std::vector<interlevelanim_t>& anims, inter
 	}
 }
 
-interlevel_t* WI_GetIntermissionScript(const char* lumpname)
+interlevel_t* WI_GetIntermissionScript(const OLumpName& lumpname)
 {
 	auto found = interlevelstorage.find(lumpname);
 	if (found != interlevelstorage.end())
@@ -337,7 +336,7 @@ interlevel_t* WI_GetIntermissionScript(const char* lumpname)
 	const OScannerConfig config = {
 	    lumpname, // lumpName
 	    false,    // semiComments
-	    false,     // cComments
+	    false,    // cComments
 	};
 	OScanner os = OScanner::openBuffer(config, buffer, buffer + W_LumpLength(lumpnum));
 
@@ -345,7 +344,7 @@ interlevel_t* WI_GetIntermissionScript(const char* lumpname)
 	{
 		if (!os.isIdentifier())
 		{
-			os.error("Expected identifier, got \"%s\".", os.getToken().c_str());
+			os.error("Expected identifier, got \"%s\".", os.getToken());
 		}
 
 		std::string name = os.getToken();
@@ -373,17 +372,17 @@ interlevel_t* WI_GetIntermissionScript(const char* lumpname)
 		{
 			os.mustScan(8);
 			intermissionscript.splat = os.getToken();
-			intermissionscript.splatnum = W_GetNumForName(intermissionscript.splat.c_str());
+			intermissionscript.splatnum = W_GetNumForName(intermissionscript.splat);
 		}
 		else if (!strnicmp(name.c_str(), "pointer", 7))
 		{
 			os.mustScan(8);
 			intermissionscript.ptr1 = os.getToken();
-			intermissionscript.ptr1num = W_GetNumForName(intermissionscript.ptr1.c_str());
+			intermissionscript.ptr1num = W_GetNumForName(intermissionscript.ptr1);
 
 			os.mustScan(8);
 			intermissionscript.ptr2 = os.getToken();
-			intermissionscript.ptr2num = W_GetNumForName(intermissionscript.ptr2.c_str());
+			intermissionscript.ptr2num = W_GetNumForName(intermissionscript.ptr2);
 
 		}
 		else if (!strnicmp(name.c_str(), "spots", 5))
