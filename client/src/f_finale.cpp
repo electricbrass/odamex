@@ -80,7 +80,7 @@ finale_lump_t finalelumptype = FINALE_NONE;
 
 void	F_StartCast (void);
 void	F_CastTicker (void);
-BOOL	F_CastResponder (event_t *ev);
+bool	F_CastResponder (event_t *ev);
 void	F_CastDrawer (void);
 
 
@@ -235,7 +235,7 @@ void STACK_ARGS F_ShutdownFinale()
 }
 
 
-BOOL F_Responder (event_t *event)
+bool F_Responder (event_t *event)
 {
 	if (finalestage == 2)
 		return F_CastResponder (event);
@@ -619,7 +619,7 @@ void F_CastTicker()
 // F_CastResponder
 //
 
-BOOL F_CastResponder (event_t* ev)
+bool F_CastResponder (event_t* ev)
 {
 	if (ev->type != ev_keydown)
 		return false;
