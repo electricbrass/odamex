@@ -1,4 +1,4 @@
-// Emacs style mode select   -*- C++ -*- 
+// Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
 // $Id$
@@ -79,7 +79,7 @@ void R_CacheSprite(spritedef_t *sprite)
 // [RH] Removed checks for coexistance of rotation 0 with other
 //		rotations and made it look more like BOOM's version.
 //
-static void R_InstallSpriteLump(int lump, unsigned frame, unsigned rot, BOOL flipped)
+static void R_InstallSpriteLump(int lump, unsigned frame, unsigned rot, bool flipped)
 {
 	unsigned rotation;
 
@@ -87,11 +87,11 @@ static void R_InstallSpriteLump(int lump, unsigned frame, unsigned rot, BOOL fli
 		rotation = rot;
 	else
 		rotation = (rot >= 17) ? rot - 7 : 17;
-	
+
 	if (frame >= MAX_SPRITE_FRAMES || rotation > 16)
 	{
 		I_FatalError("R_InstallSpriteLump: Bad frame characters in lump %i", lump);
-	}	
+	}
 
 	if (static_cast<int>(frame) > maxframe)
 		maxframe = frame;
@@ -105,23 +105,23 @@ static void R_InstallSpriteLump(int lump, unsigned frame, unsigned rot, BOOL fli
 		{
 			if (sprtemp[frame].lump[r] == -1)
 			{
-				sprtemp[frame].lump[r] = static_cast<short>(lump);
-				sprtemp[frame].flip[r] = static_cast<byte>(flipped);
+				sprtemp[frame].lump[r] = lump;
+				sprtemp[frame].flip[r] = flipped;
 				sprtemp[frame].rotate = false;
 				sprtemp[frame].width[r] = SPRITE_NEEDS_INFO;
 			}
 		}
-		
+
 		return;
 	}
 
 	rotation = (rotation <= 8 ? (rotation - 1) * 2 : (rotation - 9) * 2 + 1);
-	
+
 	if (sprtemp[frame].lump[rotation] == -1)
 	{
 		// the lump is only used for one rotation
-		sprtemp[frame].lump[rotation] = static_cast<short>(lump);
-		sprtemp[frame].flip[rotation] = static_cast<byte>(flipped);
+		sprtemp[frame].lump[rotation] = lump;
+		sprtemp[frame].flip[rotation] = flipped;
 		sprtemp[frame].rotate = true;
 		sprtemp[frame].width[rotation] = SPRITE_NEEDS_INFO;
 	}
@@ -167,7 +167,7 @@ static void R_InstallSprite(const char *name, int32_t num)
 					sprtemp[frame].flip[rotation + 1] = sprtemp[frame].flip[rotation];
 					sprtemp[frame].width[rotation + 1] = SPRITE_NEEDS_INFO;
 				}
-				
+
 				if (sprtemp[frame].lump[rotation] == -1)
 				{
 					sprtemp[frame].lump[rotation] = sprtemp[frame].lump[rotation + 1];

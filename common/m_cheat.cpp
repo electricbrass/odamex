@@ -493,13 +493,13 @@ AActor* CHEAT_Summon(player_s* player, const char* sum, bool friendly)
 				return entity;
 		}
 
-		fixed_t x = source->x + FixedMul(mobjinfo[mobjtype].radius * 2 + source->radius,
+		fixed_t x = source->x + FixedMul(mobjinfo[mobjtype]->radius * 2 + source->radius,
 		                                 finecosine[source->angle >> ANGLETOFINESHIFT]);
-		fixed_t y = source->y + FixedMul(mobjinfo[mobjtype].radius * 2 + source->radius,
+		fixed_t y = source->y + FixedMul(mobjinfo[mobjtype]->radius * 2 + source->radius,
 		                                 finesine[source->angle >> ANGLETOFINESHIFT]);
 		fixed_t z = source->z + 8 * FRACUNIT;
 
-		if (mobjinfo[mobjtype].flags & MF_MISSILE)
+		if (mobjinfo[mobjtype]->flags & MF_MISSILE)
 		{
 			entity = P_SpawnPlayerMissile(source, mobjtype);
 		}

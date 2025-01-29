@@ -197,8 +197,6 @@ void G_DoNewGame (void)
 
 void G_InitNew (const char *mapname)
 {
-	size_t i;
-
 	// [RH] Remove all particles
 	R_ClearParticles ();
 

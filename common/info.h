@@ -31,9 +31,6 @@
 #include "doom_obj_container.h"
 
 #define NO_ALTSPEED -1
-#ifndef MELEERANGE
-#define MELEERANGE (64 * FRACUNIT)
-#endif
 
 typedef enum spritenum_e: int32_t
 {

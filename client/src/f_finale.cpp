@@ -525,6 +525,7 @@ void F_CastTicker()
 		const int st = caststate->nextstate;
 
 		caststate = states[st];
+		castsprite = caststate->sprite;
 		castframes++;
 
 		// sound hacks....
@@ -570,18 +571,28 @@ void F_CastTicker()
 		// go into attack frame
 		castattacking = true;
 		if (castonmelee)
+		{
 			caststate = states[mobjinfo[castorder[castnum].type]->meleestate];
+			castsprite = caststate->sprite;
+		}
 		else
+		{
 			caststate = states[mobjinfo[castorder[castnum].type]->missilestate];
+			castsprite = caststate->sprite;
+		}
 		castonmelee ^= 1;
 		if (caststate == states[S_NULL])
 		{
 			if (castonmelee)
-				caststate=
-					states[mobjinfo[castorder[castnum].type]->meleestate];
+			{
+				caststate = states[mobjinfo[castorder[castnum].type]->meleestate];
+				castsprite = caststate->sprite;
+			}
 			else
-				caststate=
-					states[mobjinfo[castorder[castnum].type]->missilestate];
+			{
+				caststate = states[mobjinfo[castorder[castnum].type]->missilestate];
+				castsprite = caststate->sprite;
+			}
 		}
 	}
 
@@ -594,6 +605,7 @@ void F_CastTicker()
 			castattacking = false;
 			castframes = 0;
 			caststate = states[mobjinfo[castorder[castnum].type]->seestate];
+			castsprite = caststate->sprite;
 		}
 	}
 
@@ -618,6 +630,7 @@ BOOL F_CastResponder (event_t* ev)
 	// go into death frame
 	castdeath = true;
 	caststate = states[mobjinfo[castorder[castnum].type]->deathstate];
+	castsprite = caststate->sprite;
 	casttics = caststate->tics;
 	castframes = 0;
 	castattacking = false;
