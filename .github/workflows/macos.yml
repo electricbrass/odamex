@@ -32,7 +32,7 @@ jobs:
       run: |
         brew install create-dmg
         mkdir -p build/artifact && cd build
-        cp -aR "client/odamex.app" "server/odasrv" "odalaunch/odalaunch.app" "wad/odamex.wad" "../config-samples" "../MAINTAINERS" "../CHANGELOG" "../README" "../LICENSE" artifact/
+        cp -aR "client/odamex.app" "server/odasrv" "odalaunch/odalaunch.app" "../config-samples" "../MAINTAINERS" "../CHANGELOG" "../README" "../LICENSE" artifact/
         create-dmg odamex.dmg ./artifact --background ../media/macinstaller-background.png
     - name: Upload DMG
       uses: actions/upload-artifact@v4
