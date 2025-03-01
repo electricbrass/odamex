@@ -31,9 +31,11 @@ jobs:
     - name: Create DMG
       run: |
         brew install create-dmg
-        create-dmg odamex.dmg ./build/Release/ --background ./media/macinstaller-background.png
+        mkdir -p build/artifact && cd build
+        cp -aR "client/odamex.app" "server/odasrv" "odalaunch/odalaunch.app" "wad/odamex.wad" "../config-samples" "../MAINTAINERS" "../CHANGELOG" "../README" "../LICENSE" artifact/
+        create-dmg odamex.dmg ./artifact --background ../media/macinstaller-background.png
     - name: Upload DMG
       uses: actions/upload-artifact@v4
       with:
         name: Odamex-MacOS
-        path: './odamex.dmg'
+        path: '.artifact/odamex.dmg'
