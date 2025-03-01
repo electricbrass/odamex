@@ -38,4 +38,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Odamex-MacOS
-        path: 'build/artifact/odamex.dmg'
+        path: 'build/odamex.dmg'
