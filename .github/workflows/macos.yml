@@ -29,8 +29,9 @@ jobs:
     - name: Run build
       run: cmake --build ./build/
     - name: Create DMG
-      run: brew install create-dmg |
-          create-dmg ./build/Release/ ./build/Release/odamex.dmg --background ./media/macinstaller-background.png
+      run: |
+        brew install create-dmg
+        create-dmg ./build/Release/ ./build/Release/odamex.dmg --background ./media/macinstaller-background.png
     - name: Upload DMG
       uses: actions/upload-artifact@v4
       with:
