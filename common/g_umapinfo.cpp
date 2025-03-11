@@ -1,7 +1,7 @@
 // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
-// Copyright (C) 2006-2021 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -31,27 +31,27 @@ int ValidateMapName(const OLumpName& mapname, int* pEpi = NULL, int* pMap = NULL
 {
 	// Check if the given map name can be expressed as a gameepisode/gamemap pair and be
 	// reconstructed from it.
-	char lumpname[9];
+	OLumpName lumpname;
 	int epi = -1, map = -1;
 
 	if (gamemode != commercial)
 	{
 		if (sscanf(mapname.c_str(), "E%dM%d", &epi, &map) != 2)
 			return 0;
-		snprintf(lumpname, 9, "E%dM%d", epi, map);
+		lumpname = fmt::format("E{}M{}", epi, map);
 	}
 	else
 	{
 		if (sscanf(mapname.c_str(), "MAP%d", &map) != 1)
 			return 0;
-		snprintf(lumpname, 9, "MAP%02d", map);
+		lumpname = fmt::format("MAP{:02d}", map);
 		epi = 1;
 	}
 	if (pEpi)
 		*pEpi = epi;
 	if (pMap)
 		*pMap = map;
-	return !strcmp(mapname.c_str(), lumpname);
+	return mapname == lumpname;
 }
 
 // used for munching the strings in UMAPINFO
@@ -99,6 +99,8 @@ void MustGetIdentifier(OScanner& os)
 	}
 }
 
+bool pnamemodified;
+
 int ParseStandardUmapInfoProperty(OScanner& os, level_pwad_info_t* mape)
 {
 	// find the next line with content.
@@ -106,7 +108,7 @@ int ParseStandardUmapInfoProperty(OScanner& os, level_pwad_info_t* mape)
 
 	if (!os.isIdentifier())
 	{
-		os.error("Expected identifier, got \"%s\".", os.getToken().c_str());
+		os.error("Expected identifier, got \"%s\".", os.getToken());
 	}
 	std::string pname = os.getToken();
 	os.mustScan();
@@ -116,7 +118,8 @@ int ParseStandardUmapInfoProperty(OScanner& os, level_pwad_info_t* mape)
 	{
 		os.mustScan();
 		mape->level_name = os.getToken();
-		mape->pname.clear();
+		if (!pnamemodified) // only want to clear pname if its *not* from the umapinfo
+			mape->pname.clear();
 	}
 	else if (!stricmp(pname.c_str(), "label"))
 	{
@@ -138,7 +141,7 @@ int ParseStandardUmapInfoProperty(OScanner& os, level_pwad_info_t* mape)
 	else if (!stricmp(pname.c_str(), "next"))
 	{
 		ParseOLumpName(os, mape->nextmap);
-		if (!ValidateMapName(mape->nextmap.c_str()))
+		if (!ValidateMapName(mape->nextmap))
 		{
 			os.error("Invalid map name %s.", mape->nextmap.c_str());
 			return 0;
@@ -147,7 +150,7 @@ int ParseStandardUmapInfoProperty(OScanner& os, level_pwad_info_t* mape)
 	else if (!stricmp(pname.c_str(), "nextsecret"))
 	{
 		ParseOLumpName(os, mape->secretmap);
-		if (!ValidateMapName(mape->secretmap.c_str()))
+		if (!ValidateMapName(mape->secretmap))
 		{
 			os.error("Invalid map name %s", mape->nextmap.c_str());
 			return 0;
@@ -156,6 +159,7 @@ int ParseStandardUmapInfoProperty(OScanner& os, level_pwad_info_t* mape)
 	else if (!stricmp(pname.c_str(), "levelpic"))
 	{
 		ParseOLumpName(os, mape->pname);
+		pnamemodified = true;
 	}
 	else if (!stricmp(pname.c_str(), "skytexture"))
 	{
@@ -211,6 +215,14 @@ int ParseStandardUmapInfoProperty(OScanner& os, level_pwad_info_t* mape)
 	{
 		ParseOLumpName(os, mape->enterpic);
 	}
+	else if (!stricmp(pname.c_str(), "exitanim"))
+	{
+		ParseOLumpName(os, mape->exitanim);
+	}
+	else if (!stricmp(pname.c_str(), "enteranim"))
+	{
+		ParseOLumpName(os, mape->enteranim);
+	}
 	else if (!stricmp(pname.c_str(), "nointermission"))
 	{
 		os.mustScanBool();
@@ -222,7 +234,7 @@ int ParseStandardUmapInfoProperty(OScanner& os, level_pwad_info_t* mape)
 	else if (!stricmp(pname.c_str(), "partime"))
 	{
 		os.mustScanInt();
-		mape->partime = TICRATE * os.getTokenInt();
+		mape->partime = os.getTokenInt();
 	}
 	else if (!stricmp(pname.c_str(), "intertext"))
 	{
@@ -274,7 +286,8 @@ int ParseStandardUmapInfoProperty(OScanner& os, level_pwad_info_t* mape)
 				return 0;
 
 			EpisodeMaps[episodenum] = mape->mapname;
-			EpisodeInfos[episodenum].name = tokens[0];
+			EpisodeInfos[episodenum].pic_name = tokens[0];
+			EpisodeInfos[episodenum].menu_name = tokens[1];
 			EpisodeInfos[episodenum].fulltext = false;
 			EpisodeInfos[episodenum].noskillmenu = false;
 			EpisodeInfos[episodenum].key = (tokens.size() > 2) ? tokens[2][0] : 0;
@@ -293,10 +306,10 @@ int ParseStandardUmapInfoProperty(OScanner& os, level_pwad_info_t* mape)
 		else
 		{
 			const std::string actor_name = os.getToken();
-			const mobjtype_t i = P_NameToMobj(actor_name);
+			const mobjtype_t i = P_INameToMobj(actor_name);
 			if (i == MT_NULL)
 			{
-				os.error("Unknown thing type %s", os.getToken().c_str());
+				os.error("Unknown thing type %s", os.getToken());
 				return 0;
 			}
 
@@ -338,7 +351,7 @@ int ParseStandardUmapInfoProperty(OScanner& os, level_pwad_info_t* mape)
 	return 1;
 }
 
-void ParseUMapInfoLump(int lump, const char* lumpname)
+void ParseUMapInfoLump(int lump, const OLumpName& lumpname)
 {
 	LevelInfos& levels = getLevelInfos();
 
@@ -355,7 +368,7 @@ void ParseUMapInfoLump(int lump, const char* lumpname)
 	{
 		if (!os.compareTokenNoCase("map"))
 		{
-			os.error("Expected map definition, got %s", os.getToken().c_str());
+			os.error("Expected map definition, got %s", os.getToken());
 		}
 
 		os.mustScan(8);
@@ -379,6 +392,8 @@ void ParseUMapInfoLump(int lump, const char* lumpname)
 			info.skypic = def.skypic;
 		}
 
+		pnamemodified = false;
+
 		info.mapname = mapname;
 
 		G_MapNameToLevelNum(info);
@@ -390,6 +405,10 @@ void ParseUMapInfoLump(int lump, const char* lumpname)
 		while (!os.compareToken("}"))
 		{
 			ParseStandardUmapInfoProperty(os, &info);
+		}
+		// if an episode title patch is missing, fall back on text name
+		for (int i = 0; i < MAX_EPISODES; i++) {
+			EpisodeInfos[i].fulltext = EpisodeInfos[i].pic_name.empty();
 		}
 
 		// Set default level progression here to simplify the checks elsewhere.
@@ -428,19 +447,17 @@ void ParseUMapInfoLump(int lump, const char* lumpname)
 			}
 			else
 			{
-				char arr[9] = "";
 				int ep, map;
-				ValidateMapName(info.mapname.c_str(), &ep, &map);
+				ValidateMapName(info.mapname, &ep, &map);
 				map++;
 				if (gamemode == commercial)
 				{
-					sprintf(arr, "MAP%02d", map);
+					info.nextmap = fmt::format("MAP{:02d}", map);
 				}
 				else
 				{
-					sprintf(arr, "E%dM%d", ep, map);
+					info.nextmap = fmt::format("E{}M{}", ep, map);
 				}
-				info.nextmap = arr;
 			}
 		}
 	}

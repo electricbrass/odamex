@@ -3,7 +3,7 @@
 //
 // $Id$
 //
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -599,23 +599,23 @@ void LevelState::printRoundStart() const
 	std::string left, right;
 	if (g_roundlimit > 0)
 	{
-		StrFormat(left, "Round %d of %d has started", m_roundNumber,
-		          g_roundlimit.asInt());
+		left = fmt::sprintf("Round %d of %d has started", m_roundNumber,
+		                    g_roundlimit.asInt());
 	}
 	else
 	{
-		StrFormat(left, "Round %d has started", m_roundNumber);
+		left = fmt::sprintf("Round %d has started", m_roundNumber);
 	}
 
 	team_t def = getDefendingTeam();
 	if (G_IsCoopGame() && g_roundlimit)
 	{
-		StrFormat(right, "%d attempts left", g_roundlimit.asInt() - m_roundNumber + 1);
+		right = fmt::sprintf("%d attempts left", g_roundlimit.asInt() - m_roundNumber + 1);
 	}
 	else if (def != TEAM_NONE)
 	{
 		TeamInfo& teaminfo = *GetTeamInfo(def);
-		StrFormat(right, "%s is on defense", teaminfo.ColorizedTeamName().c_str());
+		right = fmt::sprintf("%s is on defense", teaminfo.ColorizedTeamName());
 	}
 
 	if (!right.empty())

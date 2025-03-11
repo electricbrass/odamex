@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -72,8 +72,7 @@ std::string M_GetHomeDir(const std::string& user)
 	}
 
 	// Now that we have the Documents folder, just go up one.
-	std::string path;
-	StrFormat(path, "%s\\..", folderPath);
+	std::string path = fmt::sprintf("%s\\..", folderPath);
 	return M_CleanPath(path);
 }
 
@@ -90,9 +89,7 @@ std::string M_GetUserDir()
 		I_FatalError("Could not get user's personal folder.\n");
 	}
 
-	std::string path;
-	StrFormat(path, "%s\\My Games\\Odamex", folderPath);
-	return path;
+	return fmt::sprintf("%s\\My Games\\Odamex", folderPath);
 #endif
 }
 
@@ -154,7 +151,7 @@ std::string M_GetUserFileName(const std::string& file)
 
 	// Direct our path to our write directory.
 	std::string path = M_GetWriteDir();
-	if (!M_IsPathSep(*(path.end() - 1)))
+	if (!M_IsPathSep(path.back()))
 	{
 		path += PATHSEP;
 	}
@@ -170,16 +167,15 @@ std::string M_BaseFileSearchDir(std::string dir, const std::string& name,
 {
 	dir = M_CleanPath(dir);
 	std::vector<OString> cmp_files;
-	for (std::vector<std::string>::const_iterator it = exts.begin(); it != exts.end();
-	     ++it)
+	for (const auto& ext : exts)
 	{
 		if (!hash.empty())
 		{
 			// Filenames with supplied hashes always match first.
 			cmp_files.push_back(
-			    StdStringToUpper(name + "." + hash.getHexStr().substr(0, 6) + *it));
+			    StdStringToUpper(name + "." + hash.getHexStr().substr(0, 6) + ext));
 		}
-		cmp_files.push_back(StdStringToUpper(name + *it));
+		cmp_files.push_back(StdStringToUpper(name + ext));
 	}
 
 	// denis - list files in the directory of interest, case-desensitize
@@ -241,9 +237,9 @@ std::vector<std::string> M_BaseFilesScanDir(std::string dir, std::vector<OString
 
 	// Fix up parameters.
 	dir = M_CleanPath(dir);
-	for (size_t i = 0; i < files.size(); i++)
+	for (auto& file : files)
 	{
-		files[i] = StdStringToUpper(files[i]);
+		file = StdStringToUpper(file);
 	}
 
 	const std::string all_ext = dir + PATHSEP "*";

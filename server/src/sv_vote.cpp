@@ -3,7 +3,7 @@
 //
 // $Id$
 //
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -91,7 +91,7 @@ class CoinflipVote : public Vote
 {
 public:
 	CoinflipVote() : Vote("coinflip", &sv_callvote_coinflip) { };
-	bool setup(const std::vector<std::string> &args, const player_t &player)
+	bool setup(const std::vector<std::string> &args, const player_t &player) override
 	{
 		if (!Vote::setup_check_cvar())
 			return false;
@@ -99,7 +99,7 @@ public:
 		this->votestring = "coinflip";
 		return true;
 	}
-	bool exec()
+	bool exec() override
 	{
 		std::string result;
 		CMD_CoinFlip(result);
@@ -115,7 +115,7 @@ private:
 	std::string netname;
 public:
 	ForcespecVote() : Vote("forcespec", &sv_callvote_forcespec) { };
-	bool setup(const std::vector<std::string> &args, const player_t &player)
+	bool setup(const std::vector<std::string> &args, const player_t &player) override
 	{
 		if (!Vote::setup_check_cvar())
 			return false;
@@ -145,7 +145,7 @@ public:
 
 		return true;
 	}
-	bool tic()
+	bool tic() override
 	{
 		if (!validplayer(idplayer(this->id)))
 		{
@@ -163,7 +163,7 @@ public:
 		}
 		return true;
 	}
-	bool exec()
+	bool exec() override
 	{
 		SV_SetPlayerSpec(idplayer(this->id), true);
 		return true;
@@ -174,7 +174,7 @@ class ForcestartVote : public Vote
 {
 public:
 	ForcestartVote() : Vote("forcestart", &sv_callvote_forcestart) { };
-	bool setup(const std::vector<std::string> &args, const player_t &player)
+	bool setup(const std::vector<std::string> &args, const player_t &player) override
 	{
 		if (!Vote::setup_check_cvar())
 			return false;
@@ -188,7 +188,7 @@ public:
 		this->votestring = "forcestart";
 		return true;
 	}
-	bool tic()
+	bool tic() override
 	{
 		if (::levelstate.getState() != LevelState::WARMUP)
 		{
@@ -198,7 +198,7 @@ public:
 
 		return true;
 	}
-	bool exec()
+	bool exec() override
 	{
 		AddCommandString("forcestart");
 		return true;
@@ -212,7 +212,7 @@ private:
 	unsigned int fraglimit;
 public:
 	FraglimitVote() : Vote("fraglimit", &sv_callvote_fraglimit) { };
-	bool setup(const std::vector<std::string> &args, const player_t &player)
+	bool setup(const std::vector<std::string> &args, const player_t &player) override
 	{
 		unsigned int fraglimit;
 
@@ -249,7 +249,7 @@ public:
 		this->votestring = vote_string.str();
 		return true;
 	}
-	bool exec()
+	bool exec() override
 	{
 		sv_fraglimit.Set(this->fraglimit);
 		return true;
@@ -265,7 +265,7 @@ private:
 	std::string reason;
 public:
 	KickVote() : Vote("kick", &sv_callvote_kick) { };
-	bool setup(const std::vector<std::string> &args, const player_t &player)
+	bool setup(const std::vector<std::string> &args, const player_t &player) override
 	{
 		if (!Vote::setup_check_cvar())
 			return false;
@@ -300,7 +300,7 @@ public:
 
 		return true;
 	}
-	bool tic()
+	bool tic() override
 	{
 		if (!validplayer(idplayer(this->id)))
 		{
@@ -311,7 +311,7 @@ public:
 		}
 		return true;
 	}
-	bool exec()
+	bool exec() override
 	{
 		std::ostringstream buffer;
 		if (this->reason.empty())
@@ -334,7 +334,7 @@ private:
 	byte version;
 public:
 	MapVote() : Vote("map", &sv_callvote_map) { };
-	bool setup(const std::vector<std::string> &args, const player_t &player)
+	bool setup(const std::vector<std::string> &args, const player_t &player) override
 	{
 		size_t index;
 
@@ -373,15 +373,14 @@ public:
 		std::ostringstream vsbuffer;
 		vsbuffer << "map ";
 
-		for (std::vector<std::string>::const_iterator it = maplist_entry.wads.begin();
-			it!= maplist_entry.wads.end(); ++it)
-			vsbuffer << D_CleanseFileName(*it) << " ";
+		for (const auto& wad : maplist_entry.wads)
+			vsbuffer << D_CleanseFileName(wad) << " ";
 
 		vsbuffer << maplist_entry.map;
 		this->votestring = vsbuffer.str();
 		return true;
 	}
-	bool tic()
+	bool tic() override
 	{
 		if (this->version != Maplist::instance().get_version())
 		{
@@ -390,7 +389,7 @@ public:
 		}
 		return true;
 	}
-	bool exec()
+	bool exec() override
 	{
 		G_ChangeMap(this->index);
 		return true;
@@ -401,7 +400,7 @@ class NextmapVote : public Vote
 {
 public:
 	NextmapVote() : Vote("nextmap", &sv_callvote_nextmap) { };
-	bool setup(const std::vector<std::string> &args, const player_t &player)
+	bool setup(const std::vector<std::string> &args, const player_t &player) override
 	{
 		if (!Vote::setup_check_cvar())
 			return false;
@@ -411,7 +410,7 @@ public:
 		this->votestring = "nextmap";
 		return true;
 	}
-	bool exec()
+	bool exec() override
 	{
 		G_ChangeMap();
 		return true;
@@ -422,7 +421,7 @@ class RandcapsVote : public Vote
 {
 public:
 	RandcapsVote() : Vote("randcaps", &sv_callvote_randcaps) { };
-	bool setup(const std::vector<std::string> &args, const player_t &player)
+	bool setup(const std::vector<std::string> &args, const player_t &player) override
 	{
 		if (!Vote::setup_check_cvar())
 			return false;
@@ -431,7 +430,7 @@ public:
 		this->votestring = "randcaps";
 		return true;
 	}
-	bool exec()
+	bool exec() override
 	{
 		return Pickup_DistributePlayers(sv_teamsinplay, this->error);
 	}
@@ -441,7 +440,7 @@ class RandmapVote : public Vote
 {
 public:
 	RandmapVote() : Vote("randmap", &sv_callvote_randmap) { };
-	bool setup(const std::vector<std::string> &args, const player_t &player)
+	bool setup(const std::vector<std::string> &args, const player_t &player) override
 	{
 		if (!Vote::setup_check_cvar())
 			return false;
@@ -458,7 +457,7 @@ public:
 		this->votestring = "randmap";
 		return true;
 	}
-	bool tic()
+	bool tic() override
 	{
 		if (Maplist::instance().empty())
 		{
@@ -467,7 +466,7 @@ public:
 		}
 		return true;
 	}
-	bool exec()
+	bool exec() override
 	{
 		return CMD_Randmap(this->error);
 	}
@@ -479,7 +478,7 @@ private:
 	size_t num_players;
 public:
 	RandpickupVote() : Vote("randpickup", &sv_callvote_randpickup) { };
-	bool setup(const std::vector<std::string> &args, const player_t &player)
+	bool setup(const std::vector<std::string> &args, const player_t &player) override
 	{
 		if (!Vote::setup_check_cvar())
 			return false;
@@ -509,7 +508,7 @@ public:
 		this->votestring = buffer.str();
 		return true;
 	}
-	bool exec()
+	bool exec() override
 	{
 		return Pickup_DistributePlayers(this->num_players, this->error);
 	}
@@ -519,7 +518,7 @@ class RestartVote : public Vote
 {
 public:
 	RestartVote() : Vote("restart", &sv_callvote_restart) { };
-	bool setup(const std::vector<std::string> &args, const player_t &player)
+	bool setup(const std::vector<std::string> &args, const player_t &player) override
 	{
 		if (!Vote::setup_check_cvar())
 			return false;
@@ -529,7 +528,7 @@ public:
 		this->votestring = "restart";
 		return true;
 	}
-	bool exec()
+	bool exec() override
 	{
 		// When in warmup mode, we would rather not catch players off guard.
 		::levelstate.reset();
@@ -547,7 +546,7 @@ private:
 	unsigned int scorelimit;
 public:
 	ScorelimitVote() : Vote("scorelimit", &sv_callvote_scorelimit) { };
-	bool setup(const std::vector<std::string> &args, const player_t &player)
+	bool setup(const std::vector<std::string> &args, const player_t &player) override
 	{
 		unsigned int scorelimit;
 
@@ -591,7 +590,7 @@ public:
 		this->votestring = vote_string.str();
 		return true;
 	}
-	bool exec()
+	bool exec() override
 	{
 		sv_scorelimit.Set(this->scorelimit);
 		return true;
@@ -604,7 +603,7 @@ private:
 	float timelimit;
 public:
 	TimelimitVote() : Vote("timelimit", &sv_callvote_timelimit) { };
-	bool setup(const std::vector<std::string> &args, const player_t &player)
+	bool setup(const std::vector<std::string> &args, const player_t &player) override
 	{
 		float timelimit;
 
@@ -648,7 +647,7 @@ public:
 		this->votestring = vote_string.str();
 		return true;
 	}
-	bool exec()
+	bool exec() override
 	{
 		sv_timelimit.Set(this->timelimit);
 		return true;
@@ -720,12 +719,11 @@ size_t Vote::count_yes() const
 	}
 
 	int count = 0;
-	std::map<int, vote_result_t>::const_iterator it;
 
 	// Count the for votes.
-	for (it = this->tally.begin(); it != this->tally.end(); ++it)
+	for (const auto [_, vote_result] : this->tally)
 	{
-		if ((*it).second == VOTE_YES)
+		if (vote_result == VOTE_YES)
 		{
 			count++;
 		}
@@ -768,12 +766,11 @@ size_t Vote::count_no() const
 	}
 
 	int count = 0;
-	std::map<int, vote_result_t>::const_iterator it;
 
 	// Count the against votes.
-	for (it = this->tally.begin(); it != this->tally.end(); ++it)
+	for (const auto [_, vote_result] : this->tally)
 	{
-		if ((*it).second == VOTE_NO)
+		if (vote_result == VOTE_NO)
 		{
 			count++;
 		}
@@ -901,9 +898,9 @@ void Vote::parse(vote_result_t vote_result)
 	// Make sure the clients have the final state of the vote
 	// before we do anything else.
 	SV_GlobalVoteUpdate();
-	for (Players::iterator it = players.begin();it != players.end();++it)
-		if (validplayer(*it))
-			SV_SendPacket(*it);
+	for (auto& player : players)
+		if (validplayer(player))
+			SV_SendPacket(player);
 
 	if (this->tally.empty() || vote_result == VOTE_ABANDON)
 	{
@@ -917,13 +914,13 @@ void Vote::parse(vote_result_t vote_result)
 
 	if (vote_result == VOTE_INTERRUPT)
 	{
-		SV_BroadcastPrintf("Vote %s interrupted! (Yes: %d, No: %d, Abs: %d)\n", this->votestring.c_str(), yes, no, abs);
+		SV_BroadcastPrintf("Vote %s interrupted! (Yes: %lu, No: %lu, Abs: %lu)\n", this->votestring.c_str(), yes, no, abs);
 		return;
 	}
 
 	if (vote_result != VOTE_YES)
 	{
-		SV_BroadcastPrintf("Vote %s failed! (Yes: %d, No: %d, Abs: %d)\n", this->votestring.c_str(), yes, no, abs);
+		SV_BroadcastPrintf("Vote %s failed! (Yes: %lu, No: %lu, Abs: %lu)\n", this->votestring.c_str(), yes, no, abs);
 
 		// Only set the timeout tic if the vote failed.
 		player_t caller = idplayer(this->caller_id);
@@ -935,7 +932,7 @@ void Vote::parse(vote_result_t vote_result)
 		return;
 	}
 
-	SV_BroadcastPrintf("Vote %s passed! (Yes: %d, No: %d, Abs: %d)\n", this->votestring.c_str(), yes, no, abs);
+	SV_BroadcastPrintf("Vote %s passed! (Yes: %lu, No: %lu, Abs: %lu)\n", this->votestring.c_str(), yes, no, abs);
 
 	// NOTE: This can return false if there is an error, but we're already
 	//       catching errors in Vote_Runtic by seeing if the error is
@@ -1037,8 +1034,8 @@ static void SV_VoteUpdate(player_t &player)
 // Send a full vote update to everybody
 static void SV_GlobalVoteUpdate()
 {
-	for (Players::iterator it = players.begin();it != players.end();++it)
-		SV_VoteUpdate(*it);
+	for (auto& player : players)
+		SV_VoteUpdate(player);
 }
 
 //////// COMMANDS FROM CLIENT ////////
@@ -1056,7 +1053,7 @@ void SV_Callvote(player_t &player)
 	for (int i = 0; i < argc; i++)
 	{
 		arguments[i] = std::string(MSG_ReadString());
-		DPrintf("SV_Callvote: arguments[%d] = \"%s\"\n", i, arguments[i].c_str());
+		DPrintf("SV_Callvote: arguments[%d] = \"%s\"\n", i, arguments[i]);
 	}
 
 	if (!(votecmd > VOTE_NONE && votecmd < VOTE_MAX))
@@ -1224,15 +1221,15 @@ void Vote_Runtic()
 	if (level.time == 1)
 	{
 		// Every player has a clean slate in terms of timeouts.
-		for (Players::iterator it = players.begin();it != players.end();++it)
+		for (auto& player : players)
 		{
-			if (!validplayer(*it))
+			if (!validplayer(player))
 			{
 				continue;
 			}
 
-			it->timeout_callvote = 0;
-			it->timeout_vote = 0;
+			player.timeout_callvote = 0;
+			player.timeout_vote = 0;
 		}
 	}
 

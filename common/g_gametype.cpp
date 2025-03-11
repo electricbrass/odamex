@@ -3,7 +3,7 @@
 //
 // $Id$
 //
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -163,7 +163,7 @@ JoinResult G_CanJoinGameStart()
 	if (G_IsTeamGame() && sv_maxplayersperteam)
 	{
 		int teamplayers = sv_maxplayersperteam * sv_teamsinplay;
-		if (P_NumPlayersInGame() >= teamplayers)
+		if (static_cast<int>(P_NumPlayersInGame()) >= teamplayers)
 			return JOIN_GAMEFULL;
 	}
 
@@ -277,7 +277,7 @@ bool G_IsLevelState(LevelState::States state)
  */
 bool G_IsDefendingTeam(team_t team)
 {
-	return g_sides == false || ::levelstate.getDefendingTeam() == team;
+	return !g_sides || ::levelstate.getDefendingTeam() == team;
 }
 
 /**
@@ -343,7 +343,7 @@ bool G_IsTeamGame()
  */
 bool G_IsRoundsGame()
 {
-	if (g_rounds == false)
+	if (!g_rounds)
 	{
 		// Not turned on.
 		return false;
@@ -549,11 +549,11 @@ static void GiveTeamWins(team_t team, int wins)
 		return;
 
 	// Send information about the new team round wins to all players.
-	for (Players::iterator it = ::players.begin(); it != ::players.end(); ++it)
+	for (auto& player : ::players)
 	{
-		if (!it->ingame())
+		if (!player.ingame())
 			continue;
-		MSG_WriteSVC(&it->client.netbuf, SVC_TeamMembers(team));
+		MSG_WriteSVC(&player.client.netbuf, SVC_TeamMembers(team));
 	}
 }
 

@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1998-2006 by Randy Heit (ZDoom).
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -36,7 +36,7 @@
 /**
  * @brief Map a ZDoom game name to Odamex's internals and returns true if
  *        the current game is the passed string.
- * 
+ *
  * @param str String to check against.
  * @return True if the game matches the passed string, otherwise false.
  */
@@ -275,7 +275,7 @@ void StringTable::prepareIndexes()
 		StringHash::iterator it = _stringHash.find(name);
 		if (it == _stringHash.end())
 		{
-			TableEntry entry = {std::make_pair(false, ""), 0xFF, i};
+			TableEntry entry = {std::make_pair(false, ""), 0xFF, static_cast<int>(i)};
 			_stringHash.insert(std::make_pair(name, entry));
 		}
 	}
@@ -313,11 +313,10 @@ void StringTable::replaceEscapes(std::string& str)
 //
 void StringTable::dumpStrings()
 {
-	StringHash::const_iterator it = _stringHash.begin();
-	for (; it != _stringHash.end(); ++it)
+	for (const auto& [first, second] : _stringHash)
 	{
-		Printf(PRINT_HIGH, "%s (pass: %d, index: %d) = %s\n", (*it).first.c_str(),
-		       (*it).second.pass, (*it).second.index, (*it).second.string.second.c_str());
+		PrintFmt(PRINT_HIGH, "{} (pass: {}, index: {}) = {}\n", first,
+		         second.pass, second.index, second.string.second);
 	}
 }
 
@@ -357,13 +356,12 @@ void StringTable::loadStrings(const bool engOnly)
 //
 const OString& StringTable::matchString(const OString& string) const
 {
-	for (StringHash::const_iterator it = _stringHash.begin(); it != _stringHash.end();
-	     ++it)
+	for (const auto& [first, second] : _stringHash)
 	{
-		if ((*it).second.string.first == false)
+		if (second.string.first == false)
 			continue;
-		if ((*it).second.string.second == string)
-			return (*it).first;
+		if (second.string.second == string)
+			return first;
 	}
 
 	static OString empty = "";

@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -142,7 +142,8 @@ void P_SpawnTracerPuff(fixed_t x, fixed_t y, fixed_t z);
 void P_SpawnBlood(fixed_t x, fixed_t y, fixed_t z, angle_t dir, int damage);
 bool P_CheckMissileSpawn(AActor* th);
 AActor* P_SpawnMissile(AActor *source, AActor *dest, mobjtype_t type);
-void P_SpawnPlayerMissile(AActor *source, mobjtype_t type);
+AActor* P_SpawnPlayerMissile(AActor* source, mobjtype_t type);
+size_t P_GetMapThingPlayerNumber(mapthing2_t* mthing);
 bool P_VisibleToPlayers(AActor *mo);
 void P_SetMobjBaseline(AActor& mo);
 uint32_t P_GetMobjBaselineFlags(AActor& mo);

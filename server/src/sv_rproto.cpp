@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 2000-2006 by Sergey Makovkin (CSDoom .62).
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -76,7 +76,7 @@ static void CompressPacket(buf_t& send, const size_t reserved, client_t* cl)
 	}
 
 	send.ptr()[PACKET_FLAG_INDEX] |= method;
-	DPrintf("CompressPacket %x " PRIuSIZE "\n", method, send.size());
+	DPrintf("CompressPacket %x " "zu" "\n", method, send.size());
 }
 
 #ifdef SIMULATE_LATENCY
@@ -209,7 +209,7 @@ bool SV_SendPacket(player_t &pl)
 
 	if (log_packetdebug)
 	{
-		Printf(PRINT_HIGH, "ply %03u, pkt %06u, size %04u, tic %07u, time %011u\n",
+		Printf(PRINT_HIGH, "ply %03u, pkt %06u, size %04lu, tic %07u, time %011llu\n",
 			   pl.id, cl->sequence - 1, sendd.cursize, gametic, I_MSTime());
 	}
 
@@ -276,9 +276,6 @@ void SV_AcknowledgePacket(player_t &player)
 		// resend
 		for (int seq = cl->last_sequence+1; seq < sequence; seq++)
 		{
-			int  n;
-			bool needfullupdate = true;
-
 			if (cl->oldpackets[seq & PACKET_OLD_MASK].sequence != seq)
 			{
 				// do full update

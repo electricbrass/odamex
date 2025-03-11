@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1998-2006 by Randy Heit (ZDoom).
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -54,7 +54,7 @@
 
 #define MAX(a,b)	((a)<(b)?(a):(b))
 
-static const char LZOSig[4] = { 'F', 'L', 'Z', 'O' };
+static constexpr char LZOSig[4] = { 'F', 'L', 'Z', 'O' };
 
 // Output buffer size for LZO compression, extra space in case uncompressable
 static unsigned int MaxLZOCompressedLength(unsigned int input_len)
@@ -291,7 +291,7 @@ void FLZOFile::Implode()
 		else
 		{
 			// A comment inside LZO says "lzo_uint must match size_t".
-			DPrintf("LZOFile shrunk from %u to %" PRIuSIZE" bytes\n", input_len, compressed_len);
+			DPrintf("LZOFile shrunk from %u to %zu bytes\n", input_len, compressed_len);
 		}
 	}
 
@@ -313,7 +313,7 @@ void FLZOFile::Implode()
 
 	delete [] compressed;
     compressed = NULL;
-    
+
 	M_Free(oldbuf);
 }
 
@@ -344,7 +344,7 @@ void FLZOFile::Explode()
 
 		if (FreeOnExplode())
 		{
-			M_Free(m_Buffer);			
+			M_Free(m_Buffer);
 		}
 
 		m_Buffer = expanded_buffer;
@@ -492,7 +492,7 @@ size_t FLZOMemFile::Length() const
 void FLZOMemFile::WriteToBuffer(void* buf, size_t length) const
 {
 	length = length < (m_BufferSize + 8) ? length : (m_BufferSize + 8);
-	
+
 	if (m_ImplodedBuffer)
 		memcpy(buf, m_ImplodedBuffer, length);
 	else
@@ -544,13 +544,13 @@ FArchive::FArchive(FFile& file, uint32_t flags)
 FArchive::~FArchive()
 {
 	Close();
-	
+
 	delete [] m_TypeMap;
     m_TypeMap = NULL;
-    
+
 	if (m_ObjectMap)
 	{
-		M_Free(m_ObjectMap);	
+		M_Free(m_ObjectMap);
 	}
 }
 
@@ -843,7 +843,7 @@ FArchive &FArchive::ReadObject (DObject* &obj, TypeInfo *wanttype)
 		{
 			I_Error ("Object reference too high (%u; max is %u)\n", index, m_ObjectCount);
 		}
-		obj = (DObject *)m_ObjectMap[index].object;
+		obj = const_cast<DObject*>(m_ObjectMap[index].object);
 		break;
 
 	case NEW_PLYR_CLS_OBJ:
@@ -863,7 +863,7 @@ FArchive &FArchive::ReadObject (DObject* &obj, TypeInfo *wanttype)
 			tempobj->Destroy ();
 			break;
 		}
-		/* fallthrough */
+		[[fallthrough]];
 	case NEW_CLS_OBJ:
 		type = ReadClass (wanttype);
 		obj = type->CreateNew ();
@@ -885,7 +885,7 @@ FArchive &FArchive::ReadObject (DObject* &obj, TypeInfo *wanttype)
 			tempobj->Destroy ();
 			break;
 		}
-		/* fallthrough */
+		[[fallthrough]];
 	case NEW_OBJ:
 		type = ReadStoredClass (wanttype);
 		obj = type->CreateNew ();
@@ -938,7 +938,7 @@ const TypeInfo *FArchive::ReadClass ()
 		}
 	}
 	if(typeName.length())
-		I_Error ("Unknown class '%s'\n", typeName.c_str());
+		I_Error ("Unknown class '%s'\n", typeName);
 	else
 		I_Error ("Unknown class\n");
 	return NULL;

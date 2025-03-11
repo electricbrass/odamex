@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1998-2006 by Randy Heit (ZDoom).
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -178,7 +178,7 @@ void R_ConvertPatch(patch_t* newpatch, patch_t* rawpatch, const unsigned int lum
 			if (length < 0)
 			{
 				I_Error("%s: Patch %s appears to be corrupted.", __FUNCTION__,
-				        W_LumpName(lump).c_str());
+				        W_LumpName(lump));
 			}
 
 			// copy the pixels in the post
@@ -334,7 +334,7 @@ void R_GenerateComposite (int texnum)
 				post->length++;
 
 			// copy opaque pixels from the temporary back into the column
-			memcpy(post->data(), tmpdata + post->topdelta, post->length);	
+			memcpy(post->data(), tmpdata + post->topdelta, post->length);
 			post = post->next();
 		}
 	}
@@ -367,8 +367,8 @@ void R_GenerateLookup(int texnum, int *const errors)
 	unsigned short *patchcount = new unsigned short[texture->width];
 	unsigned short *postcount = new unsigned short[texture->width];
 
-	memset(patchcount, 0, sizeof(unsigned short) * texture->width);	
-	memset(postcount, 0, sizeof(unsigned short) * texture->width);	
+	memset(patchcount, 0, sizeof(unsigned short) * texture->width);
+	memset(postcount, 0, sizeof(unsigned short) * texture->width);
 
 	const texpatch_t *texpatch = texture->patches;
 
@@ -389,9 +389,9 @@ void R_GenerateLookup(int texnum, int *const errors)
 			// to fix Medusa bug while allowing for transparent multipatches.
 
 			const tallpost_t *post = (tallpost_t*)((byte*)patch + LELONG(cofs[x]));
-	
+
 			// NOTE: this offset will be rewritten later if a composite is generated
-			// for this texture (eg, there's more than one patch)	
+			// for this texture (eg, there's more than one patch)
 			texturecolumnofs[texnum][x] = (byte *)post - (byte *)patch;
 
 			patchcount[x]++;
@@ -411,44 +411,28 @@ void R_GenerateLookup(int texnum, int *const errors)
 	texturecomposite[texnum] = 0;
 	int csize = 0;
 
-	// [RH] Always create a composite texture for multipatch textures
-	// or tall textures in order to keep things simpler.	
-	bool needcomposite = (texture->patchcount > 1 || texture->height > 254);
-
-	// [SL] Check for columns without patches.
-	// If a texture has columns without patches, generate a composite for
-	// the texture, which will create empty posts and prevent crashes.
-	for (int x = 0; x < texture->width && !needcomposite; x++)
+	int x = texture->width;
+	while (--x >= 0)
 	{
-		if (patchcount[x] == 0)
-			needcomposite = true;
+		// killough 1/25/98, 4/9/98:
+		//
+		// Fix Medusa bug, by adding room for column header
+		// and trailer bytes for each post in merged column.
+		// For now, just allocate conservatively 4 bytes
+		// per post per patch per column, since we don't
+		// yet know how many posts the merged column will
+		// require, and it's bounded above by this limit.
+
+		collump[x] = -1;				// mark lump as in need of compositing
+
+		texturecolumnofs[texnum][x] = csize;
+
+		// 4 header bytes per post + column height + 2 byte terminator
+		csize += 4 * postcount[x] + 2 + texture->height;
 	}
 
-	if (needcomposite)
-	{
-		int x = texture->width;
-		while (--x >= 0)
-		{
-			// killough 1/25/98, 4/9/98:
-			//
-			// Fix Medusa bug, by adding room for column header
-			// and trailer bytes for each post in merged column.
-			// For now, just allocate conservatively 4 bytes
-			// per post per patch per column, since we don't
-			// yet know how many posts the merged column will
-			// require, and it's bounded above by this limit.
-
-			collump[x] = -1;				// mark lump as multipatched
-
-			texturecolumnofs[texnum][x] = csize;
-
-			// 4 header bytes per post + column height + 2 byte terminator
-			csize += 4 * postcount[x] + 2 + texture->height;
-		}
-	}
-	
 	texturecompositesize[texnum] = csize;
-	
+
 	delete [] patchcount;
 	delete [] postcount;
 }
@@ -523,7 +507,6 @@ void R_InitTextures (void)
 
 	int*				patchlookup;
 
-	int 				totalwidth;
 	int					nummappatches;
 	int 				offset;
 	int 				maxoff;
@@ -614,8 +597,6 @@ void R_InitTextures (void)
 	texturescalex = new fixed_t[numtextures];
 	texturescaley = new fixed_t[numtextures];
 
-	totalwidth = 0;
-
 	for (i = 0; i < numtextures; i++, directory++)
 	{
 		if (i == numtextures1)
@@ -667,15 +648,13 @@ void R_InitTextures (void)
 		texturewidthmask[i] = j-1;
 
 		textureheight[i] = texture->height << FRACBITS;
-			
+
 		// [RH] Special for beta 29: Values of 0 will use the tx/ty cvars
 		// to determine scaling instead of defaulting to 8. I will likely
 		// remove this once I finish the betas, because by then, users
 		// should be able to actually create scaled textures.
 		texturescalex[i] = mtexture->scalex ? mtexture->scalex << (FRACBITS - 3) : FRACUNIT;
 		texturescaley[i] = mtexture->scaley ? mtexture->scaley << (FRACBITS - 3) : FRACUNIT;
-
-		totalwidth += texture->width;
 	}
 	delete[] patchlookup;
 
@@ -787,7 +766,7 @@ void R_InitSpriteLumps (void)
 
 struct FakeCmap
 {
-	std::string name;
+	OLumpName name;
 	argb_t blend_color;
 };
 
@@ -812,13 +791,13 @@ void R_ForceDefaultColormap(const char* name)
 	BuildDefaultShademap(V_GetDefaultPalette(), realcolormaps);
 #endif
 
-	fakecmaps[0].name = StdStringToUpper(name, 8); 	// denis - todo - string limit?
+	fakecmaps[0].name = name;
 	fakecmaps[0].blend_color = argb_t(0, 255, 255, 255);
 }
 
 void R_SetDefaultColormap(const char* name)
 {
-	if (strnicmp(fakecmaps[0].name.c_str(), name, 8) != 0)
+	if (fakecmaps[0].name == name)
 		R_ForceDefaultColormap(name);
 }
 
@@ -827,7 +806,7 @@ void R_ReinitColormap()
 	if (fakecmaps == NULL)
 		return;
 
-	std::string name = fakecmaps[0].name;
+	OLumpName name = fakecmaps[0].name;
 	if (name.empty())
 		name = "COLORMAP";
 
@@ -859,7 +838,6 @@ void R_ShutdownColormaps()
 		delete [] fakecmaps;
 		fakecmaps = NULL;
 	}
-
 }
 
 //
@@ -910,9 +888,7 @@ void R_InitColormaps()
 				int g = pal->basecolors[*map].getg();
 				int b = pal->basecolors[*map].getb();
 
-				char name[9];
-				W_GetLumpName(name, i);
-				fakecmaps[j].name = StdStringToUpper(name, 8);
+				W_GetOLumpName(fakecmaps[j].name, i);
 
 				for (int k = 1; k < 256; k++)
 				{
@@ -945,7 +921,7 @@ int R_ColormapNumForName(const char* name)
 	if (strnicmp(name, "COLORMAP", 8) != 0)
 	{
 		int lump = W_CheckNumForName(name, ns_colormaps);
-		
+
 		if (lump != -1)
 			return lump - firstfakecmap + 1;
 	}
@@ -993,6 +969,9 @@ void R_InitData()
 	R_InitTextures();
 	R_InitFlats();
 	R_InitSpriteLumps();
+	#ifdef CLIENT_APP
+	R_InitSkyDefs();
+	#endif
 
 	// haleyjd 01/28/10: also initialize tantoangle_acc table
 	Table_InitTanToAngle();
@@ -1114,6 +1093,11 @@ void R_PrecacheLevel (void)
 		if (hitlist[i])
 			W_CacheLumpNum (firstflat + i, PU_CACHE);
 
+	std::vector<int> skytextures;
+	#ifdef CLIENT_APP
+	R_ActivateSkies(hitlist, skytextures);
+	#endif
+
 	// Precache textures.
 	memset (hitlist, 0, numtextures);
 
@@ -1134,8 +1118,12 @@ void R_PrecacheLevel (void)
 	// [RH] Possibly two sky textures now.
 	// [ML] 5/11/06 - Not anymore!
 
-	hitlist[sky1texture] = 1;
 	hitlist[sky2texture] = 1;
+
+	for (int skytexture : skytextures)
+	{
+		hitlist[skytexture] = 1;
+	}
 
 	for (i = numtextures - 1; i >= 0; i--)
 	{

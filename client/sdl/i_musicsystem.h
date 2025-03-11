@@ -3,7 +3,7 @@
 //
 // $Id$
 //
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -84,7 +84,7 @@ class SilentMusicSystem : public MusicSystem
 	virtual void pauseSong() { }
 	virtual void resumeSong() { }
 	virtual void playChunk() { }
-	virtual void setVolume(float volume) const { }
+	virtual void setVolume(float volume) { }
 
 	virtual bool isInitialized() const { return true; }
 
@@ -133,7 +133,7 @@ class MidiMusicSystem : public MusicSystem
 	virtual void allSoundOff() = 0;
 
   protected:
-	static const int NUM_CHANNELS = 16;
+	static constexpr int NUM_CHANNELS = 16;
 	bool m_useResetDelay;
 
 	void _InitFallback();
@@ -146,7 +146,6 @@ class MidiMusicSystem : public MusicSystem
 	MidiSong* m_midiSong;
 	MidiSong::const_iterator m_songItr;
 	bool m_loop;
-	int m_timeDivision;
 	double msperclock;
 	bool m_useFallback;
 	midi_fallback_t m_fallback;

@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1998-2006 by Randy Heit (ZDoom).
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -107,7 +107,7 @@ bool P_ActivateZDoomLine(line_t* line, AActor* mo, int side,
 	return buttonSuccess;
 }
 
-const LineActivationType P_LineActivationTypeForSPACFlag(const unsigned int activationType)
+LineActivationType P_LineActivationTypeForSPACFlag(const unsigned int activationType)
 {
 	if (activationType & (ML_SPAC_CROSS | ML_SPAC_MCROSS | ML_SPAC_PCROSS | ML_SPAC_CROSSTHROUGH))
 		return LineCross;
@@ -134,7 +134,7 @@ bool P_TestActivateZDoomLine(line_t* line, AActor* mo, int side,
 	lineActivation = line->flags & ML_SPAC_MASK;
 
 	if (line->special == Teleport &&
-	    (lineActivation & ML_SPAC_CROSS | ML_SPAC_CROSSTHROUGH) &&
+	    (lineActivation & ML_SPAC_CROSS || lineActivation & ML_SPAC_CROSSTHROUGH) &&
 	    activationType & ML_SPAC_PCROSS && mo && mo->flags & MF_MISSILE)
 	{ // Let missiles use regular player teleports
 		lineActivation |= ML_SPAC_PCROSS;
@@ -182,6 +182,7 @@ bool P_TestActivateZDoomLine(line_t* line, AActor* mo, int side,
 				case Door_Raise:
 					if (line->args[1] >= 64)
 						break;
+					[[fallthrough]];
 				case Teleport:
 				case Teleport_NoFog:
 				case Teleport_Line:
@@ -227,10 +228,10 @@ void P_PlayerInZDoomSector(player_t* player)
 
 	sector_t* sector = player->mo->subsector->sector;
 
-	static const int heretic_carry[5] = {2048 * 5, 2048 * 10, 2048 * 25, 2048 * 30,
-	                                     2048 * 35};
+	static constexpr int heretic_carry[5] = {2048 * 5, 2048 * 10, 2048 * 25, 2048 * 30,
+	                                         2048 * 35};
 
-	static const int hexen_carry[3] = {2048 * 5, 2048 * 10, 2048 * 25};
+	static constexpr int hexen_carry[3] = {2048 * 5, 2048 * 10, 2048 * 25};
 
 	if (sector->damageamount > 0)
 	{
@@ -817,7 +818,7 @@ void P_SpawnZDoomScroller(line_t* l, int i)
 
 	switch (special)
 	{
-		register int s;
+		int s;
 
 	case Scroll_Ceiling:
 		if (IgnoreSpecial)
@@ -957,7 +958,7 @@ void P_SpawnZDoomFriction(line_t* l)
 
 void P_SpawnZDoomPusher(line_t* l)
 {
-	register int s;
+	int s;
 
 	switch (l->special)
 	{
@@ -1067,18 +1068,18 @@ bool P_ExecuteZDoomLineSpecial(int special, short* args, line_t* line, int side,
 		                                args[4]);
 }
 
-const unsigned int P_TranslateZDoomLineFlags(const unsigned int flags)
+unsigned int P_TranslateZDoomLineFlags(const unsigned int flags)
 {
 	unsigned int result = flags & 0x1ff;
 
-	const unsigned int spac_to_flags[8] = {ML_SPAC_CROSS,
-	                                        ML_SPAC_USE,
-	                                        ML_SPAC_MCROSS,
-	                                        ML_SPAC_IMPACT,
-	                                        ML_SPAC_PUSH,
-	                                        ML_SPAC_PCROSS,
-	                                        ML_SPAC_USE | ML_PASSUSE,
-	                                        ML_SPAC_IMPACT | ML_SPAC_PCROSS};
+	static constexpr unsigned int spac_to_flags[8] = {ML_SPAC_CROSS,
+	                                                  ML_SPAC_USE,
+	                                                  ML_SPAC_MCROSS,
+	                                                  ML_SPAC_IMPACT,
+	                                                  ML_SPAC_PUSH,
+	                                                  ML_SPAC_PCROSS,
+	                                                  ML_SPAC_USE | ML_PASSUSE,
+	                                                  ML_SPAC_IMPACT | ML_SPAC_PCROSS};
 
 	// from zdoom-in-hexen to Odamex
 

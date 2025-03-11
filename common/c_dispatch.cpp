@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1998-2006 by Randy Heit (ZDoom).
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -27,6 +27,7 @@
 #include <sstream>
 #include <algorithm>
 #include <ctime>
+#include <map>
 
 #include "cmdlib.h"
 #include "c_console.h"
@@ -155,7 +156,7 @@ static int ListActionCommands (void)
 
 unsigned int MakeKey (const char *s)
 {
-	register unsigned int v = 0;
+	unsigned int v = 0;
 
 	if (*s)
 		v = tolower(*s++);
@@ -794,16 +795,16 @@ std::string C_QuoteString(const std::string &argstr)
 {
 	std::ostringstream buffer;
 	buffer << "\"";
-	for (std::string::const_iterator it = argstr.begin();it != argstr.end();++it)
+	for (const auto c : argstr)
 	{
-		if (ValidEscape(*it))
+		if (ValidEscape(c))
 		{
 			// Escape this char.
-			buffer << '\\' << *it;
+			buffer << '\\' << c;
 		}
 		else
 		{
-			buffer << *it;
+			buffer << c;
 		}
 	}
 	buffer << "\"";
@@ -826,14 +827,12 @@ std::string C_EscapeWadList(const std::vector<std::string> wadlist)
 	return wadstr;
 }
 
-static int DumpHash (BOOL aliases)
+static int DumpHash (bool aliases)
 {
 	int count = 0;
 
-	for (command_map_t::iterator i = Commands().begin(), e = Commands().end(); i != e; ++i)
+	for (const auto& [_, cmd] : Commands())
 	{
-		DConsoleCommand *cmd = i->second;
-
 		count++;
 		if (cmd->IsAlias())
 		{
@@ -854,10 +853,8 @@ void DConsoleAlias::Archive(FILE *f)
 
 void DConsoleAlias::C_ArchiveAliases (FILE *f)
 {
-	for (command_map_t::iterator i = Commands().begin(), e = Commands().end(); i != e; ++i)
+	for (const auto& [_, alias] : Commands())
 	{
-		DConsoleCommand *alias = i->second;
-
 		if (alias->IsAlias())
 			static_cast<DConsoleAlias *>(alias)->Archive (f);
 	}
@@ -865,10 +862,8 @@ void DConsoleAlias::C_ArchiveAliases (FILE *f)
 
 void DConsoleAlias::DestroyAll()
 {
-	for (command_map_t::iterator i = Commands().begin(), e = Commands().end(); i != e; ++i)
+	for (const auto& [_, alias] : Commands())
 	{
-		DConsoleCommand *alias = i->second;
-
 		if (alias->IsAlias())
 			delete alias;
 	}
@@ -971,17 +966,17 @@ void C_ExecCmdLineParams (bool onlyset, bool onlylogfile)
 	if (onlylogfile && !didlogfile) AddCommandString("version");
 }
 
-BEGIN_COMMAND (dumpactors)
+BEGIN_COMMAND (actorlist)
 {
 	AActor *mo;
 	TThinkerIterator<AActor> iterator;
 	Printf (PRINT_HIGH, "Actors at level.time == %d:\n", level.time);
 	while ( (mo = iterator.Next ()) )
 	{
-		Printf (PRINT_HIGH, "%s (%x, %x, %x | %x) state: %" PRIdSIZE " tics: %d\n", mobjinfo[mo->type].name, mo->x, mo->y, mo->z, mo->angle, mo->state - states, mo->tics);
+		Printf (PRINT_HIGH, "%s (%x, %x, %x | %x) state: %zd tics: %d\n", mobjinfo[mo->type].name, mo->x, mo->y, mo->z, mo->angle, mo->state - states, mo->tics);
 	}
 }
-END_COMMAND (dumpactors)
+END_COMMAND(actorlist)
 
 BEGIN_COMMAND(logfile)
 {
@@ -1001,7 +996,7 @@ BEGIN_COMMAND(logfile)
 
 		time(&rawtime);
 		timeinfo = localtime(&rawtime);
-		Printf("Log file %s closed on %s\n", ::LOG_FILE.c_str(), asctime(timeinfo));
+		Printf("Log file %s closed on %s\n", ::LOG_FILE, asctime(timeinfo));
 		::LOG.close();
 	}
 
@@ -1010,7 +1005,7 @@ BEGIN_COMMAND(logfile)
 
 	if (!::LOG.is_open())
 	{
-		Printf(PRINT_HIGH, "Unable to create logfile: %s\n", ::LOG_FILE.c_str());
+		Printf(PRINT_HIGH, "Unable to create logfile: %s\n", ::LOG_FILE);
 	}
 	else
 	{
@@ -1018,7 +1013,7 @@ BEGIN_COMMAND(logfile)
 		timeinfo = localtime(&rawtime);
 		::LOG.flush();
 		::LOG << std::endl;
-		Printf(PRINT_HIGH, "Logging in file %s started %s\n", ::LOG_FILE.c_str(),
+		Printf(PRINT_HIGH, "Logging in file %s started %s\n", ::LOG_FILE,
 		       asctime(timeinfo));
 	}
 }
@@ -1032,7 +1027,7 @@ BEGIN_COMMAND (stoplog)
 	if (LOG.is_open()) {
 		time (&rawtime);
     	timeinfo = localtime (&rawtime);
-		Printf (PRINT_HIGH, "Logging to file %s stopped %s\n", LOG_FILE.c_str(), asctime (timeinfo));
+		Printf (PRINT_HIGH, "Logging to file %s stopped %s\n", LOG_FILE, asctime (timeinfo));
 		LOG.close();
 	}
 }
@@ -1066,7 +1061,7 @@ END_COMMAND (puke)
 BEGIN_COMMAND (error)
 {
 	std::string text = C_ArgCombine(argc - 1, (const char **)(argv + 1));
-	I_Error (text.c_str());
+	I_Error (text);
 }
 END_COMMAND (error)
 

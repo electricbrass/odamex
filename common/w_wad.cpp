@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -144,7 +144,7 @@ void uppercopy (char *to, const char *from)
 
 /**
  * @brief Calculate a CRC32 hash from a file.
- * 
+ *
  * @param filename Filename of file to hash.
  * @return Output hash, or blank if file could not be found.
  */
@@ -158,7 +158,7 @@ OCRC32Sum W_CRC32(const std::string& filename)
 	if (!fp)
 		return rvo;
 
-	unsigned n = 0;
+	size_t n = 0;
 	unsigned char buf[file_chunk_size];
 	uint32_t crc = 0;
 
@@ -169,7 +169,7 @@ OCRC32Sum W_CRC32(const std::string& filename)
 
 	std::string hashStr;
 
-	StrFormat(hashStr, "%08X", crc);
+	hashStr = fmt::sprintf("%08X", crc);
 
 	OCRC32Sum::makeFromHexStr(rvo, hashStr);
 	return rvo; // bubble up failure
@@ -189,7 +189,7 @@ OMD5Hash W_MD5(const std::string& filename)
 	md5_state_t state;
 	md5_init(&state);
 
-	unsigned n = 0;
+	size_t n = 0;
 	unsigned char buf[file_chunk_size];
 
 	while((n = fread(buf, 1, sizeof(buf), fp)))
@@ -301,11 +301,11 @@ void AddFile(const OResFile& file)
 
 	if ( (handle = fopen(filename.c_str(), "rb")) == NULL)
 	{
-		Printf(PRINT_WARNING, "couldn't open %s\n", filename.c_str());
+		Printf(PRINT_WARNING, "couldn't open %s\n", filename);
 		return;
 	}
 
-	Printf(PRINT_HIGH, "adding %s", filename.c_str());
+	Printf(PRINT_HIGH, "adding %s", filename);
 
 	size_t newlumps;
 
@@ -313,7 +313,7 @@ void AddFile(const OResFile& file)
 	size_t readlen = fread(&header, sizeof(header), 1, handle);
 	if ( readlen < 1 )
 	{
-		Printf(PRINT_HIGH, "failed to read %s.\n", filename.c_str());
+		Printf(PRINT_HIGH, "failed to read %s.\n", filename);
 		fclose(handle);
 		return;
 	}
@@ -325,7 +325,7 @@ void AddFile(const OResFile& file)
 		std::string lumpname;
 		M_ExtractFileBase(filename, lumpname);
 
-		fileinfo = new filelump_t[1];	
+		fileinfo = new filelump_t[1];
 		fileinfo->filepos = 0;
 		fileinfo->size = M_FileLength(handle);
 		std::transform(lumpname.c_str(), lumpname.c_str() + 8, fileinfo->name, toupper);
@@ -342,7 +342,7 @@ void AddFile(const OResFile& file)
 
 		if (length > (unsigned)M_FileLength(handle))
 		{
-			Printf(PRINT_WARNING, "\nbad number of lumps for %s\n", filename.c_str());
+			Printf(PRINT_WARNING, "\nbad number of lumps for %s\n", filename);
 			fclose(handle);
 			return;
 		}
@@ -352,7 +352,7 @@ void AddFile(const OResFile& file)
 		readlen = fread(fileinfo, length, 1, handle);
 		if (readlen < 1)
 		{
-			Printf(PRINT_HIGH, "failed to read file info in %s\n", filename.c_str());
+			Printf(PRINT_HIGH, "failed to read file info in %s\n", filename);
 			fclose(handle);
 			return;
 		}
@@ -365,7 +365,7 @@ void AddFile(const OResFile& file)
 			std::transform(fileinfo[i].name, fileinfo[i].name + 8, fileinfo[i].name, toupper);
 		}
 
-		newlumps = header.numlumps;	
+		newlumps = header.numlumps;
 		Printf(PRINT_HIGH, " (%d lumps)\n", header.numlumps);
 	}
 
@@ -385,7 +385,7 @@ void AddFile(const OResFile& file)
 //
 //
 
-static BOOL IsMarker (const lumpinfo_t *lump, const char *marker)
+static bool IsMarker (const lumpinfo_t *lump, const char *marker)
 {
 	return (lump->namespc == ns_global) && (!strncmp (lump->name, marker, 8) ||
 			(*(lump->name) == *marker && !strncmp (lump->name + 1, marker, 7)));
@@ -403,7 +403,7 @@ void W_MergeLumps (const char *start, const char *end, int space)
 	char ustart[8], uend[8];
 	lumpinfo_t *newlumpinfos;
 	unsigned newlumps, oldlumps;
-	BOOL insideBlock;
+	bool insideBlock;
 	unsigned flatHack, i;
 
 	strncpy(ustart, start, 8);
@@ -647,7 +647,7 @@ int W_CheckNumForName(const char *name, int namespc)
 	// It has been tuned so that the average chain length never exceeds 2.
 
 	// proff 2001/09/07 - check numlumps==0, this happens when called before WAD loaded
-	register int i = (numlumps==0)?(-1):(lumpinfo[W_LumpNameHash(name) % numlumps].index);
+	int i = (numlumps==0)?(-1):(lumpinfo[W_LumpNameHash(name) % numlumps].index);
 
 	// We search along the chain until end, looking for case-insensitive
 	// matches which also match a namespace tag. Separate hash tables are
@@ -674,7 +674,7 @@ int W_GetNumForName(const char* name, int namespc)
 	if (i == -1)
 	{
 		I_Error("W_GetNumForName: %s not found!\n(checked in: %s)", name,
-		        M_ResFilesToString(::wadfiles).c_str());
+		        M_ResFilesToString(::wadfiles));
 	}
 
 	return i;
@@ -682,7 +682,7 @@ int W_GetNumForName(const char* name, int namespc)
 
 /**
  * @brief Return the name of a lump number.
- * 
+ *
  * @detail You likely only need this for debugging, since a name can be
  *         ambiguous.
  */
@@ -774,7 +774,7 @@ bool W_CheckLumpName (unsigned lump, const char *name)
 //
 // W_GetLumpName
 //
-void W_GetLumpName (char *to, unsigned  lump)
+void W_GetLumpName(char *to, unsigned lump)
 {
 	if (lump >= numlumps)
 		*to = 0;
@@ -784,6 +784,17 @@ void W_GetLumpName (char *to, unsigned  lump)
 		to[8] = '\0';
 		std::transform(to, to + strlen(to), to, toupper);
 	}
+}
+
+//
+// W_GetOLumpName
+//
+void W_GetOLumpName(OLumpName& to, unsigned lump)
+{
+	if (lump >= numlumps)
+		to.clear();
+	else
+		to = lumpinfo[lump].name;
 }
 
 //
@@ -822,7 +833,15 @@ void* W_CacheLumpNum(unsigned int lump, const zoneTag_e tag)
 //
 void* W_CacheLumpName(const char* name, const zoneTag_e tag)
 {
-	return W_CacheLumpNum (W_GetNumForName(name), tag);
+	return W_CacheLumpNum(W_GetNumForName(name), tag);
+}
+
+//
+// W_CacheLumpName
+//
+void* W_CacheLumpName(const OLumpName& name, const zoneTag_e tag)
+{
+	return W_CacheLumpNum(W_GetNumForName(name), tag);
 }
 
 size_t R_CalculateNewPatchSize(patch_t *patch, size_t length);
@@ -885,6 +904,13 @@ patch_t* W_CachePatch(const char* name, const zoneTag_e tag)
 	// denis - todo - would be good to replace non-existant patches with a default '404' patch
 }
 
+patch_t* W_CachePatch(const OLumpName& name, const zoneTag_e tag)
+{
+	return W_CachePatch(W_GetNumForName(name), tag);
+	// denis - todo - would be good to replace non-existant patches with a default '404'
+	// patch
+}
+
 /**
  * @brief Cache a patch by lump number and return a handle to it.
  */
@@ -898,6 +924,14 @@ lumpHandle_t W_CachePatchHandle(const int lumpNum, const zoneTag_e tag)
  * @brief Cache a patch by name and namespace and return a handle to it.
  */
 lumpHandle_t W_CachePatchHandle(const char* name, const zoneTag_e tag, const int ns)
+{
+	return W_CachePatchHandle(W_GetNumForName(name, ns), tag);
+}
+
+/**
+ * @brief Cache a patch by name and namespace and return a handle to it.
+ */
+lumpHandle_t W_CachePatchHandle(const OLumpName& name, const zoneTag_e tag, const int ns)
 {
 	return W_CachePatchHandle(W_GetNumForName(name, ns), tag);
 }

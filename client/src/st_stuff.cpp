@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -57,6 +57,7 @@ static bool st_needrefresh = true;
 static int lu_palette;
 
 EXTERN_CVAR(sv_allowredscreen)
+EXTERN_CVAR(sv_allowfov)
 EXTERN_CVAR(st_scale)
 EXTERN_CVAR(screenblocks)
 EXTERN_CVAR(g_lives)
@@ -449,7 +450,7 @@ short ST_StatusBarWidth(int surface_width, int surface_height)
 		return 0;
 	}
 
-	
+
 	// [AM] Scale status bar width according to height, unless there isn't
 	//      enough room for it.  Fixes widescreen status bar scaling.
 	// [ML] A couple of minor changes for true 4:3 correctness...
@@ -544,14 +545,13 @@ bool ST_Responder (event_t *ev)
 	// if a user keypress...
 	else if (ev->type == ev_keydown && ev->data3)
 	{
-		cheatseq_t* cheats = DoomCheats;
-		for (int i = 0; i < COUNT_CHEATS(DoomCheats); i++, cheats++)
+		for (auto& cheat : DoomCheats)
 		{
-			if (CHEAT_AddKey(cheats, (byte)ev->data1, &eat))
+			if (CHEAT_AddKey(&cheat, (byte)ev->data1, &eat))
 			{
-				if (cheats->DontCheck || CHEAT_AreCheatsEnabled())
+				if (cheat.DontCheck || CHEAT_AreCheatsEnabled())
 				{
-					eat |= cheats->Handler(cheats);
+					eat |= cheat.Handler(&cheat);
 				}
 			}
 		}
@@ -614,14 +614,14 @@ BEGIN_COMMAND (chase)
 		if (chasedemo)
 		{
 			chasedemo.Set (0.0f);
-			for (Players::iterator it = players.begin(); it != players.end(); ++it)
-				it->cheats &= ~CF_CHASECAM;
+			for (auto& player : players)
+				player.cheats &= ~CF_CHASECAM;
 		}
 		else
 		{
 			chasedemo.Set (1.0f);
-			for (Players::iterator it = players.begin(); it != players.end(); ++it)
-				it->cheats |= CF_CHASECAM;
+			for (auto& player : players)
+				player.cheats |= CF_CHASECAM;
 		}
 	}
 	else
@@ -630,7 +630,7 @@ BEGIN_COMMAND (chase)
 			return;
 
 		CHEAT_DoCheat(&consoleplayer(), CHT_CHASECAM);
-		
+
 	}
 }
 END_COMMAND (chase)
@@ -639,7 +639,7 @@ BEGIN_COMMAND (idmus)
 {
 	if (argc > 1)
 	{
-		char *map;
+		OLumpName map;
 		if (gameinfo.flags & GI_MAPxx)
 		{
 			const int l = atoi(argv[1]);
@@ -692,7 +692,7 @@ END_COMMAND (give)
 
 BEGIN_COMMAND (fov)
 {
-	if (!CHEAT_AreCheatsEnabled() || !m_Instigator)
+	if (!sv_allowfov && (!CHEAT_AreCheatsEnabled() || !m_Instigator))
 		return;
 
 	if (argc != 2)
@@ -954,15 +954,34 @@ void ST_updateWidgets()
 		st_chat = st_oldchat;
 }
 
+void ST_UpdateSurfaceBpp()
+{
+	int currentbpp = screen->getSurface()->getBitsPerPixel();
+	int stnumbpp = stnum_surface->getBitsPerPixel();
+	int stbarbpp = stbar_surface->getBitsPerPixel();
+
+	if (stbar_surface && stbarbpp != currentbpp)
+	{
+		delete stbar_surface;
+		stbar_surface = I_AllocateSurface(sbar_width, 32, currentbpp);
+	}
+
+	if (stnum_surface && stnumbpp != currentbpp)
+	{
+		delete stnum_surface;
+		stnum_surface = I_AllocateSurface(sbar_width, 32, currentbpp);
+	}
+}
+
 void ST_Ticker()
 {
+	ST_UpdateSurfaceBpp();
 	if (!multiplayer && !demoplayback && (ConsoleState == c_down || ConsoleState == c_falling))
 		return;
 	st_randomnumber = M_Random();
 	ST_updateWidgets();
 	st_oldhealth = displayplayer().health;
 }
-
 
 void ST_drawWidgets(bool force_refresh)
 {
@@ -988,17 +1007,14 @@ void ST_drawWidgets(bool force_refresh)
 	w_faces.update(force_refresh);
 
 	for (int i = 0; i < 3; i++)
-	{
 		w_keyboxes[i].update(force_refresh);
-	}
 
 	if (!G_IsCoopGame())
-	{
 		w_frags.update(force_refresh);
-	}
 
-	w_lives.update(true, G_IsLivesGame()); // Force refreshing to avoid tens
-	                                       // to be hidden by Doomguy's face
+	if (G_IsLivesGame())
+		w_lives.update(true); // Force refreshing to avoid tens
+		                      // to be hidden by Doomguy's face
 }
 
 
@@ -1042,13 +1058,13 @@ static void ST_refreshBackground()
 			// [RH] Always draw faceback with the player's color
 			//		using a translation rather than a different patch.
 			V_ColorMap = translationref_t(translationtables + displayplayer_id * 256, displayplayer_id);
-			stbar_canvas->DrawTranslatedPatch(W_ResolvePatchHandle(faceback), ST_FX,
+			stbar_canvas->DrawTranslatedPatch(W_ResolvePatchHandle(faceback), ST_FX + scaled_x,
 			                                  ST_FY);
 		}
 		else
 		{
 			stbar_canvas->DrawPatch(
-			    W_ResolvePatchHandle(faceclassic[displayplayer_id - 1]), ST_FX, ST_FY);
+			    W_ResolvePatchHandle(faceclassic[displayplayer_id - 1]), ST_FX + scaled_x, ST_FY);
 		}
 	}
 
@@ -1103,13 +1119,13 @@ void ST_Drawer()
 				surface->blitcrop(stbar_surface, 0, 0, stbar_surface->getWidth(), stbar_surface->getHeight(),
 						ST_X, ST_Y, ST_WIDTH, ST_HEIGHT);
 		}
-		
+
 		// refresh all widgets
 		ST_drawWidgets(st_needrefresh);
 
 		if (st_scale)
 			surface->blitcrop(stnum_surface, 0, 0, stnum_surface->getWidth(), stnum_surface->getHeight(),
-					ST_X, ST_Y, ST_WIDTH, ST_HEIGHT);	
+					ST_X, ST_Y, ST_WIDTH, ST_HEIGHT);
 
 		stbar_surface->unlock();
 		stnum_surface->unlock();
@@ -1119,33 +1135,23 @@ void ST_Drawer()
 }
 
 
-static lumpHandle_t LoadFaceGraphic(const char* name)
+static lumpHandle_t LoadFaceGraphic(const OLumpName& name)
 {
-	int lump = W_CheckNumForName(name, ns_global);
-	if (lump == -1)
-	{
-		char othername[9];
-		strcpy(othername, name);
-		othername[0] = 'S';
-		othername[1] = 'T';
-		othername[2] = 'F';
-		lump = W_GetNumForName(othername);
-	}
+	int lump = W_GetNumForName(name, ns_global);
 	return W_CachePatchHandle(lump, PU_STATIC);
 }
 
 static void ST_loadGraphics()
 {
-	char namebuf[9];
-	namebuf[8] = 0;
+	OLumpName namebuf;
 
 	// Load the numbers, tall and short
 	for (int i = 0; i < 10; i++)
 	{
-		sprintf(namebuf, "STTNUM%d", i);
+		namebuf = fmt::format("STTNUM{}", i);
 		tallnum[i] = W_CachePatchHandle(namebuf, PU_STATIC);
 
-		sprintf(namebuf, "STYSNUM%d", i);
+		namebuf = fmt::format("STYSNUM{}", i);
 		shortnum[i] = W_CachePatchHandle(namebuf, PU_STATIC);
 	}
 
@@ -1158,7 +1164,7 @@ static void ST_loadGraphics()
 	// key cards
 	for (int i = 0; i < NUMCARDS + NUMCARDS / 2; i++)
 	{
-		sprintf(namebuf, "STKEYS%d", i);
+		namebuf = fmt::format("STKEYS{}", i);
 		keys[i] = W_CachePatchHandle(namebuf, PU_STATIC);
 	}
 
@@ -1171,7 +1177,7 @@ static void ST_loadGraphics()
 	// arms ownership widgets
 	for (int i = 0; i < 6; i++)
 	{
-		sprintf(namebuf, "STGNUM%d", i+2);
+		namebuf = fmt::format("STGNUM{}", i+2);
 
 		// gray #
 		arms[i][0] = W_CachePatchHandle(namebuf, PU_STATIC);
@@ -1188,7 +1194,7 @@ static void ST_loadGraphics()
 	// [Nes] Classic vanilla lifebars.
 	for (int i = 0; i < 4; i++)
 	{
-		sprintf(namebuf, "STFB%d", i);
+		namebuf = fmt::format("STFB{}", i);
 		faceclassic[i] = W_CachePatchHandle(namebuf, PU_STATIC);
 	}
 
@@ -1201,29 +1207,27 @@ static void ST_loadGraphics()
 	// face states
 	int facenum = 0;
 
-	namebuf[0] = 'S'; namebuf[1] = 'T'; namebuf[2] = 'F';
-
 	for (int i = 0; i < ST_NUMPAINFACES; i++)
 	{
 		for (int j = 0; j < ST_NUMSTRAIGHTFACES; j++)
 		{
-			sprintf(namebuf + 3, "ST%d%d", i, j);
+			namebuf = fmt::format("STFST{}{}", i, j);
 			faces[facenum++] = LoadFaceGraphic(namebuf);
 		}
-		sprintf(namebuf + 3, "TR%d0", i); // turn right
+		namebuf = fmt::format("STFTR{}0", i); // turn right
 		faces[facenum++] = LoadFaceGraphic(namebuf);
-		sprintf(namebuf + 3, "TL%d0", i); // turn left
+		namebuf = fmt::format("STFTL{}0", i); // turn left
 		faces[facenum++] = LoadFaceGraphic(namebuf);
-		sprintf(namebuf + 3, "OUCH%d", i); // ouch!
+		namebuf = fmt::format("STFOUCH{}", i); // ouch!
 		faces[facenum++] = LoadFaceGraphic(namebuf);
-		sprintf(namebuf + 3, "EVL%d", i); // evil grin ;)
+		namebuf = fmt::format("STFEVL{}", i); // evil grin ;)
 		faces[facenum++] = LoadFaceGraphic(namebuf);
-		sprintf(namebuf + 3, "KILL%d", i); // pissed off
+		namebuf = fmt::format("STFKILL{}", i); // pissed off
 		faces[facenum++] = LoadFaceGraphic(namebuf);
 	}
-	strcpy(namebuf + 3, "GOD0");
+	namebuf = "STFGOD0";
 	faces[facenum++] = LoadFaceGraphic(namebuf);
-	strcpy(namebuf + 3, "DEAD0");
+	namebuf = "STFDEAD0";
 	faces[facenum] = LoadFaceGraphic(namebuf);
 }
 
@@ -1353,7 +1357,7 @@ void ST_Start()
 
 	for (int i = 0; i < 3; i++)
 		keyboxes[i] = -1;
-	
+
 	ST_initNew();
 
 	ST_createWidgets();
@@ -1364,9 +1368,19 @@ void ST_Init()
 	ST_loadData();
 
 	if (stbar_surface == NULL)
-		stbar_surface = I_AllocateSurface(sbar_width, 32, 8);
+	{
+		if (I_GetVideoBitDepth() == 32)
+			stbar_surface = I_AllocateSurface(sbar_width, 32, 32);
+		else
+			stbar_surface = I_AllocateSurface(sbar_width, 32, 8);
+	}
 	if (stnum_surface == NULL)
-		stnum_surface = I_AllocateSurface(sbar_width, 32, 8);
+	{
+		if (I_GetVideoBitDepth() == 32)
+			stnum_surface = I_AllocateSurface(sbar_width, 32, 32);
+		else
+			stnum_surface = I_AllocateSurface(sbar_width, 32, 8);
+	}
 }
 
 void STACK_ARGS ST_Shutdown()

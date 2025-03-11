@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -40,6 +40,7 @@
 #include "svc_message.h"
 #include "p_horde.h"
 #include "com_misc.h"
+#include "gi.h"
 #include "g_skill.h"
 #include "p_mapformat.h"
 
@@ -96,12 +97,12 @@ void SV_ShareKeys(card_t card, player_t& player);
 static void PersistPlayerDamage(player_t& p)
 {
 	// Send this information to everybody.
-	for (Players::iterator it = ::players.begin(); it != ::players.end(); ++it)
+	for (auto& player : ::players)
 	{
-		if (!it->ingame())
+		if (!player.ingame())
 			continue;
 
-		MSG_WriteSVC(&it->client.netbuf, SVC_PlayerMembers(p, SVC_PM_DAMAGE));
+		MSG_WriteSVC(&player.client.netbuf, SVC_PlayerMembers(p, SVC_PM_DAMAGE));
 	}
 }
 
@@ -123,12 +124,12 @@ static void PersistPlayerScore(player_t& p, const bool lives, const bool score)
 		flags |= SVC_PM_SCORE;
 
 	// Send this information to everybody.
-	for (Players::iterator it = ::players.begin(); it != ::players.end(); ++it)
+	for (auto& player : players)
 	{
-		if (!it->ingame())
+		if (!player.ingame())
 			continue;
 
-		MSG_WriteSVC(&it->client.netbuf, SVC_PlayerMembers(p, flags));
+		MSG_WriteSVC(&player.client.netbuf, SVC_PlayerMembers(p, flags));
 	}
 }
 
@@ -139,11 +140,11 @@ static void PersistTeamScore(team_t team)
 		return;
 
 	// Send this information to everybody.
-	for (Players::iterator it = ::players.begin(); it != ::players.end(); ++it)
+	for (auto& player : players)
 	{
-		if (!it->ingame())
+		if (!player.ingame())
 			continue;
-		MSG_WriteSVC(&it->client.netbuf, SVC_TeamMembers(team));
+		MSG_WriteSVC(&player.client.netbuf, SVC_TeamMembers(team));
 	}
 }
 
@@ -380,7 +381,7 @@ ItemEquipVal P_GiveAmmo(player_t *player, ammotype_t ammotype, float num)
 // P_GiveWeapon
 // The weapon name may have a MF_DROPPED flag ored in.
 //
-ItemEquipVal P_GiveWeapon(player_t *player, weapontype_t weapon, BOOL dropped)
+ItemEquipVal P_GiveWeapon(player_t *player, weapontype_t weapon, bool dropped)
 {
 	bool gaveammo;
 	bool gaveweapon;
@@ -518,7 +519,7 @@ ItemEquipVal P_GiveCard(player_t *player, card_t card)
 	{
 #ifdef SERVER_APP
 		// Register the key
-		SV_ShareKeys(card, *player);	
+		SV_ShareKeys(card, *player);
 #endif
 
 
@@ -578,13 +579,13 @@ ItemEquipVal P_GivePower(player_t *player, int /*powertype_t*/ power)
 
 /**
  * @brief Give the player a care package.
- * 
+ *
  * @detail A care package gives you a small collection of items based on what
  *         you're already holding.  TODO: These messages should be LANGUAGE'ed.
  */
 static void P_GiveCarePack(player_t* player)
 {
-	const int ammomulti[NUMAMMO] = {2, 1, 1, 2};
+	constexpr int ammomulti[NUMAMMO] = {2, 1, 1, 2};
 
 	// [AM] There is way too much going on in here to accurately predict.
 	if (!::serverside)
@@ -620,9 +621,8 @@ static void P_GiveCarePack(player_t* player)
 	// Players who are extremely low on ammo for a weapon they are holding
 	// always get ammo for that weapon.
 	const hordeDefine_t::ammos_t& ammos = P_HordeAmmos();
-	for (size_t i = 0; i < ammos.size(); i++)
+	for (const auto ammo : ammos)
 	{
-		const ammotype_t ammo = ammos.at(i);
 		if (blocks < 1)
 		{
 			break;
@@ -656,11 +656,11 @@ static void P_GiveCarePack(player_t* player)
 	if (blocks >= 1)
 	{
 		const hordeDefine_t::weapons_t& weapons = P_HordeWeapons();
-		for (size_t i = 0; i < weapons.size(); i++)
+		for (const auto weapon : weapons)
 		{
 			// No weapon is a special case that means give the player
 			// berserk strength (without the health).
-			if (weapons.at(i) == wp_none && player->powers[pw_strength] < 1)
+			if (weapon == wp_none && player->powers[pw_strength] < 1)
 			{
 				player->powers[pw_strength] = 1;
 				blocks -= 1;
@@ -669,13 +669,13 @@ static void P_GiveCarePack(player_t* player)
 				midmessage = "Got berserk";
 				break;
 			}
-			else if (weapons.at(i) != wp_none && !player->weaponowned[weapons.at(i)])
+			else if (weapon != wp_none && !player->weaponowned[weapon])
 			{
-				P_GiveWeapon(player, weapons.at(i), false);
+				P_GiveWeapon(player, weapon, false);
 				blocks -= 1;
 
 				message = "You found a weapon in this supply cache!";
-				switch (weapons.at(i))
+				switch (weapon)
 				{
 				case wp_chainsaw:
 					midmessage = "Got Chainsaw";
@@ -703,8 +703,13 @@ static void P_GiveCarePack(player_t* player)
 				case wp_supershotgun:
 					midmessage = "Got Super Shotgun";
 					break;
+				case wp_none:
+				case wp_fist:
+				case wp_nochange:
+				case NUMWEAPONS:
+					break;
 				}
-				
+
 				break;
 			}
 		}
@@ -1309,9 +1314,9 @@ void P_TouchSpecialThing(AActor *special, AActor *toucher)
 	if (toucher->type == MT_AVATAR)
 	{
 		PlayersView pr = PlayerQuery().execute().players;
-		for (PlayersView::iterator it = pr.begin(); it != pr.end(); ++it)
+		for (const auto& player : pr)
 		{
-			P_GiveSpecial(*it, special);
+			P_GiveSpecial(player, special);
 		}
 	}
 	else if (toucher->player)
@@ -1339,7 +1344,7 @@ void SexMessage (const char *from, char *to, int gender, const char *victim, con
 		{ "she", "her", "her" },
 		{ "it",  "it",  "its" }
 	};
-	static const int gendershift[3][3] =
+	static constexpr int gendershift[3][3] =
 	{
 		{ 2, 3, 3 },
 		{ 3, 3, 3 },
@@ -1367,7 +1372,7 @@ void SexMessage (const char *from, char *to, int gender, const char *victim, con
 			}
 			if (subst != NULL)
 			{
-				int len = strlen (subst);
+				size_t len = strlen (subst);
 				memcpy (to, subst, len);
 				to += len;
 				from++;
@@ -1869,7 +1874,8 @@ void P_KillMobj(AActor *source, AActor *target, AActor *inflictor, bool joinkill
 	P_RemoveHealthPool(target);
 	P_QueueCorpseForDestroy(target);
 
-    if (target->info->xdeathstate && target->health < target->info->gibhealth)
+    if (target->info->xdeathstate &&
+		static_cast<float>(target->health) < static_cast<float>(target->info->gibhealth) * gameinfo.gibFactor)
     {
         P_SetMobjState(target, target->info->xdeathstate);
     }
@@ -2018,9 +2024,6 @@ static bool P_InfightingImmune(AActor* target, AActor* source)
 // [Toke] This is no longer needed client-side
 void P_DamageMobj(AActor *target, AActor *inflictor, AActor *source, int damage, int mod, int flags)
 {
-    unsigned	ang;
-	int 		saved = 0;
-
 	if (!serverside)
     {
 		return;
@@ -2098,15 +2101,15 @@ void P_DamageMobj(AActor *target, AActor *inflictor, AActor *source, int damage,
 	// inflict thrust and push the victim out of reach,
 	// thus kick away unless using the chainsaw.
 
-	if (inflictor && 
-		!(target->flags & MF_NOCLIP) && 
+	if (inflictor &&
+		!(target->flags & MF_NOCLIP) &&
 	    (!source || !source->player || !(weaponinfo[source->player->readyweapon].flags & WPF_NOTHRUST)) &&
 	    !(inflictor->flags2 & MF2_NODMGTHRUST))
 	{
 
 		unsigned int ang = P_PointToAngle(inflictor->x, inflictor->y, target->x, target->y);
 
-		fixed_t thrust = damage * (FRACUNIT >> 3) * 100 / target->info->mass;
+		fixed_t thrust = damage * (FRACUNIT >> 3) * gameinfo.defKickback / target->info->mass;
 
 		// make fall forwards sometimes
 		if (damage < 40
@@ -2154,7 +2157,7 @@ void P_DamageMobj(AActor *target, AActor *inflictor, AActor *source, int damage,
 		if (!sv_friendlyfire && source && source->player && target != source &&
 			mod != MOD_TELEFRAG)
 		{
-			if (G_IsCoopGame() || 
+			if (G_IsCoopGame() ||
 				(G_IsTeamGame() && player->userinfo.team == source->player->userinfo.team))
 			{
 				damage = 0;
@@ -2181,8 +2184,8 @@ void P_DamageMobj(AActor *target, AActor *inflictor, AActor *source, int damage,
 
 		// WDL damage events - they have to be up here to ensure we know how
 		// much armor is subtracted.
-		int low = std::max(target->health - damage, 0);
-		int actualdamage = target->health - low;
+		const int low = std::max(target->health - damage, 0);
+		const int actualdamage = target->health - low;
 
 		angle_t sangle = 0;
 
@@ -2252,7 +2255,7 @@ void P_DamageMobj(AActor *target, AActor *inflictor, AActor *source, int damage,
 			else
 			{
 				player->health = 0;
-			} 
+			}
 		}
 
 		player->attacker = source ? source->ptr() : AActor::AActorPtr();

@@ -3,7 +3,7 @@
 //
 // $Id$
 //
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -177,7 +177,7 @@ static inline unsigned int __hash_cstring(const char* str)
 	unsigned int val = 0;
 	while (*str != 0)
 		val = val * 101 + *str++;
-	return val;	
+	return val;
 }
 
 template <> struct hashfunc<char*>
@@ -206,8 +206,8 @@ private:
 	typedef OHashTable<KT, VT, HF> HashTableType;
 
 	typedef unsigned int IndexType;
-	static const unsigned int MAX_CAPACITY	= 65536;
-	static const IndexType NOT_FOUND		= HashTableType::MAX_CAPACITY;
+	static constexpr unsigned int MAX_CAPACITY	= 65536;
+	static constexpr IndexType NOT_FOUND		= HashTableType::MAX_CAPACITY;
 
 	struct Bucket
 	{
@@ -230,7 +230,7 @@ public:
 	typedef generic_iterator<const HashPairType, const HashTableType> const_iterator;
 
 	template <typename IVT, typename IHTT>
-	class generic_iterator : public std::iterator<std::forward_iterator_tag, OHashTable>
+	class generic_iterator
 	{
 	private:
 		// typedef for easier-to-read code
@@ -238,6 +238,12 @@ public:
 		typedef generic_iterator<const IVT, const IHTT> ConstThisClass;
 
 	public:
+		using iterator_category = std::forward_iterator_tag;
+		using value_type = OHashTable;
+		using difference_type = std::ptrdiff_t;
+		using pointer = value_type*;
+		using reference = value_type&;
+
 		generic_iterator() :
 			mBucketNum(IHTT::NOT_FOUND), mHashTable(NULL)
 		{ }
@@ -248,6 +254,7 @@ public:
 			return ConstThisClass(mBucketNum, mHashTable);
 		}
 
+		[[nodiscard]]
 		bool operator== (const ThisClass& other) const
 		{
 			return mBucketNum == other.mBucketNum && mHashTable == other.mHashTable;
@@ -273,7 +280,7 @@ public:
 			do {
 				mBucketNum++;
 			} while (mBucketNum < mHashTable->mSize && mHashTable->emptyBucket(mBucketNum));
-			
+
 			if (mBucketNum >= mHashTable->mSize)
 				mBucketNum = IHTT::NOT_FOUND;
 			return *this;
@@ -379,7 +386,7 @@ public:
 	inline const_iterator end() const
 	{
 		return const_iterator(NOT_FOUND, this);
-	}	
+	}
 
 	inline iterator find(const KT& key)
 	{
@@ -407,7 +414,7 @@ public:
 
 	std::pair<iterator, bool> insert(const HashPairType& hp)
 	{
-		unsigned int oldused = mUsed;	
+		unsigned int oldused = mUsed;
 		IndexType bucketnum = insertElement(hp.first, hp.second);
 		return std::pair<iterator, bool>(iterator(bucketnum, this), mUsed > oldused);
 	}
@@ -424,7 +431,7 @@ public:
 
 	void erase(iterator it)
 	{
-		eraseBucket(it.mBucketNum);	
+		eraseBucket(it.mBucketNum);
 	}
 
 	unsigned int erase(const KT& key)
@@ -440,8 +447,29 @@ public:
 	{
 		while (it1 != it2)
 		{
-			eraseBucket(it1.mBucketNum);
+			mElements[it1.mBucketNum].order = 0;
+			mElements[it1.mBucketNum].pair = HashPairType();
+			mUsed--;
 			++it1;
+		}
+		// Rehash all of the non-empty buckets that follow the erased buckets.
+		IndexType bucketnum = it2.mBucketNum & mSizeMask;
+		while (!emptyBucket(bucketnum))
+		{
+			const KT& key = mElements[bucketnum].pair.first;
+			unsigned int order = mElements[bucketnum].order;
+			mElements[bucketnum].order = 0;
+
+			IndexType new_bucketnum = findBucket(key);
+			mElements[new_bucketnum].order = order;
+
+			if (new_bucketnum != bucketnum)
+			{
+				mElements[new_bucketnum].pair = mElements[bucketnum].pair;
+				mElements[bucketnum].pair = HashPairType();
+			}
+
+			bucketnum = (bucketnum + 1) & mSizeMask;
 		}
 	}
 
@@ -507,7 +535,7 @@ private:
 
 	inline IndexType findBucket(const KT& key) const
 	{
-		IndexType bucketnum = (mHashFunc(key) * 2654435761u) & mSizeMask; 
+		IndexType bucketnum = (mHashFunc(key) * 2654435761u) & mSizeMask;
 
 		// [SL] NOTE: this can loop infinitely if there is no match and the table is full!
 		while (!emptyBucket(bucketnum) && mElements[bucketnum].pair.first != key)
@@ -560,7 +588,7 @@ private:
 			if (new_bucketnum != bucketnum)
 			{
 				mElements[new_bucketnum].pair = mElements[bucketnum].pair;
-				mElements[bucketnum].pair = HashPairType();	
+				mElements[bucketnum].pair = HashPairType();
 			}
 
 			bucketnum = (bucketnum + 1) & mSizeMask;

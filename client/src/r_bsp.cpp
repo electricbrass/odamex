@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -222,7 +222,8 @@ sector_t *R_FakeFlat(sector_t *sec, sector_t *tempsec,
 		return sec;
 
 	const sector_t* s = sec->heightsec;
-	sector_t *heightsec = camera->subsector->sector->heightsec;
+
+	sector_t* heightsec = viewsector->heightsec;
 
 	bool underwater = r_fakingunderwater ||
 		(heightsec && viewz <= P_FloorHeight(viewx, viewy, heightsec));
@@ -552,7 +553,7 @@ void R_AddLine (seg_t *line)
 }
 
 
-static const int checkcoord[12][4] = // killough -- static const
+static constexpr int checkcoord[12][4] = // killough -- static const
 {
 	{3,0,2,1},
 	{3,0,2,0},

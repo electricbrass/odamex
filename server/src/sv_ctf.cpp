@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 2000-2006 by Sergey Makovkin (CSDoom .62).
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -91,9 +91,9 @@ void SV_CTFEvent(team_t f, flag_score_t event, player_t& who)
 			who.points += ctf_points[event];
 	}
 
-	for (Players::iterator it = players.begin(); it != players.end(); ++it)
+	for (auto& player : players)
 	{
-		client_t* cl = &(it->client);
+		client_t* cl = &(player.client);
 
 		MSG_WriteSVC(&cl->reliablebuf, SVC_CTFEvent(event, f, who));
 		if (event == SCORE_CAPTURE)
@@ -190,7 +190,7 @@ static const char *CTF_TimeMSG(unsigned int milliseconds)
 	milliseconds /= 60;
 	int mi = milliseconds;
 
-	sprintf((char *)&msg, "%d:%.2d.%.2d", mi, se, ms);
+	snprintf((char *)&msg, 64, "%d:%.2d.%.2d", mi, se, ms);
 
 	return msg;
 }
@@ -210,7 +210,7 @@ void SV_FlagScore (player_t &player, team_t f)
 
 	SV_BroadcastPrintf("%s has captured the %s flag (held for %s)\n",
 						player.userinfo.netname.c_str(),
-						teamInfo->ColorizedTeamName().c_str(), 
+						teamInfo->ColorizedTeamName().c_str(),
 						CTF_TimeMSG(time_held));
 
 	if (teamInfo->FlagData.firstgrab)
@@ -250,7 +250,7 @@ ItemEquipVal SV_FlagTouch (player_t &player, team_t f, bool firstgrab)
 		{
 			if (ctf_manualreturn)
 			{
-				return SV_FlagGrab(player, f, firstgrab);	
+				return SV_FlagGrab(player, f, firstgrab);
 			}
 			else if (g_ctf_notouchreturn)
 			{
@@ -485,7 +485,6 @@ void CTF_ReplaceFlagWithWaypoint(AActor* mo)
 
 	SV_SpawnMobj(waypoint);
 
-	mo->netid;
 	mo->Destroy();
 }
 

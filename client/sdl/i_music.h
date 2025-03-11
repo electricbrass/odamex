@@ -3,7 +3,7 @@
 //
 // $Id$
 //
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -67,7 +67,7 @@ void I_ResumeSong();
 //  plays a song, and when the song is done,
 //  starts playing it again in an endless loop.
 // Horrible thing to do, considering.
-void I_PlaySong(byte* data, size_t length, bool loop);
+void I_PlaySong(const OByteSpan data, const bool loop);
 // Stops a song over 3 seconds.
 void I_StopSong();
 void I_UpdateMusic();
