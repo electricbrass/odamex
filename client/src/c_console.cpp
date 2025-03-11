@@ -1179,7 +1179,7 @@ void C_AddNotifyString(int printlevel, const char* color_code, const char* sourc
 	{
 		if (addtype == NEWLINE)
 			memmove(&NotifyStrings[0], &NotifyStrings[1], sizeof(struct NotifyText) * (NUMNOTIFIES-1));
-		strncpy((char *)NotifyStrings[NUMNOTIFIES-1].text, lines[i].string, lines[i].width);
+		strcpy((char *)NotifyStrings[NUMNOTIFIES-1].text, lines[i].string);
 		NotifyStrings[NUMNOTIFIES-1].timeout = gametic + (con_notifytime.asInt() * TICRATE);
 		NotifyStrings[NUMNOTIFIES-1].printlevel = printlevel;
 		addtype = NEWLINE;
