@@ -32,7 +32,7 @@ $majminpatchbuildComma = "$maj,$min,$patch,0"
 
 if (([int]$maj -le 9) -and ([int]$min -le 9) -and ([int]$patch -le 9))
 {
-  $configver = "$maj" + "$min" + "$patch"  
+  $configver = "$maj" + "$min" + "$patch"
 }
 else
 {
@@ -49,7 +49,13 @@ $majminpatchFiles = @(
 '.\common\version.h',
 '.\odalaunch\res\Info.plist',
 '.\switch.cmake',
-'.\tools\upversion\upversion.ini'
+'.\tools\upversion\upversion.ini',
+'.\packaging\linux\net.odamex.Odamex.Client.desktop',
+'.\packaging\linux\net.odamex.Odamex.Server.desktop',
+'.\packaging\linux\net.odamex.Odamex.Launcher.desktop',
+'.\packaging\linux\net.odamex.Odamex.Client.metainfo.xml',
+'.\packaging\linux\net.odamex.Odamex.Server.metainfo.xml',
+'.\packaging\linux\net.odamex.Odamex.Launcher.metainfo.xml'
 )
 
 $majminpatchCfgs = Get-ChildItem '.\config-samples' -Filter "*.cfg"
