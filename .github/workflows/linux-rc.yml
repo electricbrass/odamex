@@ -1,4 +1,4 @@
-name: Windows-Release-Candidate
+name: Linux-Release-Candidate
 
 on:
   push:
@@ -68,10 +68,10 @@ jobs:
           echo "UncommittedChanges: ${{ steps.gitversion.outputs.uncommittedChanges }}"
           echo "CommitDate: ${{ steps.gitversion.outputs.commitDate }}"
           echo "TotalCommits: ${{ steps.revlist.outputs.totalCommits }}"
-  build:
-    name: Build (Visual Studio)
+  build-sdl20:
+    name: Build (SDL 2.0)
     needs: pre_job
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     env:
       build_number: ${{ needs.pre_job.outputs.build_number }}
       new_version: ${{ needs.pre_job.outputs.new_version }}
@@ -81,46 +81,100 @@ jobs:
         fetch-depth: 0 # Required due to the way Git works, without it this action won't be able to find any or the correct tags
     - name: Run Upversion
       id:   upversion
-      shell: pwsh
+      shell: bash
       run: |
-        .\tools\upversion\upversion.ps1
+        .\tools\upversion\upversion.sh
       env:
         MAJORVERSION: ${{ needs.pre_job.outputs.major }}
         MINORVERSION: ${{ needs.pre_job.outputs.minor }}
         PATCHVERSION: ${{ needs.pre_job.outputs.patch }}
     - name: Checkout submodules
       run: git submodule update --init --recursive
+    - name: Prepare build
+      run: bash ci/ubuntu-buildgen.sh
     - name: Turn on problem matcher
-      uses: ammaraskar/msvc-problem-matcher@master
-    - name: Run build powershell
-      shell: pwsh
-      run: |
-        .\ci\win-release-x64.ps1
-    - name: Install Python packages
-      uses: insightsengineering/pip-action@v2
-      with:
-        packages: |
-          b2sdk
-    - name: Upload artifact to B2
-      run: python .\ci\upload-b2.py .\Output\zip Win-x64
-      env:
-        B2_APP_KEY: ${{ secrets.B2_APP_KEY }}
-        B2_BUCKET_ID: ${{ secrets.B2_BUCKET_ID }}
-        B2_KEY_ID: ${{ secrets.B2_KEY_ID }}
-    - name: Archive x64 build artifacts
+      uses: ammaraskar/gcc-problem-matcher@master
+    - name: Run build
+      run: cmake --build ./build/
+    - name: Prepare artifact
+      run: bash ci/ubuntu-artifact.sh
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Odamex-Win-x64
-        path: Output/zip/*.zip
-    - name: Archive x64 pdb artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: Odamex-Win-x64-pdb
-        path: Output/pdb/*.zip
-  build-x32:
-    name: Build (Visual Studio, 32-bit)
+        name: Odamex-Linux-x86_64
+        path: 'build/artifact/*'
+  build-sdl12:
+    name: Build (SDL 1.2)
     needs: pre_job
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
+    env:
+      USE_SDL12: 1
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
+    - name: Prepare build
+      run: bash ci/ubuntu-buildgen.sh
+    - name: Run build
+      run: cmake --build ./build/
+  build-clang:
+    name: Build (Clang)
+    needs: pre_job
+    runs-on: ubuntu-latest
+    env:
+      CC: /usr/bin/clang
+      CXX: /usr/bin/clang++
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
+    - name: Prepare build
+      run: bash ci/ubuntu-buildgen.sh
+    - name: Run build
+      run: cmake --build ./build/
+  build-arm:
+    name: Build (ARM64)
+    needs: pre_job
+    runs-on: ubuntu-24.04-arm
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
+    - name: Prepare build
+      run: bash ci/ubuntu-buildgen.sh
+    - name: Turn on problem matcher
+      uses: ammaraskar/gcc-problem-matcher@master
+    - name: Run build
+      run: cmake --build ./build/
+  build-fedora:
+    name: Build (Fedora 32)
+    needs: pre_job
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
+    - name: Run build
+      run: bash ci/fedora-buildgen.sh
+  build-ubuntu-focal:
+    name: Build (Ubuntu 20.04 LTS)
+    needs: pre_job
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
+    - name: Run build
+      run: bash ci/ubuntu-focal-buildgen.sh
+  build-flatpak:
+    name: Build Flatpak (Ubuntu Latest)
+    needs: pre_job
+    runs-on: ubuntu-latest
     env:
       build_number: ${{ needs.pre_job.outputs.build_number }}
       new_version: ${{ needs.pre_job.outputs.new_version }}
@@ -130,76 +184,80 @@ jobs:
         fetch-depth: 0 # Required due to the way Git works, without it this action won't be able to find any or the correct tags
     - name: Run Upversion
       id:   upversion
-      shell: pwsh
+      shell: bash
       run: |
-        .\tools\upversion\upversion.ps1
+        .\tools\upversion\upversion.sh
       env:
         MAJORVERSION: ${{ needs.pre_job.outputs.major }}
         MINORVERSION: ${{ needs.pre_job.outputs.minor }}
         PATCHVERSION: ${{ needs.pre_job.outputs.patch }}
     - name: Checkout submodules
       run: git submodule update --init --recursive
-    - name: Turn on problem matcher
-      uses: ammaraskar/msvc-problem-matcher@master
-    - name: Run build-x32 powershell
-      shell: pwsh
-      run: |
-        .\ci\win-release-x86.ps1
-    - name: Install Python packages
-      uses: insightsengineering/pip-action@v2
-      with:
-        packages: |
-          b2sdk
-    - name: Upload artifact to B2
-      run: python .\ci\upload-b2.py .\Output\zip Win-x32
+    - name: Install flatpak
+      run: sudo apt update && sudo apt install flatpak flatpak-builder
+    - name: Create escaped branch name
       env:
-        B2_APP_KEY: ${{ secrets.B2_APP_KEY }}
-        B2_BUCKET_ID: ${{ secrets.B2_BUCKET_ID }}
-        B2_KEY_ID: ${{ secrets.B2_KEY_ID }}
-    - name: Archive x86 build artifacts
+        name: "${{ github.ref_name }}"
+      run: |
+        echo "MODIFIED_BRANCH_NAME=${name/\//-}" >> $GITHUB_ENV
+    - name: Set flatpak repo
+      run: flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    - name: Run build
+      run: |
+        flatpak-builder --force-clean --user --install-deps-from=flathub \
+        --repo=repo --install flatpak packaging/flatpak/net.odamex.Odamex.yml \
+        --default-branch=${{ env.MODIFIED_BRANCH_NAME }} -v
+    - name: Pack flatpak
+      run: |
+        flatpak build-bundle repo odamex.flatpak net.odamex.Odamex ${{ env.MODIFIED_BRANCH_NAME }} \
+        --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Odamex-Win-x86
-        path: Output/zip/*.zip
-    - name: Archive x86 pdb artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: Odamex-Win-x86-pdb
-        path: Output/pdb/*.zip
-  package-and-upload:
-    name: Package and Upload Artifacts
-    runs-on: windows-latest
-    needs: [pre_job, build, build-x32]
+        name: Odamex-Flatpak-x86_64
+        path: odamex.flatpak
+  build-flatpak-arm:
+    name: Build Flatpak (Ubuntu 24.04 ARM)
+    needs: pre_job
+    runs-on: ubuntu-latest
     env:
       build_number: ${{ needs.pre_job.outputs.build_number }}
       new_version: ${{ needs.pre_job.outputs.new_version }}
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Required due to the way Git works, without it this action won't be able to find any or the correct tags
     - name: Run Upversion
       id:   upversion
-      shell: pwsh
+      shell: bash
       run: |
-        .\tools\upversion\upversion.ps1
+        .\tools\upversion\upversion.sh
       env:
         MAJORVERSION: ${{ needs.pre_job.outputs.major }}
         MINORVERSION: ${{ needs.pre_job.outputs.minor }}
         PATCHVERSION: ${{ needs.pre_job.outputs.patch }}
     - name: Checkout submodules
       run: git submodule update --init --recursive
-    - name: Download x86 artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: Odamex-Win-x86
-    - name: Download x64 artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: Odamex-Win-x64
-    - name: Stage and run setup compiler
-      shell: pwsh
+    - name: Install flatpak
+      run: sudo apt update && sudo apt install flatpak flatpak-builder
+    - name: Create escaped branch name
+      env:
+        name: "${{ github.ref_name }}"
       run: |
-        .\ci\stage-inno-setup-and-run.ps1
-    - name: Upload setup installer to Github
+        echo "MODIFIED_BRANCH_NAME=${name/\//-}" >> $GITHUB_ENV
+    - name: Set flatpak repo
+      run: flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    - name: Run build
+      run: |
+        flatpak-builder --force-clean --user --install-deps-from=flathub \
+        --repo=repo --install flatpak packaging/flatpak/net.odamex.Odamex.yml \
+        --default-branch=${{ env.MODIFIED_BRANCH_NAME }} -v
+    - name: Pack flatpak
+      run: |
+        flatpak build-bundle repo odamex.flatpak net.odamex.Odamex ${{ env.MODIFIED_BRANCH_NAME }} \
+        --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Odamex-Installer
-        path: 'Output/*.exe'
+        name: Odamex-Flatpak-ARM64
+        path: odamex.flatpak

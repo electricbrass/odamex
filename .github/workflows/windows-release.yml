@@ -1,12 +1,12 @@
 # Runs when a release is published
 # Contains every package required for a release except:
 # - MacOS package
-# - Flatpak or any other linux packaging 
+# - Flatpak or any other linux packaging
 name: Windows-Release
 
 on:
   release:
-    tags: 
+    tags:
       - "[0-9]+.[0-9]+.[0-9]+"
     types: [published]
 
@@ -89,7 +89,7 @@ jobs:
       run: |
         .\ci\win-release-x64.ps1
     - name: Install Python packages
-      uses: BSFishy/pip-action@v1
+      uses: insightsengineering/pip-action@v2
       with:
         packages: |
           b2sdk
@@ -149,7 +149,7 @@ jobs:
       run: |
         .\ci\win-release-x86.ps1
     - name: Install Python packages
-      uses: BSFishy/pip-action@v1
+      uses: insightsengineering/pip-action@v2
       with:
         packages: |
           b2sdk
@@ -309,19 +309,3 @@ jobs:
           TITLE: Merge release/${{env.new_version}} to stable
           BODY: This PR covers the task of merging the release branch to stable, the final step in releasing a new version.
           NEW_VERSION: ${{ env.new_version }}
-# build-mingw:
-#   name: Build (MinGW)
-#   runs-on: windows-latest
-#   steps:
-#   - name: Checkout source
-#     uses: actions/checkout@v4
-#   - name: Checkout submodules
-#     run: git submodule update --init --recursive
-#   - name: Install packages
-#     uses: crazy-max/ghaction-chocolatey@v1
-#     with:
-#       args: install ninja
-#   - name: Prepare build
-#     run: .\ci\win-mingw-buildgen.ps1
-#   - name: Run build
-#     run: cmake --build .\build-gcc\
