@@ -81,9 +81,7 @@ jobs:
         fetch-depth: 0 # Required due to the way Git works, without it this action won't be able to find any or the correct tags
     - name: Run Upversion
       id:   upversion
-      shell: bash
-      run: |
-        ./tools/upversion/upversion.sh
+      run:  python tools/upversion/upversion.py
       env:
         MAJORVERSION: ${{ needs.pre_job.outputs.major }}
         MINORVERSION: ${{ needs.pre_job.outputs.minor }}
@@ -184,9 +182,7 @@ jobs:
         fetch-depth: 0 # Required due to the way Git works, without it this action won't be able to find any or the correct tags
     - name: Run Upversion
       id:   upversion
-      shell: bash
-      run: |
-        ./tools/upversion/upversion.sh
+      run:  python tools/upversion/upversion.py
       env:
         MAJORVERSION: ${{ needs.pre_job.outputs.major }}
         MINORVERSION: ${{ needs.pre_job.outputs.minor }}
@@ -229,9 +225,7 @@ jobs:
         fetch-depth: 0 # Required due to the way Git works, without it this action won't be able to find any or the correct tags
     - name: Run Upversion
       id:   upversion
-      shell: bash
-      run: |
-        ./tools/upversion/upversion.sh
+      run:  python tools/upversion/upversion.py
       env:
         MAJORVERSION: ${{ needs.pre_job.outputs.major }}
         MINORVERSION: ${{ needs.pre_job.outputs.minor }}
