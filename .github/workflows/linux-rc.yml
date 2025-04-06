@@ -215,7 +215,7 @@ jobs:
   build-flatpak-arm:
     name: Build Flatpak (Ubuntu 24.04 ARM)
     needs: pre_job
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     env:
       build_number: ${{ needs.pre_job.outputs.build_number }}
       new_version: ${{ needs.pre_job.outputs.new_version }}

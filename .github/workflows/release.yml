@@ -1,8 +1,7 @@
 # Runs when a release is published
 # Contains every package required for a release except:
 # - MacOS package
-# - Flatpak or any other linux packaging
-name: Windows-Release
+name: Release
 
 on:
   release:
@@ -67,8 +66,8 @@ jobs:
           echo "CommitsSinceVersionSourcePadded: ${{ steps.gitversion.outputs.commitsSinceVersionSourcePadded }}"
           echo "UncommittedChanges: ${{ steps.gitversion.outputs.uncommittedChanges }}"
           echo "CommitDate: ${{ steps.gitversion.outputs.commitDate }}"
-  build:
-    name: Build (Visual Studio)
+  build-windows:
+    name: Windows Build (Visual Studio)
     needs: pre_job
     runs-on: windows-latest
     env:
@@ -127,8 +126,8 @@ jobs:
         asset_path: ./Output/pdb/odamex-debug-pdb-${{env.new_version}}-x64.zip
         asset_name: odamex-debug-pdb-${{env.new_version}}-x64.zip
         asset_content_type: application/zip
-  build-x32:
-    name: Build (Visual Studio, 32-bit)
+  build-windows-x32:
+    name: Windows Build (Visual Studio, 32-bit)
     needs: pre_job
     runs-on: windows-latest
     env:
@@ -187,10 +186,92 @@ jobs:
         asset_path: ./Output/pdb/odamex-debug-pdb-${{env.new_version}}-x86.zip
         asset_name: odamex-debug-pdb-${{env.new_version}}-x86.zip
         asset_content_type: application/zip
+  build-flatpak:
+    name: Build Flatpak (Ubuntu Latest)
+    needs: pre_job
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
+    - name: Install flatpak
+      run: sudo apt update && sudo apt install flatpak flatpak-builder
+    - name: Create escaped branch name
+      env:
+        name: "${{ github.ref_name }}"
+      run: |
+        echo "MODIFIED_BRANCH_NAME=${name/\//-}" >> $GITHUB_ENV
+    - name: Set flatpak repo
+      run: flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    - name: Run build
+      run: |
+        flatpak-builder --force-clean --user --install-deps-from=flathub \
+        --repo=repo --install flatpak packaging/flatpak/net.odamex.Odamex.yml \
+        --default-branch=${{ env.MODIFIED_BRANCH_NAME }} -v
+    - name: Pack flatpak
+      run: |
+        flatpak build-bundle repo odamex.flatpak net.odamex.Odamex ${{ env.MODIFIED_BRANCH_NAME }} \
+        --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Odamex-Flatpak-x86_64
+        path: odamex.flatpak
+    # - name: Upload release binary (x86_64)
+    #   uses: actions/upload-release-asset@v1.0.2
+    #   env:
+    #     GITHUB_TOKEN: ${{ github.token }}
+    #   with:
+    #     upload_url: ${{ env.upload_url }}
+    #     asset_path: odamex.flatpak
+    #     asset_name: odamex-x86_64.flatpak
+    #     asset_content_type: application/zip
+  build-flatpak-arm:
+    name: Build Flatpak (Ubuntu 24.04 ARM)
+    needs: pre_job
+    runs-on: ubuntu-24.04-arm
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
+    - name: Install flatpak
+      run: sudo apt update && sudo apt install flatpak flatpak-builder
+    - name: Create escaped branch name
+      env:
+        name: "${{ github.ref_name }}"
+      run: |
+        echo "MODIFIED_BRANCH_NAME=${name/\//-}" >> $GITHUB_ENV
+    - name: Set flatpak repo
+      run: flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    - name: Run build
+      run: |
+        flatpak-builder --force-clean --user --install-deps-from=flathub \
+        --repo=repo --install flatpak packaging/flatpak/net.odamex.Odamex.yml \
+        --default-branch=${{ env.MODIFIED_BRANCH_NAME }} -v
+    - name: Pack flatpak
+      run: |
+        flatpak build-bundle repo odamex.flatpak net.odamex.Odamex ${{ env.MODIFIED_BRANCH_NAME }} \
+        --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Odamex-Flatpak-ARM64
+        path: odamex.flatpak
+    # - name: Upload release binary (ARM64)
+    #   uses: actions/upload-release-asset@v1.0.2
+    #   env:
+    #     GITHUB_TOKEN: ${{ github.token }}
+    #   with:
+    #     upload_url: ${{ env.upload_url }}
+    #     asset_path: odamex.flatpak
+    #     asset_name: odamex-arm64.flatpak
+    #     asset_content_type: application/zip
   package-and-upload:
     name: Package and Upload Artifacts
     runs-on: windows-latest
-    needs: [pre_job, build, build-x32]
+    needs: [pre_job, build-windows, build-windows-x32, build-flatpak, build-flatpak-arm]
     env:
       new_version: ${{ needs.pre_job.outputs.new_version }}
       upload_url: ${{ needs.pre_job.outputs.upload_url }}
