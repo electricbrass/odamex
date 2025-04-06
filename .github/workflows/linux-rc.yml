@@ -29,10 +29,10 @@ jobs:
         uses: gittools/actions/gitversion/execute@v0.9.7
       - name: Get Commits From Source
         id:   revlist
-        shell: pwsh
+        shell: bash
         run: |
-          $commits = git rev-list HEAD --count
-          Write-Output "::set-output name=totalCommits::$commits"
+          commits=$(git rev-list HEAD --count)
+          echo "totalCommits=$commits" >> $GITHUB_OUTPUT
       - name: Display GitVersion outputs
         run: |
           echo "Major: ${{ steps.gitversion.outputs.major }}"
@@ -83,7 +83,7 @@ jobs:
       id:   upversion
       shell: bash
       run: |
-        .\tools\upversion\upversion.sh
+        ./tools/upversion/upversion.sh
       env:
         MAJORVERSION: ${{ needs.pre_job.outputs.major }}
         MINORVERSION: ${{ needs.pre_job.outputs.minor }}
@@ -186,7 +186,7 @@ jobs:
       id:   upversion
       shell: bash
       run: |
-        .\tools\upversion\upversion.sh
+        ./tools/upversion/upversion.sh
       env:
         MAJORVERSION: ${{ needs.pre_job.outputs.major }}
         MINORVERSION: ${{ needs.pre_job.outputs.minor }}
@@ -231,7 +231,7 @@ jobs:
       id:   upversion
       shell: bash
       run: |
-        .\tools\upversion\upversion.sh
+        ./tools/upversion/upversion.sh
       env:
         MAJORVERSION: ${{ needs.pre_job.outputs.major }}
         MINORVERSION: ${{ needs.pre_job.outputs.minor }}
