@@ -218,15 +218,15 @@ jobs:
       with:
         name: Odamex-Flatpak-x86_64
         path: odamex.flatpak
-    # - name: Upload release binary (x86_64)
-    #   uses: actions/upload-release-asset@v1.0.2
-    #   env:
-    #     GITHUB_TOKEN: ${{ github.token }}
-    #   with:
-    #     upload_url: ${{ env.upload_url }}
-    #     asset_path: odamex.flatpak
-    #     asset_name: odamex-x86_64.flatpak
-    #     asset_content_type: application/zip
+    - name: Upload release binary (x86_64)
+      uses: actions/upload-release-asset@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        upload_url: ${{ env.upload_url }}
+        asset_path: odamex.flatpak
+        asset_name: odamex-x86_64.flatpak
+        asset_content_type: application/octet-stream
   build-flatpak-arm:
     name: Build Flatpak (Ubuntu 24.04 ARM)
     needs: pre_job
@@ -259,15 +259,15 @@ jobs:
       with:
         name: Odamex-Flatpak-ARM64
         path: odamex.flatpak
-    # - name: Upload release binary (ARM64)
-    #   uses: actions/upload-release-asset@v1.0.2
-    #   env:
-    #     GITHUB_TOKEN: ${{ github.token }}
-    #   with:
-    #     upload_url: ${{ env.upload_url }}
-    #     asset_path: odamex.flatpak
-    #     asset_name: odamex-arm64.flatpak
-    #     asset_content_type: application/zip
+    - name: Upload release binary (ARM64)
+      uses: actions/upload-release-asset@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        upload_url: ${{ env.upload_url }}
+        asset_path: odamex.flatpak
+        asset_name: odamex-arm64.flatpak
+        asset_content_type: application/octet-stream
   package-and-upload:
     name: Package and Upload Artifacts
     runs-on: windows-latest
