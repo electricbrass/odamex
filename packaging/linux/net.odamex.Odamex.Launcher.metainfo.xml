@@ -7,10 +7,12 @@
   <id>net.odamex.Odamex.Launcher</id>
   <name>Odamex Launcher</name>
   <summary>The server browser for Odamex, the best way to play DOOM online!</summary>
-  <developer_name>The Odamex Team</developer_name>
+  <developer id="net.odamex">
+    <name>The Odamex Team</name>
+  </developer>
   <url type="homepage">https://odamex.net</url>
-  <metadata_license>GPL2</metadata_license>
-  <project_license>GPL2</project_license>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0-or-later</project_license>
   <supports>
     <control>pointing</control>
     <control>keyboard</control>

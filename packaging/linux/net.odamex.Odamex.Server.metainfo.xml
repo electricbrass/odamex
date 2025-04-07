@@ -6,11 +6,13 @@
 <component type="desktop-application">
   <id>net.odamex.Odamex.Server</id>
   <name>Odamex Server</name>
-  <summary>The server terminal program for Odamex. Must have WAD directories configured.</summary>
-  <developer_name>The Odamex Team</developer_name>
+  <summary>The server terminal program for Odamex. Must have WAD directories configured</summary>
+  <developer id="net.odamex">
+    <name>The Odamex Team</name>
+  </developer>
   <url type="homepage">https://odamex.net</url>
-  <metadata_license>GPL2</metadata_license>
-  <project_license>GPL2</project_license>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0-or-later</project_license>
   <supports>
     <control>pointing</control>
     <control>keyboard</control>
