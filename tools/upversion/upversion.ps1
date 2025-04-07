@@ -53,6 +53,7 @@ $majminpatchFiles = @(
 '.\packaging\linux\net.odamex.Odamex.Client.desktop',
 '.\packaging\linux\net.odamex.Odamex.Server.desktop',
 '.\packaging\linux\net.odamex.Odamex.Launcher.desktop',
+'.\packaging\linux\net.odamex.Odamex.metainfo.xml',
 '.\packaging\linux\net.odamex.Odamex.Client.metainfo.xml',
 '.\packaging\linux\net.odamex.Odamex.Server.metainfo.xml',
 '.\packaging\linux\net.odamex.Odamex.Launcher.metainfo.xml'
