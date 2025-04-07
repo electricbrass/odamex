@@ -205,6 +205,9 @@ jobs:
         name: "${{ github.ref_name }}"
       run: |
         echo "MODIFIED_BRANCH_NAME=${name/\//-}" >> $GITHUB_ENV
+    - name: Remove .git folders
+      shell: bash
+      run: rm -rf .git
     - name: Set flatpak repo
       run: flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
     - name: Run build
@@ -249,6 +252,9 @@ jobs:
         name: "${{ github.ref_name }}"
       run: |
         echo "MODIFIED_BRANCH_NAME=${name/\//-}" >> $GITHUB_ENV
+    - name: Remove .git folders
+      shell: bash
+      run: rm -rf .git
     - name: Set flatpak repo
       run: flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
     - name: Run build
