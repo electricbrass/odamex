@@ -12,7 +12,6 @@ finish-args:
   - --socket=pulseaudio
   - --share=network
   - --socket=wayland
-  - --socket=x11
   - --socket=fallback-x11
   - --filesystem=host
   - --env=TIMIDITY_CFG=/app/etc/timidity.cfg
@@ -36,7 +35,7 @@ modules:
       - type: file
         path: timidity.cfg
   - name: SDL2-mixer
-    buildsystem: cmake
+    buildsystem: cmake-ninja
     builddir: true
     config-opts:
       - -D SDL2MIXER_VENDORED=ON

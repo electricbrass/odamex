@@ -122,3 +122,9 @@ cp -r packaging/linux/$projectId.desktop $desktopFileDir/
 metadataDir=/app/share/metainfo
 mkdir -p $metadataDir
 cp -r packaging/linux/$projectId.metainfo.xml $metadataDir/
+
+# Install the AppStream metadata file.
+projectId=net.odamex.Odamex
+metadataDir=/app/share/metainfo
+mkdir -p $metadataDir
+cp -r packaging/linux/$projectId.metainfo.xml $metadataDir/
