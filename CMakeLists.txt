@@ -23,7 +23,7 @@ set(CMAKE_INSTALL_BINDIR "bin")
 set(CMAKE_INSTALL_DATADIR "share")
 include(GNUInstallDirs OPTIONAL)
 
-option(ODAMEX_NO_GITVER "Don't include git versioning information" OFF)
+option(ODAMEX_NO_GITVER "Don't include git versioning information" 0)
 if(ODAMEX_NO_GITVER)
   add_definitions(-DODAMEX_NO_GITVER)
 endif()

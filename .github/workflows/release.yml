@@ -228,7 +228,7 @@ jobs:
       with:
         upload_url: ${{ env.upload_url }}
         asset_path: odamex.flatpak
-        asset_name: odamex-x86_64-${{ env.new_version }}.flatpak
+        asset_name: odamex-linux-x86_64-${{ env.new_version }}.flatpak
         asset_content_type: application/octet-stream
   build-flatpak-arm:
     name: Build Flatpak (Ubuntu 24.04 ARM)
@@ -272,7 +272,7 @@ jobs:
       with:
         upload_url: ${{ env.upload_url }}
         asset_path: odamex.flatpak
-        asset_name: odamex-arm64-${{ env.new_version }}.flatpak
+        asset_name: odamex-linux-arm64-${{ env.new_version }}.flatpak
         asset_content_type: application/octet-stream
   package-and-upload:
     name: Package and Upload Artifacts
