@@ -177,6 +177,9 @@ jobs:
     env:
       build_number: ${{ needs.pre_job.outputs.build_number }}
       new_version: ${{ needs.pre_job.outputs.new_version }}
+      MAJORVERSION: ${{ needs.pre_job.outputs.major }}
+      MINORVERSION: ${{ needs.pre_job.outputs.minor }}
+      PATCHVERSION: ${{ needs.pre_job.outputs.patch }}
     steps:
     - uses: actions/checkout@v4
       with:
@@ -185,15 +188,12 @@ jobs:
       id:    upversion
       shell: pwsh
       run:   tools/upversion/upversion.ps1
-      env:
-        MAJORVERSION: ${{ needs.pre_job.outputs.major }}
-        MINORVERSION: ${{ needs.pre_job.outputs.minor }}
-        PATCHVERSION: ${{ needs.pre_job.outputs.patch }}
-    - name: Update metainfo dates
+    - name: Update metainfo
       shell: bash
       run: |
         DATE=$(date +'%Y-%m-%d')
         sed -i "s/YYYY-MM-DD/$DATE/g" packaging/linux/net.odamex.Odamex*metainfo.xml
+        sed -i "s/$MAJORVERSION\.$MINORVERSION\.PATCHVERSION/$new_version-prerelease.$build_number/g" packaging/linux/net.odamex.Odamex*metainfo.xml
     - name: Checkout submodules
       run: git submodule update --init --recursive
     - name: Install flatpak
@@ -226,6 +226,9 @@ jobs:
     env:
       build_number: ${{ needs.pre_job.outputs.build_number }}
       new_version: ${{ needs.pre_job.outputs.new_version }}
+      MAJORVERSION: ${{ needs.pre_job.outputs.major }}
+      MINORVERSION: ${{ needs.pre_job.outputs.minor }}
+      PATCHVERSION: ${{ needs.pre_job.outputs.patch }}
     steps:
     - uses: actions/checkout@v4
       with:
@@ -234,15 +237,12 @@ jobs:
       id:    upversion
       shell: pwsh
       run:   tools/upversion/upversion.ps1
-      env:
-        MAJORVERSION: ${{ needs.pre_job.outputs.major }}
-        MINORVERSION: ${{ needs.pre_job.outputs.minor }}
-        PATCHVERSION: ${{ needs.pre_job.outputs.patch }}
-    - name: Update metainfo dates
+    - name: Update metainfo
       shell: bash
       run: |
         DATE=$(date +'%Y-%m-%d')
         sed -i "s/YYYY-MM-DD/$DATE/g" packaging/linux/net.odamex.Odamex*metainfo.xml
+        sed -i "s/$MAJORVERSION\.$MINORVERSION\.PATCHVERSION/$new_version-prerelease.$build_number/g" packaging/linux/net.odamex.Odamex*metainfo.xml
     - name: Checkout submodules
       run: git submodule update --init --recursive
     - name: Install flatpak
