@@ -303,6 +303,15 @@ jobs:
         asset_path: ./odamex-src-${{env.new_version}}.tar.xz
         asset_name: odamex-src-${{env.new_version}}.tar.xz
         asset_content_type: application/x-xz
+  update-winget:
+    name: Update WinGet package
+    needs: package-and-upload
+    runs-on: windows-latest
+    steps:
+      - uses: vedantmgoyal9/winget-releaser@main
+        with:
+          identifier: Odamex.Odamex
+          token: ${{ secrets.WINGET_TOKEN }}
   pr-to-stable:
     name: Create Pull Request to stable
     needs: pre_job
