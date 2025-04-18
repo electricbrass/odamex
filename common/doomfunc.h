@@ -130,3 +130,24 @@ void SV_BroadcastPrintFmtButPlayer(int printlevel, int player_id, const fmt::str
 	SV_BasePrintButPlayer(printlevel, player_id, string);
 }
 #endif
+
+namespace OUtil
+{
+
+// Wrapper for easy iteration over containers in reverse with ranged for loops
+template <typename T>
+struct reverse_wrapper { T& iterable; };
+
+/**
+ * @brief Reverse the iteration in a range-based for loop
+ */
+template <typename T>
+reverse_wrapper<T> reverse (T&& iterable) { return { iterable }; }
+
+}
+
+template <typename T>
+auto begin (OUtil::reverse_wrapper<T> rw) { return std::rbegin(rw.iterable); }
+
+template <typename T>
+auto end (OUtil::reverse_wrapper<T> rw) { return std::rend(rw.iterable); }

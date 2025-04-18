@@ -63,18 +63,23 @@ const TypeInfo *TypeInfo::FindType (const char *name)
 
 TypeInfo DObject::_StaticType("DObject", NULL, sizeof(DObject));
 
-TArray<DObject *> DObject::Objects;
-TArray<size_t> DObject::FreeIndices;
-TArray<DObject *> DObject::ToDestroy;
 bool DObject::Inactive;
 
 DObject::DObject ()
 {
 	ObjectFlags = 0;
-	if (FreeIndices.Pop (Index))
+
+	if (!FreeIndices.empty())
+	{
+		Index = FreeIndices.back();
 		Objects[Index] = this;
+		FreeIndices.pop_back();
+	}
 	else
-		Index = Objects.Push (this);
+	{
+		Objects.push_back(this);
+		Index = Objects.size();
+	}
 }
 
 DObject::~DObject ()
@@ -90,11 +95,12 @@ DObject::~DObject ()
 			// object is queued for deletion, but is not being deleted
 			// by the destruction process, so remove it from the
 			// ToDestroy array and do other necessary stuff.
-			for (size_t i = ToDestroy.Size() - 1; i >= 0; i--)
+			// does this need to be in reverse?
+			for (DObject*& obj : OUtil::reverse(ToDestroy))
 			{
-				if (ToDestroy[i] == this)
+				if (obj == this)
 				{
-					ToDestroy[i] = NULL;
+					obj = nullptr;
 					break;
 				}
 			}
@@ -110,7 +116,7 @@ void DObject::Destroy ()
 		{
 			RemoveFromArray ();
 			ObjectFlags |= OF_MassDestruction;
-			ToDestroy.Push (this);
+			ToDestroy.push_back(this);
 		}
 	}
 	else
@@ -123,19 +129,12 @@ void DObject::BeginFrame ()
 
 void DObject::EndFrame ()
 {
-	DObject *obj;
-
-	if (ToDestroy.Size ())
+	for (DObject* obj : ToDestroy)
 	{
-		//Printf (PRINT_HIGH, "Destroyed %d objects\n", ToDestroy.Size());
-
-		while (ToDestroy.Pop (obj))
+		if (obj)
 		{
-			if (obj)
-			{
-				obj->ObjectFlags |= OF_Cleanup;
-				delete obj;
-			}
+			obj->ObjectFlags |= OF_Cleanup;
+			delete obj;
 		}
 	}
 }
@@ -147,15 +146,14 @@ void DObject::RemoveFromArray ()
 	if(Inactive)
 		return;
 
-	if (Objects.Size () == Index + 1)
+	if (Objects.size () == Index + 1)
 	{
-		DObject *dummy;
-		Objects.Pop (dummy);
+		Objects.pop_back();
 	}
-	else if (Objects.Size() > Index + 1)
+	else if (Objects.size() > Index + 1)
 	{
 		Objects[Index] = NULL;
-		FreeIndices.Push (Index);
+		FreeIndices.push_back(Index);
 	}
 }
 
