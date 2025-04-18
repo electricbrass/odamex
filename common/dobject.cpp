@@ -77,8 +77,8 @@ DObject::DObject ()
 	}
 	else
 	{
-		Objects.push_back(this);
 		Index = Objects.size();
+		Objects.push_back(this);
 	}
 }
 
@@ -129,16 +129,13 @@ void DObject::BeginFrame ()
 
 void DObject::EndFrame ()
 {
-	while (!ToDestroy.empty())
-	{
-		DObject* obj = ToDestroy.back();
-		ToDestroy.pop_back();
-		if (obj)
-		{
+	for (DObject* obj : ToDestroy) {
+		if (obj) {
 			obj->ObjectFlags |= OF_Cleanup;
 			delete obj;
 		}
 	}
+	ToDestroy.clear();
 }
 
 void DObject::RemoveFromArray ()

@@ -142,12 +142,12 @@ struct reverse_wrapper { T& iterable; };
  * @brief Reverse the iteration in a range-based for loop
  */
 template <typename T>
-reverse_wrapper<T> reverse (T&& iterable) { return { iterable }; }
+reverse_wrapper<T> reverse(T&& iterable) { return { iterable }; }
 
 }
 
 template <typename T>
-auto begin (OUtil::reverse_wrapper<T> rw) { return std::rbegin(rw.iterable); }
+auto begin(OUtil::reverse_wrapper<T> rw) { return std::rbegin(rw.iterable); }
 
 template <typename T>
-auto end (OUtil::reverse_wrapper<T> rw) { return std::rend(rw.iterable); }
+auto end(OUtil::reverse_wrapper<T> rw) { return std::rend(rw.iterable); }
