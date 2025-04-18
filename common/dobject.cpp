@@ -129,8 +129,10 @@ void DObject::BeginFrame ()
 
 void DObject::EndFrame ()
 {
-	for (DObject* obj : ToDestroy)
+	while (!ToDestroy.empty())
 	{
+		DObject* obj = ToDestroy.back();
+		ToDestroy.pop_back();
 		if (obj)
 		{
 			obj->ObjectFlags |= OF_Cleanup;
