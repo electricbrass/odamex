@@ -74,7 +74,6 @@
 #include "s_sndseq.h"
 #include "s_sound.h"
 #include "tables.h"
-#include "tarray.h"
 #include "m_vectors.h"
 #include "v_palette.h"
 #include "v_video.h"

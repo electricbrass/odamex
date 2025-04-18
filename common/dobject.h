@@ -24,7 +24,6 @@
 #pragma once
 
 #include <stdlib.h>
-#include "tarray.h"
 
 class FArchive;
 

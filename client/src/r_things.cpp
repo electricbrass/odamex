@@ -88,7 +88,7 @@ extern int				NumParticles;
 extern int				ActiveParticles;
 extern int				InactiveParticles;
 extern particle_t		*Particles;
-TArray<WORD>			ParticlesInSubsec;
+std::vector<WORD>		ParticlesInSubsec;
 
 
 
@@ -1136,12 +1136,8 @@ void R_ClearParticles (void)
 
 void R_FindParticleSubsectors ()
 {
-	if (ParticlesInSubsec.Size() < (size_t)numsubsectors)
-		ParticlesInSubsec.Reserve(numsubsectors - ParticlesInSubsec.Size());
-
 	// fill the buffer with NO_PARTICLE
-	for (int i = 0; i < numsubsectors; i++)
-		ParticlesInSubsec[i] = NO_PARTICLE;
+	ParticlesInSubsec.assign(numsubsectors, NO_PARTICLE);
 
 	if (!r_particles)
 		return;
