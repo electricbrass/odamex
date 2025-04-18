@@ -43,6 +43,7 @@
 
 #include "m_fileio.h"
 #include "i_system.h"
+#include "m_alloc.h"
 #include "z_zone.h"
 #include "cmdlib.h"
 #include "m_argv.h"

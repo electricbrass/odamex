@@ -29,6 +29,7 @@
 #include "cmdlib.h"
 #include "m_fileio.h"
 #include "m_argv.h"
+#include "m_alloc.h"
 
 IMPLEMENT_CLASS (DArgs, DObject)
 
