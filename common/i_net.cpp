@@ -81,6 +81,7 @@ typedef int SOCKET;
 #include "i_net.h"
 #include "svc_map.h"
 #include "d_player.h"
+#include "m_alloc.h"
 
 #ifdef _XBOX
 #include "i_xbox.h"
