@@ -157,3 +157,5 @@ include(wxWidgets-lib.cmake)
 include(libadlmidi-lib.cmake)
 
 include(cpptrace-lib.cmake)
+
+include(acsvm-lib.cmake)
