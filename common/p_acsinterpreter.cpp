@@ -24,6 +24,8 @@
 #include "odamex.h"
 
 #include "p_acsinterpreter.h"
+#include "w_wad.h"
+#include "i_system.h"
 
 #include "ACSVM/Action.hpp"
 #include "ACSVM/BinaryIO.hpp"
@@ -35,20 +37,51 @@
 #include "ACSVM/Script.hpp"
 #include "ACSVM/Serial.hpp"
 
-void ACSEnv::loadModule(ACSVM::Module* module)
+namespace ACS
 {
 
+enum
+{
+	SCRIPT_CLOSED		= 0,
+	SCRIPT_OPEN			= 1,
+	SCRIPT_RESPAWN		= 2,
+	SCRIPT_DEATH		= 3,
+	SCRIPT_ENTER		= 4,
+	SCRIPT_PICKUP		= 5,
+	SCRIPT_T1RETURN		= 6,
+	SCRIPT_T2RETURN		= 7,
+	SCRIPT_LIGHTNING	= 12,
+	SCRIPT_DISCONNECT	= 14,
+};
+
+ACSEnv::ACSEnv() : ACSVM::Environment()
+{
+	addCodeDataACS0(86, {"", 0, addCallFunc(CF_EndPrint)});
 }
 
-void ACSInit(ACSVM::Environment &env, char const *const *namev, std::size_t namec)
+ACSVM::ModuleName ACSEnv::getModuleName(const OLumpName& name)
+{
+	size_t lumpnum = W_GetNumForName(name);
+	return { nullptr, nullptr, lumpnum };
+}
+
+void ACSEnv::loadModule(ACSVM::Module* module)
+{
+	size_t lumpnum = module->name.i;
+	byte* data = static_cast<byte*>(W_CacheLumpNum(lumpnum, PU_LEVACS));
+	module->readBytecode(data, W_LumpLength(lumpnum));
+}
+
+void ACSInit(ACSEnv &env, nonstd::span<OLumpName> names)
 {
 	// Load modules.
 	std::vector<ACSVM::Module *> modules;
-	for(std::size_t i = 1; i < namec; ++i)
-		modules.push_back(env.getModule(env.getModuleName(namev[i])));
+	for(const OLumpName& name : names)
+		modules.push_back(env.getModule(env.getModuleName(name)));
 
 	// Create and activate scopes.
 	ACSVM::GlobalScope *global = env.getGlobalScope(0);  global->active = true;
+	// note: elsewhere in odamex this is referred to as world scope
 	ACSVM::HubScope    *hub    = global->getHubScope(0); hub   ->active = true;
 	ACSVM::MapScope    *map    = hub->getMapScope(0);    map   ->active = true;
 
@@ -56,5 +89,7 @@ void ACSInit(ACSVM::Environment &env, char const *const *namev, std::size_t name
 	map->addModules(modules.data(), modules.size());
 
 	// Start Open scripts.
-	map->scriptStartType(1, {});
+	map->scriptStartType(SCRIPT_OPEN, {});
 }
+
+} // namespace ACS

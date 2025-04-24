@@ -22,3 +22,19 @@
 //-----------------------------------------------------------------------------
 
 #include "odamex.h"
+
+#include "ACSVM/Thread.hpp"
+#include "p_acsinterpreter.h"
+
+namespace ACS
+{
+
+ACSVM_FUNC(CF_EndPrint)
+{
+    // TODO: actually implement this fully
+    PrintFmt("{}\n", thread->printBuf.data());
+    thread->printBuf.drop();
+    return false;
+}
+
+} // namespace ACS

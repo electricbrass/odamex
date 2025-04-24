@@ -24,9 +24,21 @@
 #pragma once
 
 #include "ACSVM/Environment.hpp"
+#include <nonstd/span.hpp>
+
+#define ACSVM_FUNC(name) bool name(ACSVM::Thread* thread, const ACSVM::Word* argv, ACSVM::Word argc)
+
+namespace ACS
+{
 
 class ACSEnv : public ACSVM::Environment
 {
 public:
+	ACSEnv();
 	void loadModule(ACSVM::Module* module) override;
+	ACSVM::ModuleName getModuleName(const OLumpName& name);
 };
+
+ACSVM_FUNC(CF_EndPrint);
+
+} // namespace ACS
