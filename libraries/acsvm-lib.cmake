@@ -15,8 +15,8 @@ if(BUILD_CLIENT OR BUILD_SERVER)
 
   add_library(ACSVM STATIC IMPORTED GLOBAL)
   set_target_properties(ACSVM PROPERTIES
-    IMPORTED_LOCATION "${CMAKE_CURRENT_BINARY_DIR}/local/lib/acsvm${libsuffix}"
-    IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_BINARY_DIR}/local/lib/acsvmd${libsuffix}"
+    IMPORTED_LOCATION "${CMAKE_CURRENT_BINARY_DIR}/local/lib/${libprefix}acsvm${libsuffix}"
+    IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_BINARY_DIR}/local/lib/${libprefix}acsvmd${libsuffix}"
     INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_BINARY_DIR}/local/include/ACSVM"
   )
 endif()
