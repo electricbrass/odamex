@@ -9,7 +9,8 @@ if(BUILD_CLIENT OR BUILD_SERVER)
            "-DACSVM_SHARED=OFF"
            "-DACSVM_INSTALL_API=ON"
            "-DACSVM_INSTALL_LIB=ON"
-           "-DACSVM_NOFLAGS=ON")
+           "-DACSVM_NOFLAGS=ON"
+           "-DCMAKE_CXX_STANDARD=11")
   lib_build(LIBRARY ACSVM)
 
   add_library(ACSVM STATIC IMPORTED GLOBAL)
