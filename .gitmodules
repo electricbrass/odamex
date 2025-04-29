@@ -32,3 +32,6 @@
 [submodule "libraries/cpptrace"]
 	path = libraries/cpptrace
 	url = https://github.com/jeremy-rifkin/cpptrace.git
+[submodule "libraries/capnproto"]
+	path = libraries/capnproto
+	url = https://github.com/capnproto/capnproto.git
