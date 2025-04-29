@@ -13,7 +13,6 @@ if(BUILD_CLIENT OR BUILD_SERVER)
 
   lib_buildgen(
     LIBRARY protobuf
-    SRCDIR "${CMAKE_CURRENT_SOURCE_DIR}/protobuf/cmake"
     PARAMS ${_PROTOBUF_BUILDGEN_PARAMS}
     CXXFLAGS ${protobuf_CXXFLAGS})
   lib_build(LIBRARY protobuf)
