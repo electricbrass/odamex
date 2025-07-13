@@ -128,6 +128,7 @@ EXTERN_CVAR (co_allowdropoff)
 EXTERN_CVAR (co_realactorheight)
 EXTERN_CVAR (co_zdoomphys)
 EXTERN_CVAR (co_zdoomsound)
+EXTERN_CVAR (co_zdoomammo)
 EXTERN_CVAR (co_fixweaponimpacts)
 EXTERN_CVAR (cl_deathcam)
 EXTERN_CVAR (co_fineautoaim)
@@ -694,6 +695,7 @@ static menuitem_t CompatItems[] ={
 	{svdiscrete, "BOOM actor/sector/line checks",  {&co_boomphys},			 {2.0}, {0.0}, {0.0}, {OnOff}},
 	{svdiscrete, "MBF movement and collision",  {&co_mbfphys},			 {2.0}, {0.0}, {0.0}, {OnOff}},
 	{svdiscrete, "ZDOOM 1.23 physics",             {&co_zdoomphys},         {2.0}, {0.0}, {0.0}, {OnOff}},
+	{svdiscrete, "ZDOOM 1.23 ammo checks",         {&co_zdoomammo},         {2.0}, {0.0}, {0.0}, {OnOff}},
 	{redtext,   " ",								{NULL},                  {0.0}, {0.0}, {0.0}, {NULL}},
 	{yellowtext, "Sound",							{NULL},                  {0.0}, {0.0}, {0.0}, {NULL}},
 	{svdiscrete, "Fix silent west spawns",         {&co_nosilentspawns},    {2.0}, {0.0}, {0.0}, {OnOff}},
