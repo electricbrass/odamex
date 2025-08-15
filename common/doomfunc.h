@@ -136,18 +136,41 @@ namespace OUtil
 
 // Wrapper for easy iteration over containers in reverse with ranged for loops
 template <typename T>
-struct reverse_wrapper { T& iterable; };
+struct reverse_wrapper
+{
+    T& iterable;
+    inline auto begin() { return std::rbegin(iterable); }
+    inline auto end() { return std::rend(iterable); }
+};
 
 /**
  * @brief Reverse the iteration in a range-based for loop
  */
 template <typename T>
-reverse_wrapper<T> reverse(T&& iterable) { return { iterable }; }
+inline reverse_wrapper<T> reverse(T&& iterable) { return { iterable }; }
+
+// Wrapper for skipping the first N elements in a range-based for loop
+template <typename T>
+struct drop_wrapper
+{
+    T& iterable;
+    size_t count;
+
+    auto begin() {
+        auto it = std::begin(iterable);
+        auto end_it = std::end(iterable);
+        for (size_t i = 0; i < count && it != end_it; ++i)
+            ++it;
+        return it;
+    }
+
+    inline auto end() { return std::end(iterable); }
+};
+
+/**
+ * @brief Skip the first `count` elements in a range-based for loop
+ */
+template <typename T>
+inline drop_wrapper<T> drop(T&& iterable, std::size_t count) { return { iterable, count }; }
 
 }
-
-template <typename T>
-auto begin(OUtil::reverse_wrapper<T> rw) { return std::rbegin(rw.iterable); }
-
-template <typename T>
-auto end(OUtil::reverse_wrapper<T> rw) { return std::rend(rw.iterable); }
