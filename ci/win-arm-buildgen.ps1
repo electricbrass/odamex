@@ -4,7 +4,7 @@ mkdir "build-arm" | Out-Null
 Set-Location "build-arm"
 
 & cmake .. -G "Visual Studio 17 2022" `
-    -A ARM64
+    -A ARM64 `
     -DBUILD_OR_FAIL=1 `
     -DBUILD_CLIENT=1 -DBUILD_SERVER=1 `
     -DBUILD_MASTER=1 -DBUILD_LAUNCHER=1
