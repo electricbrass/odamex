@@ -134,6 +134,32 @@ jobs:
       with:
         name: Odamex-Win-x32
         path: 'build-x32/artifact/*'
+  build-arm:
+    name: Build (Visual Studio, ARM)
+    needs: pre_job
+    if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
+    runs-on: windows-11-arm
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
+    - name: Install Python packages
+      uses: insightsengineering/pip-action@v2
+      with:
+        packages: |
+          b2sdk
+    - name: Prepare build
+      run: .\ci\win-arm-buildgen.ps1
+    - name: Run build
+      run: cmake --build .\build-arm\ --config RelWithDebInfo --parallel
+    - name: Prepare artifact
+      run: .\ci\win-arm-artifact.ps1
+    - name: Upload artifact to Github
+      uses: actions/upload-artifact@v4
+      with:
+        name: Odamex-Win-ARM
+        path: 'build-arm/artifact/*'
   # build-mingw:
   #   name: Build (MinGW)
   #   runs-on: windows-latest
