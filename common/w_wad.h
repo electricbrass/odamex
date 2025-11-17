@@ -80,6 +80,7 @@ typedef struct lumpinfo_s
 // [RH] Namespaces from BOOM.
 typedef enum {
 	ns_global = 0,
+	ns_textures,
 	ns_sprites,
 	ns_flats,
 	ns_colormaps,
@@ -99,7 +100,8 @@ struct lumpHandle_t
 	{
 		return id == 0;
 	}
-	bool operator==(const lumpHandle_t& other)
+	[[nodiscard]]
+	bool operator==(const lumpHandle_t& other) const
 	{
 		return id == other.id;
 	}
@@ -111,15 +113,15 @@ extern	size_t	numlumps;
 
 OCRC32Sum W_CRC32(const std::string& filename);
 OMD5Hash W_MD5(const std::string& filename);
-fhfprint_s W_FarmHash128(const byte* lumpdata, int length);
+fhfprint_t W_FarmHash128(const byte* lumpdata, int length);
 void W_InitMultipleFiles(const OResFiles& filenames);
 lumpHandle_t W_LumpToHandle(const unsigned lump);
 int W_HandleToLump(const lumpHandle_t handle);
 
 int W_CheckNumForName(const char *name, int ns = ns_global);
-int W_CheckNumForName(const OLumpName& name, int ns = ns_global);
+inline int W_CheckNumForName(const OLumpName& name, int ns = ns_global) { return W_CheckNumForName(name.c_str(), ns); };
 int W_GetNumForName(const char *name, int ns = ns_global);
-int W_GetNumForName(const OLumpName& name, int ns = ns_global);
+inline int W_GetNumForName(const OLumpName& name, int ns = ns_global) { return W_GetNumForName(name.c_str(), ns); };
 
 std::string W_LumpName(unsigned lump);
 unsigned	W_LumpLength (unsigned lump);
@@ -159,6 +161,7 @@ void W_GetLumpName(char* to, unsigned lump);
 
 // Copies the lump name to to
 void W_GetOLumpName(OLumpName& to, unsigned lump);
+OLumpName W_GetOLumpName(unsigned lump);
 
 // [RH] Returns file handle for specified lump
 int W_GetLumpFile (unsigned lump);

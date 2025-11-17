@@ -27,10 +27,12 @@
 #include "r_sprites.h"
 
 // [RH] Particle details
+// Expanded to be able to use patches/textures for particle effects
 struct particle_s {
 	fixed_t	x,y,z;
 	fixed_t velx,vely,velz;
 	fixed_t accx,accy,accz;
+	int		sprite; // new
 	byte	ttl;
 	byte	trans;
 	byte	size;
@@ -45,7 +47,7 @@ extern int	NumParticles;
 extern int	ActiveParticles;
 extern int	InactiveParticles;
 extern particle_t *Particles;
-extern TArray<WORD>     ParticlesInSubsec;
+extern std::vector<WORD> ParticlesInSubsec;
 
 constexpr WORD NO_PARTICLE = 0xffff;
 

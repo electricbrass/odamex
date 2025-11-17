@@ -28,10 +28,6 @@ if (GCONSOLE)
     file(GLOB CLIENT_HEADERS ${CLIENT_HEADERS} switch/*.h)
     file(GLOB CLIENT_SOURCES ${CLIENT_SOURCES} switch/*.cpp)
     odamex_target_settings_nx(CLIENT_DIR GLOB)
-  elseif (VWII)
-    set(CLIENT_DIR ${CLIENT_DIR} vwii)  # Nintendo Wii/vWII
-    file(GLOB CLIENT_HEADERS ${CLIENT_HEADERS} vwii/*.h)
-    file(GLOB CLIENT_SOURCES ${CLIENT_SOURCES} vwii/*.cpp)
   endif()
 endif()
 
@@ -165,10 +161,6 @@ if(TARGET SDL2::SDL2 OR TARGET SDL::SDL)
     target_link_libraries(odamex PRIVATE ${APPLE_FRAMEWORKS})
   elseif(NSWITCH)
     target_link_libraries(odamex PRIVATE SDL2 mpg123 modplug vorbisfile vorbis opusfile opus ogg EGL glapi drm_nouveau nx m)
-  elseif(VWII)
-    # Ch0wW : this is UGLY, please fix it ASAP !!
-    target_link_libraries(odamex PRIVATE -L$ENV{DEVKITPRO}/libogc/lib/wii -L$ENV{DEVKITPRO}/portlibs/ppc/lib -L$ENV{DEVKITPRO}/portlibs/wii/lib)
-    target_link_libraries(odamex PRIVATE SDL_mixer SDL smpeg png png16 vorbisidec z fat wiiuse bte ogc ogg m wiikeyboard)
   elseif(SOLARIS)
     target_link_libraries(odamex PRIVATE socket nsl)
   endif()
@@ -188,6 +180,7 @@ if(TARGET SDL2::SDL2 OR TARGET SDL::SDL)
   set(MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}")
   set(MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}")
   set(MACOSX_BUNDLE_ICON_FILE odamex.icns)
+  set(MACOSX_BUNDLE_GUI_IDENTIFIER net.odamex.odamex)
 
   if(APPLE)
     add_custom_command(
@@ -250,10 +243,6 @@ if(TARGET SDL2::SDL2 OR TARGET SDL::SDL)
     endif()
   elseif(NSWITCH)
     odamex_target_postcompile_nx(odamex)
-  elseif(VWII)
-    message(${CMAKE_BINARY_DIR})
-    add_custom_command( TARGET odamex POST_BUILD
-    COMMAND elf2dol ${CMAKE_BINARY_DIR}/client/odamex ${CMAKE_BINARY_DIR}/boot.dol )
   elseif(WIN32)
     install(TARGETS odamex
       RUNTIME DESTINATION .

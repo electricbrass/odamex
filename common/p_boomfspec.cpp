@@ -31,6 +31,11 @@
 #include "p_boomfspec.h"
 
 EXTERN_CVAR(sv_allowexit)
+EXTERN_CVAR(co_pursuit)
+EXTERN_CVAR(co_helpfriends)
+EXTERN_CVAR(co_monsterbacking)
+EXTERN_CVAR(co_avoidhazards)
+EXTERN_CVAR(co_monstersclimbsteep)
 
 //
 // P_CrossCompatibleSpecialLine - Walkover Trigger Dispatcher
@@ -87,7 +92,7 @@ bool P_CrossCompatibleSpecialLine(line_t* line, int side, AActor* thing,
 	{
 		// pointer to line function is NULL by default, set non-null if
 		// line special is walkover generalized linedef type
-		BOOL (*linefunc)(line_t * line) = NULL;
+		bool (*linefunc)(line_t * line) = NULL;
 
 		// check each range of generalized linedefs
 		if ((unsigned)line->special >= GenEnd)
@@ -1379,7 +1384,7 @@ bool P_ActorInCompatibleSector(AActor* actor)
 	sector_t* sector = actor->subsector->sector;
 
 	if (sector && sector->special & KILL_MONSTERS_MASK && actor->z == actor->floorz &&
-	    !actor->player && actor->flags & MF_SHOOTABLE && !(actor->flags & MF_FLOAT))
+	    !actor->player && actor->type != MT_AVATAR && actor->flags & MF_SHOOTABLE && !(actor->flags & MF_FLOAT))
 	{
 		P_DamageMobj(actor, NULL, NULL, 10000);
 
@@ -1422,10 +1427,10 @@ void P_PostProcessCompatibleSidedefSpecial(side_t* sd, mapsidedef_t* msd,
 				                     ((argb_t)color).getb(), ((argb_t)fog).getr(),
 				                     ((argb_t)fog).getg(), ((argb_t)fog).getb());
 
-				for (int s = 0; s < numsectors; s++)
+				for (sector_t& sector : R_GetSectors())
 				{
-					if (sectors[s].tag == sd->tag)
-						sectors[s].colormap = colormap;
+					if (sector.tag == sd->tag)
+						sector.colormap = colormap;
 				}
 			}
 		}
@@ -1807,7 +1812,7 @@ void P_SpawnCompatibleScroller(line_t* l, int i)
 	case 1024: // special 255 with tag control
 	case 2084:
 		if (l->id == 0)
-			Printf(PRINT_HIGH, "Line %d is missing a tag!", i);
+			PrintFmt(PRINT_HIGH, "Line {} is missing a tag!", i);
 
 		if (special == 1026 || special == 2086)
 			accel = 1;
@@ -1912,7 +1917,7 @@ bool P_UseCompatibleSpecialLine(AActor* thing, line_t* line, int side,
 
 	// pointer to line function is NULL by default, set non-null if
 	// line special is push or switch generalized linedef type
-	int (*linefunc)(line_t * line) = NULL;
+	bool (*linefunc)(line_t * line) = nullptr;
 
 	// check each range of generalized linedefs
 	if ((unsigned)line->special >= GenEnd)
@@ -3373,7 +3378,7 @@ bool P_ShootCompatibleSpecialLine(AActor* thing, line_t* line)
 
 	// pointer to line function is NULL by default, set non-null if
 	// line special is gun triggered generalized linedef type
-	int (*linefunc)(line_t * line) = NULL;
+	bool (*linefunc)(line_t * line) = nullptr;
 
 	// check each range of generalized linedefs
 	if ((unsigned)line->special >= GenEnd)
@@ -3570,26 +3575,31 @@ void P_PostProcessCompatibleLinedefSpecial(line_t* line)
 {
 	switch (line->special)
 	{ // killough 4/11/98: handle special types
-		int j;
 	case 260: // killough 4/11/98: translucent 2s textures
 #if 0
 				lump = sides[*ld->sidenum].special;		// translucency from sidedef
 				if (!ld->tag)							// if tag==0,
 					ld->tranlump = lump;				// affect this linedef only
 				else
-					for (j=0;j<numlines;j++)			// if tag!=0,
-						if (lines[j].tag == ld->tag)	// affect all matching linedefs
-							lines[j].tranlump = lump;
+					for (line_t& lineit : R_GetLines())	// if tag!=0,
+						if (lineit.tag == ld->tag)	// affect all matching linedefs
+							lineit.tranlump = lump;
 #else
 	          // [RH] Second arg controls how opaque it is.
 		if (line->id == 0)
 			line->lucency = (byte)128;
 		else
-			for (j = 0; j < numlines; j++)
-				if (lines[j].id == line->id)
-					lines[j].lucency = (byte)128;
+			for (line_t& lineit : R_GetLines())
+				if (lineit.id == line->id)
+					lineit.lucency = (byte)128;
 #endif
 		line->special = 0;
 		break;
 	}
+}
+
+bool P_IsMBFCompatMode()
+{
+	return P_AllowDropOff() || co_pursuit || co_helpfriends || co_monsterbacking ||
+	       co_avoidhazards || co_monstersclimbsteep;
 }

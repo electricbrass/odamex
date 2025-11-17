@@ -41,27 +41,22 @@
 
 #include "win32inc.h"
 #ifdef _WIN32
-#include <direct.h>
-#include <io.h>
-#include <process.h>
-
-#ifdef _XBOX
-#include <xtl.h>
-#else
-#include <shlwapi.h>
-#include <winsock2.h>
-#include <mmsystem.h>
-#include <shlobj.h>
-#endif // !_XBOX
+	#include <direct.h>
+	#include <io.h>
+	#include <process.h>
+	#include <shlwapi.h>
+	#include <winsock2.h>
+	#include <mmsystem.h>
+	#include <shlobj.h>
 #endif // WIN32
 
 #ifdef UNIX
 // for getuid and geteuid
-#include <unistd.h>
-#include <sys/types.h>
-#include <limits.h>
-#include <time.h>
-#include <pwd.h>
+	#include <unistd.h>
+	#include <sys/types.h>
+	#include <limits.h>
+	#include <time.h>
+	#include <pwd.h>
 #endif
 
 #include <sstream>
@@ -93,14 +88,6 @@
 #include "m_fileio.h"
 #include "txt_main.h"
 
-#ifdef _XBOX
-	#include "i_xbox.h"
-#endif
-
-#ifdef GEKKO
-	#include "i_wii.h"
-#endif
-
 #ifndef GCONSOLE // I will add this back later -- Hyper_Eye
 	// For libtextscreen to link properly
 	extern "C"
@@ -109,7 +96,7 @@
 	}
 	#define ENDOOM_W 80
 	#define ENDOOM_H 25
-#endif // _XBOX
+#endif // GCONSOLE
 
 EXTERN_CVAR (r_loadicon)
 EXTERN_CVAR (r_showendoom)
@@ -196,7 +183,7 @@ void *I_ZoneBase (size_t *size)
 	// Die if the system has insufficient memory
 	if (got_heapsize < min_heapsize)
 		I_FatalError("I_ZoneBase: Insufficient memory available! Minimum size "
-					 "is %lu MB but got %lu MB instead",
+					 "is {} MB but got {} MB instead",
 					 min_heapsize,
 					 got_heapsize);
 
@@ -230,12 +217,12 @@ dtime_t I_GetTime()
 	mach_port_deallocate(mach_task_self(), cclock);
 	return mts.tv_sec * 1000LL * 1000LL * 1000LL + mts.tv_nsec;
 
-#elif defined UNIX && !defined GEKKO
+#elif defined UNIX
 	timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts.tv_sec * 1000LL * 1000LL * 1000LL + ts.tv_nsec;
 
-#elif defined WIN32 && !defined _XBOX
+#elif defined WIN32
 	static bool initialized = false;
 	static LARGE_INTEGER initial_count;
 	static double nanoseconds_per_count;
@@ -319,7 +306,7 @@ void I_Sleep(dtime_t sleep_time)
 #if defined UNIX
 	usleep(sleep_time / 1000LL);
 
-#elif defined(WIN32) && !defined(_XBOX)
+#elif defined(WIN32)
 	Sleep(sleep_time / 1000000LL);
 
 #else
@@ -352,7 +339,7 @@ void I_WaitVBL(int count)
 //
 // SubsetLanguageIDs
 //
-#if defined _WIN32 && !defined _XBOX
+#if defined _WIN32
 static void SubsetLanguageIDs (LCID id, LCTYPE type, int idx)
 {
 	char buf[8];
@@ -381,7 +368,7 @@ void SetLanguageIDs()
 
 	if (strcmp(langid, "auto") == 0)
 	{
-#if defined _WIN32 && !defined _XBOX
+#if defined _WIN32
 		memset(LanguageIDs, 0, sizeof(LanguageIDs));
 		SubsetLanguageIDs(LOCALE_USER_DEFAULT, LOCALE_ILANGUAGE, 0);
 		SubsetLanguageIDs(LOCALE_USER_DEFAULT, LOCALE_IDEFAULTLANGUAGE, 1);
@@ -444,8 +431,7 @@ void I_Endoom()
 	// Hack to stop crash with disk icon
 	in_endoom = true;
 
-	unsigned char* endoom_data = (unsigned char*)W_CacheLumpName(gameinfo.endoom.c_str(),
-		PU_STATIC);
+	unsigned char* endoom_data = (unsigned char*)W_CacheLumpName(gameinfo.endoom, PU_STATIC);
 
 	// Set up text mode screen
 
@@ -515,7 +501,7 @@ void STACK_ARGS I_Quit (void)
 //
 // I_Error
 //
-BOOL gameisdead;
+bool gameisdead;
 
 #define MAX_ERRORTEXT	1024
 
@@ -523,7 +509,7 @@ void STACK_ARGS call_terms (void);
 
 void I_BaseWarning(const std::string& warningtext)
 {
-	Printf(PRINT_WARNING, "\n%s\n", warningtext);
+	PrintFmt(PRINT_WARNING, "\n{}\n", warningtext);
 }
 
 void I_BaseError(const std::string& errortext)
@@ -557,7 +543,7 @@ void I_BaseError(const std::string& errortext)
 {
 	std::string messagetext;
 
-	static BOOL alreadyThrown = false;
+	static bool alreadyThrown = false;
 	gameisdead = true;
 
 	if (!alreadyThrown) // ignore all but the first message -- killough
@@ -636,7 +622,7 @@ std::string I_GetClipboardText()
 
 	if (!dis)
 	{
-		Printf(PRINT_HIGH, "I_GetClipboardText: XOpenDisplay failed");
+		PrintFmt(PRINT_HIGH, "I_GetClipboardText: XOpenDisplay failed");
 		return "";
 	}
 
@@ -652,7 +638,7 @@ std::string I_GetClipboardText()
 			XDestroyWindow(dis, WindowEvents);
 			XUnlockDisplay(dis);
 			XCloseDisplay(dis);
-			Printf(PRINT_HIGH, "I_GetClipboardText: XConvertSelection failed");
+			PrintFmt(PRINT_HIGH, "I_GetClipboardText: XConvertSelection failed");
 			return "";
 		}
 
@@ -680,14 +666,14 @@ std::string I_GetClipboardText()
 			XDestroyWindow(dis, WindowEvents);
 			XUnlockDisplay(dis);
 			XCloseDisplay(dis);
-			Printf(PRINT_HIGH, "I_GetClipboardText: XGetWindowProperty failed(1)");
+			PrintFmt(PRINT_HIGH, "I_GetClipboardText: XGetWindowProperty failed(1)");
 			return "";
 		}
 
 		if (!bytes_left)
 		{
 			XDestroyWindow(dis, WindowEvents);
-			DPrintf("I_GetClipboardText: Len was: %lu", len);
+			DPrintFmt("I_GetClipboardText: Len was: {}", len);
 			XUnlockDisplay(dis);
 			XCloseDisplay(dis);
 			return "";
@@ -700,7 +686,7 @@ std::string I_GetClipboardText()
 			XDestroyWindow(dis, WindowEvents);
 			XUnlockDisplay(dis);
 			XCloseDisplay(dis);
-			Printf(PRINT_HIGH, "I_GetClipboardText: XGetWindowProperty failed(2)");
+			PrintFmt(PRINT_HIGH, "I_GetClipboardText: XGetWindowProperty failed(2)");
 			return "";
 		}
 
@@ -715,7 +701,7 @@ std::string I_GetClipboardText()
 	return ret;
 #endif
 
-#if defined _WIN32 && !defined _XBOX
+#if defined _WIN32
 	std::string ret;
 
 	if(!IsClipboardFormatAvailable(CF_TEXT))
@@ -764,7 +750,7 @@ std::string I_GetClipboardText()
 
 	if (err)
 	{
-		Printf(PRINT_HIGH, "GetCurrentScrap error: %d", err);
+		PrintFmt(PRINT_HIGH, "GetCurrentScrap error: {}", err);
 		return "";
 	}
 
@@ -772,7 +758,7 @@ std::string I_GetClipboardText()
 
 	if (err)
 	{
-		Printf(PRINT_HIGH, "GetScrapFlavorSize error: %d", err);
+		PrintFmt(PRINT_HIGH, "GetScrapFlavorSize error: {}", err);
 		return "";
 	}
 
@@ -783,7 +769,7 @@ std::string I_GetClipboardText()
 
 	if(err)
 	{
-		Printf(PRINT_HIGH, "GetScrapFlavorData error: %d", err);
+		PrintFmt(PRINT_HIGH, "GetScrapFlavorData error: {}", err);
 		delete[] data;
 
 		return "";
@@ -802,7 +788,7 @@ std::string I_GetClipboardText()
 
 	if (NULL == textp)
 	{
-		Printf(PRINT_HIGH, "SDL_GetClipboardText error: %s", SDL_GetError());
+		PrintFmt(PRINT_HIGH, "SDL_GetClipboardText error: {}", SDL_GetError());
 		return "";
 	}
 
@@ -814,7 +800,7 @@ std::string I_GetClipboardText()
 	return "";
 }
 
-void I_PrintStr (int xp, const char *cp, int count, BOOL scroll)
+void I_PrintStr (int xp, const char *cp, int count, bool scroll)
 {
 	// used in the DOS version
 }
@@ -979,7 +965,7 @@ void I_ErrorMessageBox(const char* message)
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, ODAMEX_ERROR_TITLE, message, NULL);
 }
 
-#elif defined(WIN32) && !defined(_XBOX)
+#elif defined(WIN32)
 
 void I_ErrorMessageBox(const char* message)
 {
@@ -1001,7 +987,7 @@ void I_ErrorMessageBox(const char* message)
 
 void I_ErrorMessageBox(const char* message)
 {
-	fprintf(stderr, "%s\n%s\n", ODAMEX_ERROR_TITLE, message);
+	fmt::print(stderr, "{}\n{}\n", ODAMEX_ERROR_TITLE, message);
 }
 
 #endif
@@ -1012,12 +998,12 @@ BEGIN_COMMAND(debug_userfilename)
 {
 	if (argc < 2)
 	{
-		Printf("debug_userfilename: needs a path to check.\n");
+		PrintFmt("debug_userfilename: needs a path to check.\n");
 		return;
 	}
 
 	std::string userfile = M_GetUserFileName(argv[1]);
-	Printf("Resolved to: %s\n", userfile.c_str());
+	PrintFmt("Resolved to: {:s}\n", userfile);
 }
 END_COMMAND(debug_userfilename)
 

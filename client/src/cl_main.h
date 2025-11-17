@@ -1,4 +1,4 @@
-// Emacs style mode select   -*- C++ -*- 
+// Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
 // $Id$
@@ -31,7 +31,7 @@
 #include "cl_demo.h"
 
 extern netadr_t  serveraddr;
-extern BOOL      connected;
+extern bool      connected;
 extern int       connecttimeout;
 
 extern bool      noservermsgs;
@@ -71,6 +71,7 @@ bool CL_Connect();
 void CL_SendCheat(int cheats);
 void CL_SendGiveCheat(const char* item);
 void CL_SendSummonCheat(const char* summon);
+void CL_SendSummonFriendCheat(const char* summon);
 
 void CL_DisplayTics();
 void CL_RunTics();

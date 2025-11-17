@@ -1,4 +1,4 @@
-// Emacs style mode select   -*- C++ -*- 
+// Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
 // $Id$
@@ -31,6 +31,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include <nonstd/span.hpp>
 #include "fmt/format.h"

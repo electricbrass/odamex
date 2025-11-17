@@ -1,4 +1,4 @@
-// Emacs style mode select   -*- C++ -*- 
+// Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
 // $Id$
@@ -39,7 +39,8 @@ typedef enum
 	MS_NONE			= 0,
 	MS_SDLMIXER		= 1,
 	MS_AUDIOUNIT	= 2,
-	MS_PORTMIDI		= 3
+	MS_PORTMIDI		= 3,
+	MS_LIBADLMIDI		= 4
 } MusicSystemType;
 
 bool S_MusicIsMus(byte* data, size_t length);
@@ -67,7 +68,7 @@ void I_ResumeSong();
 //  plays a song, and when the song is done,
 //  starts playing it again in an endless loop.
 // Horrible thing to do, considering.
-void I_PlaySong(const OByteSpan data, const bool loop);
+void I_PlaySong(const OByteSpan data, const bool loop, const int order);
 // Stops a song over 3 seconds.
 void I_StopSong();
 void I_UpdateMusic();

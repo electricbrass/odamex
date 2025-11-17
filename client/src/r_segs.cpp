@@ -33,6 +33,7 @@
 
 #include "p_local.h"
 #include "r_local.h"
+#include "r_sky.h"
 #include "v_video.h"
 
 #include "m_vectors.h"
@@ -49,11 +50,11 @@ Pool<int> sprclip_pool(4096);
 
 // killough 1/6/98: replaced globals with statics where appropriate
 
-static BOOL		segtextured;	// True if any of the segs textures might be visible.
-static BOOL		markfloor;		// False if the back side is the same plane.
-static BOOL		markceiling;
-static BOOL		maskedtexture;
+static bool		segtextured;	// True if any of the segs textures might be visible.
+static bool		markfloor;		// False if the back side is the same plane.
+static bool		markceiling;
 static bool		didsolidcol;
+static int		maskedtexture;
 static int		toptexture;
 static int		bottomtexture;
 static int		midtexture;
@@ -96,6 +97,7 @@ extern float yfoc;
 
 static tallpost_t** masked_midposts;
 
+EXTERN_CVAR(r_clipmaskedspecial)
 
 //
 // R_TexScaleX
@@ -275,7 +277,7 @@ static inline void R_BlastSolidSegColumn(void (*drawfunc)())
 				destpostlen += translen;
 			}
 
-			if (!srcpost->next()->end() && destpostlen >= srcpost->topdelta + srcpost->length)
+			if (!srcpost->end() && !srcpost->next()->end() && destpostlen >= srcpost->topdelta + srcpost->length)
 			{
 				srcpost = srcpost->next();
 			}
@@ -461,7 +463,7 @@ void R_RenderSolidSegRange(int start, int stop)
 	if (start > stop)
 		return;
 
-	constexpr int columnmethod = 2;
+	static constexpr int columnmethod = 2;
 
 	// clip the front of the walls to the ceiling and floor
 	for (int x = start; x <= stop; x++)
@@ -723,7 +725,7 @@ void R_PrepWall(fixed_t px1, fixed_t py1, fixed_t px2, fixed_t py2, fixed_t dist
 	const fixed_t segoffs = curline->offset + R_LineLength(curline->v1->x, curline->v1->y, px1, py1);
 
 	const fixed_t mindist = NEARCLIP;
-	constexpr fixed_t maxdist = 16384*FRACUNIT;
+	static constexpr fixed_t maxdist = 16384*FRACUNIT;
 	dist1 = clamp(dist1, mindist, maxdist);
 	dist2 = clamp(dist2, mindist, maxdist);
 
@@ -797,7 +799,7 @@ void R_PrepWall(fixed_t px1, fixed_t py1, fixed_t px2, fixed_t py2, fixed_t dist
 		R_FillWallHeightArray(walltopb, start, stop, rw_backcz1, rw_backcz2, scale1, scale2);
 		R_FillWallHeightArray(wallbottomb, start, stop, rw_backfz1, rw_backfz2, scale1, scale2);
 
-		constexpr fixed_t tolerance = FRACUNIT / 2;
+		static constexpr fixed_t tolerance = FRACUNIT / 2;
 
 		// determine if an upper texture is showing
 		rw_hashigh	= (P_CeilingHeight(curline->v1->x, curline->v1->y, frontsector) - tolerance >
@@ -813,7 +815,7 @@ void R_PrepWall(fixed_t px1, fixed_t py1, fixed_t px2, fixed_t py2, fixed_t dist
 
 		// hack to allow height changes in outdoor areas (sky hack)
 		// copy back ceiling height array to front ceiling height array
-		if (frontsector->ceilingpic == skyflatnum && backsector->ceilingpic == skyflatnum)
+		if (R_IsSkyFlat(frontsector->ceilingpic) && R_IsSkyFlat(backsector->ceilingpic))
 			memcpy(walltopf+start, walltopb+start, width*sizeof(*walltopb));
 	}
 
@@ -829,7 +831,7 @@ void R_StoreWallRange(int start, int stop)
 {
 #ifdef RANGECHECK
 	if (start >= viewwidth || start > stop)
-		I_FatalError ("Bad R_StoreWallRange: %i to %i", start , stop);
+		I_FatalError("Bad R_StoreWallRange: {} to {}", start , stop);
 #endif
 
 	const int count = stop - start + 1;
@@ -941,6 +943,9 @@ void R_StoreWallRange(int start, int stop)
 				// killough 4/17/98: draw floors if different light levels
 				|| backsector->floorlightsec != frontsector->floorlightsec
 
+				// [EB] check for special too for DSDA-compatibility on MBF21
+				|| (r_clipmaskedspecial && backsector->special != frontsector->special)
+
 				// [RH] Add checks for colormaps
 				|| backsector->colormap != frontsector->colormap
 
@@ -963,7 +968,7 @@ void R_StoreWallRange(int start, int stop)
 
 				// killough 4/15/98: prevent 2s normals
 				// from bleeding through fake ceilings
-				|| (frontsector->heightsec && frontsector->ceilingpic != skyflatnum)
+				|| (frontsector->heightsec && !R_IsSkyFlat(frontsector->ceilingpic))
 
 				// killough 4/17/98: draw ceilings if different light levels
 				|| backsector->ceilinglightsec != frontsector->ceilinglightsec
@@ -980,7 +985,7 @@ void R_StoreWallRange(int start, int stop)
 
 			// Sky hack
 			markceiling = markceiling &&
-				(frontsector->ceilingpic != skyflatnum || backsector->ceilingpic != skyflatnum);
+				(!R_IsSkyFlat(frontsector->ceilingpic) || !R_IsSkyFlat(backsector->ceilingpic));
 		}
 
 
@@ -1030,7 +1035,7 @@ void R_StoreWallRange(int start, int stop)
 		}
 
 		// [SL] additional fix for sky hack
-		if (frontsector->ceilingpic == skyflatnum && backsector->ceilingpic == skyflatnum)
+		if ((R_IsSkyFlat(frontsector->ceilingpic) && R_IsSkyFlat(backsector->ceilingpic)))
 			toptexture = 0;
 	}
 
@@ -1087,7 +1092,7 @@ void R_StoreWallRange(int start, int stop)
 			markfloor = false;
 		// below view plane?
 		if (P_CeilingHeight(viewx, viewy, frontsector) <= viewz &&
-			frontsector->ceilingpic != skyflatnum)
+			!R_IsSkyFlat(frontsector->ceilingpic))
 			markceiling = false;
 	}
 

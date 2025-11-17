@@ -207,7 +207,7 @@ void ISDL20KeyboardInputDevice::disableTextEntry()
 //
 int ISDL20KeyboardInputDevice::getTextEventValue()
 {
-	constexpr size_t max_events = 32;
+	static constexpr size_t max_events = 32;
 	SDL_Event sdl_events[max_events];
 
 	SDL_PumpEvents();
@@ -433,12 +433,23 @@ void ISDL20MouseInputDevice::resume()
 {
 	mActive = true;
 	reset();
+
+	// [RV] Always use relative mouse mode and 
+	// force unscaled relative motion across supported SDL versions
 	SDL_SetRelativeMouseMode(SDL_TRUE);
+
+	#if SDL_VERSION_ATLEAST(2, 0, 14)
+			SDL_SetHintWithPriority(SDL_HINT_MOUSE_RELATIVE_SCALING, "0", SDL_HINT_OVERRIDE);
+	#endif
+
+	#if SDL_VERSION_ATLEAST(2, 26, 0)
+			SDL_SetHintWithPriority(SDL_HINT_MOUSE_RELATIVE_SYSTEM_SCALE, "0", SDL_HINT_OVERRIDE);
+	#endif
+
 	SDL_EventState(SDL_MOUSEMOTION, SDL_ENABLE);
 	SDL_EventState(SDL_MOUSEBUTTONDOWN, SDL_ENABLE);
 	SDL_EventState(SDL_MOUSEBUTTONUP, SDL_ENABLE);
 }
-
 
 //
 // ISDL20MouseInputDevice::gatherEvents
@@ -858,8 +869,7 @@ ISDL20InputSubsystem::~ISDL20InputSubsystem()
 std::vector<IInputDeviceInfo> ISDL20InputSubsystem::getKeyboardDevices() const
 {
 	std::vector<IInputDeviceInfo> devices;
-	devices.push_back(IInputDeviceInfo());
-	IInputDeviceInfo& device_info = devices.back();
+	IInputDeviceInfo& device_info = devices.emplace_back();
 	device_info.mId = 0;
 	device_info.mDeviceName = "SDL 2.0 keyboard";
 	return devices;
@@ -875,13 +885,13 @@ void ISDL20InputSubsystem::initKeyboard(int id)
 
 	const std::vector<IInputDeviceInfo> devices = getKeyboardDevices();
 	std::string device_name;
-	for (std::vector<IInputDeviceInfo>::const_iterator it = devices.begin(); it != devices.end(); ++it)
+	for (const auto& device : devices)
 	{
-		if (it->mId == id)
-			device_name = it->mDeviceName;
+		if (device.mId == id)
+			device_name = device.mDeviceName;
 	}
 
-	Printf(PRINT_HIGH, "I_InitInput: intializing %s\n", device_name.c_str());
+	PrintFmt(PRINT_HIGH, "I_InitInput: intializing {:s}\n", device_name);
 
 	setKeyboardInputDevice(new ISDL20KeyboardInputDevice(id));
 	registerInputDevice(getKeyboardInputDevice());
@@ -930,13 +940,13 @@ void ISDL20InputSubsystem::initMouse(int id)
 
 	const std::vector<IInputDeviceInfo> devices = getMouseDevices();
 	std::string device_name;
-	for (std::vector<IInputDeviceInfo>::const_iterator it = devices.begin(); it != devices.end(); ++it)
+	for (const auto& device : devices)
 	{
-		if (it->mId == id)
-			device_name = it->mDeviceName;
+		if (device.mId == id)
+			device_name = device.mDeviceName;
 	}
 
-	Printf(PRINT_HIGH, "I_InitInput: intializing %s\n", device_name.c_str());
+	PrintFmt(PRINT_HIGH, "I_InitInput: intializing {:s}\n", device_name);
 
 	setMouseInputDevice(new ISDL20MouseInputDevice(id));
 	assert(getMouseInputDevice() != NULL);
@@ -990,13 +1000,13 @@ void ISDL20InputSubsystem::initJoystick(int id)
 
 	const std::vector<IInputDeviceInfo> devices = getJoystickDevices();
 	std::string device_name;
-	for (std::vector<IInputDeviceInfo>::const_iterator it = devices.begin(); it != devices.end(); ++it)
+	for (const auto& device : devices)
 	{
-		if (it->mId == id)
-			device_name = it->mDeviceName;
+		if (device.mId == id)
+			device_name = device.mDeviceName;
 	}
 
-	Printf(PRINT_HIGH, "I_InitInput: intializing %s\n", device_name.c_str());
+	PrintFmt(PRINT_HIGH, "I_InitInput: intializing {:s}\n", device_name);
 
 	setJoystickInputDevice(new ISDL20JoystickInputDevice(id));
 	registerInputDevice(getJoystickInputDevice());

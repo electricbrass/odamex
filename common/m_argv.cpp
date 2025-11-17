@@ -29,6 +29,7 @@
 #include "cmdlib.h"
 #include "m_fileio.h"
 #include "m_argv.h"
+#include "m_alloc.h"
 
 IMPLEMENT_CLASS (DArgs, DObject)
 
@@ -170,7 +171,7 @@ void DArgs::AppendArg (const char *arg)
 // IsParam
 //
 // Helper function to return if the given argument number i is a parameter
-// 
+//
 static bool IsParam(const std::vector<std::string>& args, size_t i)
 {
 	return i < args.size() && (args[i][0] == '-' || args[i][0] == '+');
@@ -249,8 +250,8 @@ void DArgs::SetArgs(const char *cmdline)
 	if (!*cmdline)
 		return;
 
-	outputline = (char *)Malloc((strlen(cmdline) + 1) * sizeof(char));
-	outputargv = (char **)Malloc(((strlen(cmdline) + 1) / 2) * sizeof(char *));
+	outputline = (char *) M_Malloc((strlen(cmdline) + 1) * sizeof(char));
+	outputargv = (char **) M_Malloc(((strlen(cmdline) + 1) / 2) * sizeof(char *));
 
 	const char *p = cmdline;
 	q = outputline;
@@ -353,7 +354,7 @@ void M_FindResponseFile (void)
 		{
 			char	**argv;
 			char	*file;
-			int		argc;
+			size_t	argc;
 			int		argcinresp;
 			FILE	*handle;
 			int 	size;
@@ -364,11 +365,11 @@ void M_FindResponseFile (void)
 			handle = fopen (Args.GetArg(i) + 1,"rb");
 			if (!handle)
 			{ // [RH] Make this a warning, not an error.
-				Printf (PRINT_WARNING,"No such response file (%s)!", Args.GetArg(i) + 1);
+				PrintFmt(PRINT_WARNING,"No such response file ({})!", Args.GetArg(i) + 1);
 				continue;
 			}
 
-			Printf (PRINT_HIGH,"Found response file %s!\n", Args.GetArg(i) + 1);
+			PrintFmt(PRINT_HIGH,"Found response file {}!\n", Args.GetArg(i) + 1);
 			fseek (handle, 0, SEEK_END);
 			size = ftell (handle);
 			fseek (handle, 0, SEEK_SET);
@@ -376,7 +377,7 @@ void M_FindResponseFile (void)
 			size_t readlen = fread (file, size, 1, handle);
 			if (readlen < 1)
 			{
-				Printf (PRINT_HIGH,"Failed to read response file %s.\n", Args.GetArg(i) + 1);
+				PrintFmt(PRINT_HIGH,"Failed to read response file {}.\n", Args.GetArg(i) + 1);
 			}
 			file[size] = 0;
 			fclose (handle);
@@ -386,7 +387,7 @@ void M_FindResponseFile (void)
 
 			if (argc != 0)
 			{
-				argv = (char **)Malloc (argc*sizeof(char *) + argsize);
+				argv = (char **) M_Malloc(argc*sizeof(char *) + argsize);
 				argv[i] = (char *)argv + argc*sizeof(char *);
 				ParseCommandLine (file, NULL, argv+i);
 
@@ -398,16 +399,16 @@ void M_FindResponseFile (void)
 
 				DArgs newargs (i, argv);
 				Args = newargs;
-				
+
 				M_Free(argv);
 			}
 
 			delete[] file;
-		
+
 			// DISPLAY ARGS
-			Printf("%zu command-line args:\n", Args.NumArgs());
+			PrintFmt("{} command-line args:\n", Args.NumArgs());
 			for (size_t k = 1; k < Args.NumArgs (); k++)
-				Printf (PRINT_HIGH,"%s\n", Args.GetArg (k));
+				PrintFmt(PRINT_HIGH,"{}\n", Args.GetArg (k));
 
 			break;
 		}

@@ -84,15 +84,8 @@
 #include "g_horde.h"
 #include "w_ident.h"
 #include "gui_boot.h"
+#include "g_musinfo.h"
 #include "g_episode.h"
-
-#ifdef GEKKO
-#include "i_wii.h"
-#endif
-
-#ifdef _XBOX
-#include "i_xbox.h"
-#endif
 
 extern size_t got_heapsize;
 
@@ -103,18 +96,18 @@ void D_DoAdvanceDemo();
 void D_DoomLoop();
 
 extern int testingmode;
-extern BOOL gameisdead;
+extern bool gameisdead;
 extern bool M_DemoNoPlay;	// [RH] if true, then skip any demos in the loop
 extern DThinker ThinkerCap;
 extern dyncolormap_t NormalLight;
 
-BOOL devparm;				// started game with -devparm
+bool devparm;				// started game with -devparm
 const char *D_DrawIcon;			// [RH] Patch name of icon to draw on next refresh
 static bool wiping_screen = false;
 
 OLumpName startmap;
-BOOL autostart;
-BOOL advancedemo;
+bool autostart;
+bool advancedemo;
 event_t events[MAXEVENTS];
 int eventhead;
 int eventtail;
@@ -160,9 +153,9 @@ void D_SetPlatform(void)
 #ifdef GCONSOLE
 	#ifdef _XBOX
 		platform = PF_XBOX;
-	#elif GEKKO
+	#elif defined(GEKKO)
 		platform = PF_WII;
-	#elif __SWITCH__
+	#elif defined(__SWITCH__)
 		platform = PF_SWITCH;
 	#else
 		platform = PF_UNKNOWN;
@@ -324,7 +317,7 @@ void D_Display()
 	// draw pause pic
 	if (paused && !menuactive)
 	{
-		const patch_t* pause = W_CachePatch(gameinfo.pauseSign.c_str());
+		const patch_t* pause = W_CachePatch(gameinfo.pauseSign);
 
 		// todo: properly center "PAUSED" graphic for Heretic
 		const int y = AM_ClassicAutomapVisible() ? 4 : viewwindowy + 4;
@@ -370,7 +363,7 @@ void D_DoomLoop()
 		}
 		catch (CRecoverableError &error)
 		{
-			Printf(PRINT_ERROR, "\nERROR: %s\n", error.GetMsg().c_str());
+			PrintFmt(PRINT_ERROR, "\nERROR: {}\n", error.GetMsg());
 
 			// [AM] In case an error is caused by a console command.
 			C_ClearCommand();
@@ -455,7 +448,9 @@ void D_AdvanceDemo (void)
 //
 void D_DoAdvanceDemo (void)
 {
-	const char *pagename = NULL;
+	S_StopAmbientSound();
+
+	OLumpName pagename;
 
 	consoleplayer().playerstate = PST_LIVE;	// not reborn
 	advancedemo = false;
@@ -477,7 +472,7 @@ void D_DoAdvanceDemo (void)
             pagetic = gameinfo.titleTime * TICRATE;
 
             gamestate = GS_DEMOSCREEN;
-            pagename = gameinfo.titlePage.c_str();
+            pagename = gameinfo.titlePage;
 
             currentmusic = gameinfo.titleMusic.c_str();
 
@@ -491,7 +486,7 @@ void D_DoAdvanceDemo (void)
         case 2:
             pagetic = gameinfo.pageTime * TICRATE;
             gamestate = GS_DEMOSCREEN;
-            pagename = gameinfo.creditPages[0].c_str();
+            pagename = gameinfo.creditPages[0];
 
             break;
         case 3:
@@ -505,7 +500,7 @@ void D_DoAdvanceDemo (void)
             {
                 pagetic = gameinfo.titleTime * TICRATE;
 
-                pagename = gameinfo.titlePage.c_str();
+                pagename = gameinfo.titlePage;
                 currentmusic = gameinfo.titleMusic.c_str();
 
                 S_StartMusic(currentmusic.c_str());
@@ -513,7 +508,7 @@ void D_DoAdvanceDemo (void)
             else
             {
                 pagetic = gameinfo.pageTime * TICRATE;
-                pagename = gameinfo.creditPages[1].c_str();
+                pagename = gameinfo.creditPages[1];
             }
 
             break;
@@ -524,7 +519,7 @@ void D_DoAdvanceDemo (void)
         case 6:
             pagetic = gameinfo.pageTime * TICRATE;
             gamestate = GS_DEMOSCREEN;
-            pagename = gameinfo.creditPages[1].c_str();
+            pagename = gameinfo.creditPages[1];
 
             break;
         case 7:
@@ -534,7 +529,7 @@ void D_DoAdvanceDemo (void)
     }
 
     // [Russell] - Still need this toilet humor for now unfortunately
-	if (pagename)
+	if (!pagename.empty())
 	{
 		const patch_t* patch = W_CachePatch(pagename);
 
@@ -599,6 +594,72 @@ bool HashOk(std::string &required, std::string &available)
 
 void CL_NetDemoPlay(const std::string &filename);
 
+EXTERN_CVAR(co_boomphys)
+EXTERN_CVAR(co_zdoomphys)
+EXTERN_CVAR(co_mbfphys)
+EXTERN_CVAR(co_zdoomammo)
+EXTERN_CVAR(co_novileghosts)
+EXTERN_CVAR(co_removesoullimit)
+EXTERN_CVAR(co_allowdropoff)
+EXTERN_CVAR(r_clipmaskedspecial)
+
+void G_ReadCOMPLVL()
+{
+	if (!serverside)
+		return;
+
+	int lumpnum = W_CheckNumForName("COMPLVL");
+	if (lumpnum != -1)
+	{
+		char* complvl = static_cast<char*>(W_CacheLumpNum(lumpnum, PU_STATIC));
+
+		co_zdoomphys.Set(0.0f);
+		co_zdoomammo.Set(0.0f);
+
+		if (iequals("vanilla", complvl))
+		{
+			co_boomphys.Set(0.0f);
+			co_mbfphys.Set(0.0f);
+			co_novileghosts.Set(0.0f);
+			co_allowdropoff.Set(0.0f);
+			co_removesoullimit.Set(0.0f);
+			r_clipmaskedspecial.Set(0.0f);
+		}
+		else if (iequals("boom", complvl))
+		{
+			co_boomphys.Set(1.0f);
+			co_mbfphys.Set(0.0f);
+			co_novileghosts.Set(1.0f);
+			co_allowdropoff.Set(1.0f);
+			co_removesoullimit.Set(1.0f);
+			r_clipmaskedspecial.Set(0.0f);
+		}
+		else if (iequals("mbf", complvl))
+		{
+			co_boomphys.Set(1.0f);
+			co_mbfphys.Set(1.0f);
+			co_novileghosts.Set(1.0f);
+			co_allowdropoff.Set(1.0f);
+			co_removesoullimit.Set(1.0f);
+			r_clipmaskedspecial.Set(0.0f);
+		}
+		else if (iequals("mbf21", complvl))
+		{
+			co_boomphys.Set(1.0f);
+			co_mbfphys.Set(1.0f);
+			co_novileghosts.Set(1.0f);
+			co_allowdropoff.Set(1.0f);
+			co_removesoullimit.Set(1.0f);
+			r_clipmaskedspecial.Set(1.0f);
+		}
+		else
+		{
+			DPrintFmt("Unrecognized COMPLVL value: {}", complvl);
+		}
+
+		Z_Free(complvl);
+	}
+}
 
 //
 // D_Init
@@ -620,18 +681,14 @@ void D_Init()
 	// start the Zone memory manager
 	Z_Init();
 	if (first_time)
-		Printf("Z_Init: Using native allocator with OZone bookkeeping.\n");
+		PrintFmt("Z_Init: Using native allocator with OZone bookkeeping.\n");
 
 	// Load palette and set up colormaps
 	V_Init();
 
-//	if (first_time)
-//		Printf(PRINT_HIGH, "Res_InitTextureManager: Init image resource management.\n");
-//	Res_InitTextureManager();
-
 	// init the renderer
 	if (first_time)
-		Printf(PRINT_HIGH, "R_Init: Init DOOM refresh daemon.\n");
+		PrintFmt(PRINT_HIGH, "R_Init: Init DOOM refresh daemon.\n");
 	R_Init();
 
 //	V_LoadFonts();
@@ -646,31 +703,30 @@ void D_Init()
 	G_ParseMusInfo();
 	S_ParseSndInfo();
 	G_ParseHordeDefs();
+	G_ReadCOMPLVL();
 
 	// init the menu subsystem
 	if (first_time)
-		Printf(PRINT_HIGH, "M_Init: Init miscellaneous info.\n");
+		PrintFmt(PRINT_HIGH, "M_Init: Init miscellaneous info.\n");
 	M_Init();
 
 	if (first_time)
-		Printf(PRINT_HIGH, "P_Init: Init Playloop state.\n");
+		PrintFmt(PRINT_HIGH, "P_Init: Init Playloop state.\n");
 	P_InitEffects();
 	P_Init();
 
 	// init sound and music
 	if (first_time)
 	{
-		Printf (PRINT_HIGH, "S_Init: Setting up sound.\n");
-		Printf (PRINT_HIGH, "S_Init: default sfx volume is %g\n", (float)snd_sfxvolume);
-		Printf (PRINT_HIGH, "S_Init: default music volume is %g\n", (float)snd_musicvolume);
+		PrintFmt(PRINT_HIGH, "S_Init: Setting up sound.\n");
+		PrintFmt(PRINT_HIGH, "S_Init: default sfx volume is {:g}\n", snd_sfxvolume.value());
+		PrintFmt(PRINT_HIGH, "S_Init: default music volume is {:g}\n", snd_musicvolume.value());
 	}
 	S_Init(snd_sfxvolume, snd_musicvolume);
 
-//	R_InitViewBorder();
-
 	// init the status bar
 	if (first_time)
-		Printf(PRINT_HIGH, "ST_Init: Init status bar.\n");
+		PrintFmt(PRINT_HIGH, "ST_Init: Init status bar.\n");
 	ST_Init();
 
 	first_time = false;
@@ -700,6 +756,7 @@ void STACK_ARGS D_Shutdown()
 	// stop sound effects and music
 	S_Stop();
 	S_Deinit();
+	S_ClearSoundLumps();
 
 	// shutdown automap
 	AM_Stop();
@@ -741,15 +798,14 @@ void STACK_ARGS D_Shutdown()
 }
 
 
-void C_DoCommand(const char *cmd, uint32_t key);
-void D_Init_DEHEXTRA_Frames(void);
+void C_DoCommand(std::string_view cmd, uint32_t key);
 
 //
 // D_DoomMain
 //
 void D_DoomMain()
 {
-	unsigned int p;
+	size_t p;
 
 	gamestate = GS_STARTUP;
 
@@ -761,10 +817,7 @@ void D_DoomMain()
 
 	W_SetupFileIdentifiers();
 
-	// [RH] Initialize items. Still only used for the give command. :-(
-	InitItems();
-	// Initialize all extra frames
-	D_Init_DEHEXTRA_Frames();
+	D_InitializeDoomObjectTables();
 
 	M_FindResponseFile();		// [ML] 23/1/07 - Add Response file support back in
 
@@ -798,15 +851,7 @@ void D_DoomMain()
 		    "-connect", "-file",     "-playdemo", "-timedemo", "-warp",
 		};
 
-		bool shouldSkip = false;
-		for (size_t i = 0; i < ARRAY_LENGTH(skipParams); i++)
-		{
-			if (::Args.CheckValue(skipParams[i]))
-			{
-				shouldSkip = true;
-				break;
-			}
-		}
+		bool shouldSkip = std::any_of(std::begin(skipParams), std::end(skipParams), [](const auto& param){ return ::Args.CheckValue(param); });
 
 		// Skip boot window if we pass a single argument that isn't the
 		// start of a standard parameter - it must be a path.
@@ -822,10 +867,9 @@ void D_DoomMain()
 			iwad = wads.iwad;
 			pwads = wads.pwads;
 
-			for (StringTokens::iterator it = wads.options.begin();
-		    	 it != wads.options.end(); ++it)
+			for (const auto& option : wads.options)
 			{
-				Args.AppendArg((*it).c_str());
+				Args.AppendArg(option.c_str());
 			}
 		}
 	}
@@ -843,19 +887,19 @@ void D_DoomMain()
 	{
 		const std::vector<std::string>& wad_exts = M_FileTypeExts(OFILE_WAD);
 		const std::vector<std::string>& deh_exts = M_FileTypeExts(OFILE_DEH);
-		for (size_t i = 0; i < pwads.size(); i++)
+		for (const auto& pwad : pwads)
 		{
 			OWantFile file;
-			OWantFile::make(file, pwads[i], OFILE_UNKNOWN);
+			OWantFile::make(file, pwad, OFILE_UNKNOWN);
 			const std::string extension = StdStringToUpper(file.getExt());
 			if (std::find(deh_exts.begin(), deh_exts.end(), extension) != deh_exts.end())
 			{
-				OWantFile::make(file, pwads[i], OFILE_DEH);
+				OWantFile::make(file, pwad, OFILE_DEH);
 				newpatchfiles.push_back(file);
 			}
 			if (std::find(wad_exts.begin(), wad_exts.end(), extension) != wad_exts.end())
 			{
-				OWantFile::make(file, pwads[i], OFILE_WAD);
+				OWantFile::make(file, pwad, OFILE_WAD);
 				newwadfiles.push_back(file);
 			}
 		}
@@ -864,15 +908,17 @@ void D_DoomMain()
 	D_AddWadCommandLineFiles(newwadfiles);
 	D_AddDehCommandLineFiles(newpatchfiles);
 
+    // do the deh processing
 	D_LoadResourceFiles(newwadfiles, newpatchfiles);
 
-	Printf(PRINT_HIGH, "I_Init: Init hardware.\n");
+	PrintFmt(PRINT_HIGH, "I_Init: Init hardware.\n");
 	atterm(I_ShutdownHardware);
 	I_Init();
 	I_InitInput();
 
 	// [SL] Call init routines that need to be reinitialized every time WAD changes
 	atterm(D_Shutdown);
+	// initialize
 	D_Init();
 
 	atterm(I_Endoom);
@@ -881,17 +927,17 @@ void D_DoomMain()
 	cvar_t::EnableCallbacks();
 
 	// [RH] User-configurable startup strings. Because BOOM does.
-	if (GStrings(STARTUP1)[0])	Printf(PRINT_HIGH, "%s\n", GStrings(STARTUP1));
-	if (GStrings(STARTUP2)[0])	Printf(PRINT_HIGH, "%s\n", GStrings(STARTUP2));
-	if (GStrings(STARTUP3)[0])	Printf(PRINT_HIGH, "%s\n", GStrings(STARTUP3));
-	if (GStrings(STARTUP4)[0])	Printf(PRINT_HIGH, "%s\n", GStrings(STARTUP4));
-	if (GStrings(STARTUP5)[0])	Printf(PRINT_HIGH, "%s\n", GStrings(STARTUP5));
+	if (GStrings(STARTUP1)[0])	PrintFmt(PRINT_HIGH, "{}\n", GStrings(STARTUP1));
+	if (GStrings(STARTUP2)[0])	PrintFmt(PRINT_HIGH, "{}\n", GStrings(STARTUP2));
+	if (GStrings(STARTUP3)[0])	PrintFmt(PRINT_HIGH, "{}\n", GStrings(STARTUP3));
+	if (GStrings(STARTUP4)[0])	PrintFmt(PRINT_HIGH, "{}\n", GStrings(STARTUP4));
+	if (GStrings(STARTUP5)[0])	PrintFmt(PRINT_HIGH, "{}\n", GStrings(STARTUP5));
 
     // developer mode
 	devparm = Args.CheckParm("-devparm");
 
 	if (devparm)
-		Printf(PRINT_HIGH, "%s", GStrings(D_DEVSTR));        // D_DEVSTR
+		PrintFmt(PRINT_HIGH, "{}", GStrings(D_DEVSTR));        // D_DEVSTR
 
 	// set the default value for vid_ticker based on the presence of -devparm
 	if (devparm)
@@ -959,7 +1005,7 @@ void D_DoomMain()
 	CL_DownloadInit();
 	atterm(CL_DownloadShutdown);
 
-	Printf(PRINT_HIGH, "D_CheckNetGame: Checking network game status.\n");
+	PrintFmt(PRINT_HIGH, "D_CheckNetGame: Checking network game status.\n");
 	D_CheckNetGame();
 
 	// [RH] Lock any cvars that should be locked now that we're
@@ -985,7 +1031,7 @@ void D_DoomMain()
 		p = Args.CheckParm("+playdemo");
 	if (p && p < Args.NumArgs() - 1)
 	{
-		Printf(PRINT_HIGH, "Playdemo parameter found on command line.\n");
+		PrintFmt(PRINT_HIGH, "Playdemo parameter found on command line.\n");
 		singledemo = true;
 
 		extern std::string defdemoname;
@@ -1034,10 +1080,10 @@ void D_DoomMain()
 
 	// --- initialization complete ---
 
-	Printf_Bold("\n\35\36\36\36\36 Odamex Client Initialized \36\36\36\36\37\n");
+	PrintFmt_Bold("\n\35\36\36\36\36 Odamex Client Initialized \36\36\36\36\37\n");
 	if (gamestate != GS_CONNECTING)
-		Printf(PRINT_HIGH, "Type connect <address> or use the Odamex Launcher to connect to a game.\n");
-    Printf(PRINT_HIGH, "\n");
+		PrintFmt(PRINT_HIGH, "Type connect <address> or use the Odamex Launcher to connect to a game.\n");
+    PrintFmt(PRINT_HIGH, "\n");
 
 	// Play a demo, start a map, or show the title screen
 	if (singledemo)
@@ -1056,7 +1102,7 @@ void D_DoomMain()
 		sv_allowredscreen = 1;
 
 		players.clear();
-		players.push_back(player_t());
+		players.emplace_back();
 		players.back().playerstate = PST_REBORN;
 		consoleplayer_id = displayplayer_id = players.back().id = 1;
 

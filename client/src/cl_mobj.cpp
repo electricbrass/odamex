@@ -39,6 +39,7 @@
 
 EXTERN_CVAR(sv_nomonsters)
 EXTERN_CVAR(cl_showspawns)
+EXTERN_CVAR(cl_showfriends)
 EXTERN_CVAR(chasedemo)
 
 void G_PlayerReborn(player_t &player);
@@ -139,8 +140,8 @@ void P_SpawnPlayer(player_t& player, mapthing2_t* mthing)
 	// give all cards in death match mode
 	if (!G_IsCoopGame())
 	{
-		for (int i = 0; i < NUMCARDS; i++)
-			player.cards[i] = true;
+		for (auto& cardheld : player.cards)
+			cardheld = true;
 	}
 
 	// Give any other between-level inventory.
@@ -158,6 +159,9 @@ void P_SpawnPlayer(player_t& player, mapthing2_t* mthing)
 		else if (playerstate == PST_REBORN)
 			level.behavior->StartTypedScripts(SCRIPT_Respawn, player.mo);
 	}
+
+	if (cl_showfriends)
+		P_FriendlyEffects(); // Mark any new friendly monsters with an effect
 }
 
 std::vector<AActor*> spawnfountains;

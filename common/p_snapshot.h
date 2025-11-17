@@ -31,8 +31,7 @@
 class AActor;
 class player_s;
 typedef player_s player_t;
-struct sector_s;
-typedef sector_s sector_t;
+struct sector_t;
 struct line_s;
 typedef line_s line_t;
 
@@ -57,7 +56,7 @@ public:
 	Snapshot(int time = -1);
 	virtual ~Snapshot() {};
 
-	bool operator==(const Snapshot &other) const;
+	[[nodiscard]] bool operator==(const Snapshot &other) const;
 
 	bool isValid() const { return mValid; }
 	bool isAuthoritative() const { return mAuthoritative; }
@@ -98,7 +97,7 @@ public:
 	ActorSnapshot(int time, const AActor *mo);
 	~ActorSnapshot() override {};
 
-	bool operator==(const ActorSnapshot &other) const;
+	[[nodiscard]] bool operator==(const ActorSnapshot &other) const;
 
 	void merge(const ActorSnapshot& other);
 
@@ -283,7 +282,7 @@ public:
 	PlayerSnapshot(int time, player_t *player);
 	~PlayerSnapshot() override {};
 
-	bool operator==(const PlayerSnapshot &other) const;
+	[[nodiscard]] bool operator==(const PlayerSnapshot &other) const;
 
 	void merge(const PlayerSnapshot& other);
 

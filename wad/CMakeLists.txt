@@ -229,6 +229,7 @@ set(ODAWAD_SOURCES
   graphics/xhair6.gif
   graphics/xhair7.gif
   graphics/xhair8.gif
+  graphics/frndhrt.gif
   lumps/animated.lmp
   lumps/dscefd.lmp
   lumps/dscefm.lmp
@@ -247,6 +248,7 @@ set(ODAWAD_SOURCES
   lumps/dsradio2.lmp
   lumps/dssecret.lmp
   lumps/dshboss.lmp
+  lumps/dslastpl.lmp
   lumps/dsplrais.lmp
   lumps/dvbfd.lmp
   lumps/dvbfm.lmp
@@ -268,6 +270,11 @@ set(ODAWAD_SOURCES
   lumps/dvyfr.lmp
   lumps/dvyft.lmp
   lumps/dvys.lmp
+  lumps/dsvtstrt.lmp
+  lumps/dsvtno.lmp
+  lumps/dsvtyes.lmp
+  lumps/dsvtpass.lmp
+  lumps/dsvtfail.lmp
   lumps/language.lmp
   lumps/railgf1.lmp
   lumps/s_skin.lmp
@@ -279,6 +286,11 @@ set(ODAWAD_SOURCES
   lumps/spark3.lmp
   lumps/switches.lmp
   lumps/x11r6rgb.lmp
+  lumps/dsdgdth.lmp 
+  lumps/dsdgact.lmp 
+  lumps/dsdgatk.lmp 
+  lumps/dsdgsit.lmp 
+  lumps/dsdgpain.lmp
   sprites/bcara0.gif
   sprites/bdwna0.gif
   sprites/bflga0.gif
@@ -332,22 +344,110 @@ set(ODAWAD_SOURCES
   sprites/wpgfa0.gif
   sprites/wpgfb0.gif
   sprites/wprfa0.gif
-  sprites/wprfb0.gif)
+  sprites/wprfb0.gif
+  sprites/carea0.gif
+  sprites/livea0.gif
+  sprites/rstma0.gif
+  sprites/dogsa1.gif
+  sprites/dogsa2.gif
+  sprites/dogsa3.gif
+  sprites/dogsa4.gif
+  sprites/dogsa5.gif
+  sprites/dogsa6.gif
+  sprites/dogsa7.gif
+  sprites/dogsa8.gif
+  sprites/dogsb1.gif
+  sprites/dogsb2.gif
+  sprites/dogsb3.gif
+  sprites/dogsb4.gif
+  sprites/dogsb5.gif
+  sprites/dogsb6.gif
+  sprites/dogsb7.gif
+  sprites/dogsb8.gif
+  sprites/dogsc1.gif
+  sprites/dogsc2.gif
+  sprites/dogsc3.gif
+  sprites/dogsc4.gif
+  sprites/dogsc5.gif
+  sprites/dogsc6.gif
+  sprites/dogsc7.gif
+  sprites/dogsc8.gif
+  sprites/dogsd1.gif
+  sprites/dogsd2.gif
+  sprites/dogsd3.gif
+  sprites/dogsd4.gif
+  sprites/dogsd5.gif
+  sprites/dogsd6.gif
+  sprites/dogsd7.gif
+  sprites/dogsd8.gif
+  sprites/dogse1.gif
+  sprites/dogse2.gif
+  sprites/dogse3.gif
+  sprites/dogse4.gif
+  sprites/dogse5.gif
+  sprites/dogse6.gif
+  sprites/dogse7.gif
+  sprites/dogse8.gif
+  sprites/dogsf1.gif
+  sprites/dogsf2.gif
+  sprites/dogsf3.gif
+  sprites/dogsf4.gif
+  sprites/dogsf5.gif
+  sprites/dogsf6.gif
+  sprites/dogsf7.gif
+  sprites/dogsf8.gif
+  sprites/dogsg1.gif
+  sprites/dogsg2.gif
+  sprites/dogsg3.gif
+  sprites/dogsg4.gif
+  sprites/dogsg5.gif
+  sprites/dogsg6.gif
+  sprites/dogsg7.gif
+  sprites/dogsg8.gif
+  sprites/dogsh1.gif
+  sprites/dogsh2.gif
+  sprites/dogsh3.gif
+  sprites/dogsh4.gif
+  sprites/dogsh5.gif
+  sprites/dogsh6.gif
+  sprites/dogsh7.gif
+  sprites/dogsh8.gif
+  sprites/dogsi0.gif
+  sprites/dogsj0.gif
+  sprites/dogsk0.gif
+  sprites/dogsl0.gif
+  sprites/dogsm0.gif
+  sprites/dogsn0.gif)
 
 if(USE_INTERNAL_DEUTEX)
   if(WIN32)
     # In our case, our "interal" DeuTex is downloaded from github.
     file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/deutex")
     file(DOWNLOAD
-      "https://github.com/Doom-Utils/deutex/releases/download/v5.2.2/deutex-5.2.2_w32.zip"
-      "${CMAKE_CURRENT_BINARY_DIR}/deutex-5.2.2_w32.zip"
-      EXPECTED_HASH SHA256=6ac7a70811d1a7488682d0acf6abe7e0f25ce58344708815494fe550cad9931e)
+      "https://github.com/Doom-Utils/deutex/releases/download/v5.2.3/deutex-5.2.3_w32.zip"
+      "${CMAKE_CURRENT_BINARY_DIR}/deutex-5.2.3_w32.zip"
+      EXPECTED_HASH SHA256=9c07f354fd81384a0e91844b7c152114da1a3566343de846db443de38b82a1ad)
     execute_process(COMMAND "${CMAKE_COMMAND}" -E tar xf
-      "${CMAKE_CURRENT_BINARY_DIR}/deutex-5.2.2_w32.zip"
+      "${CMAKE_CURRENT_BINARY_DIR}/deutex-5.2.3_w32.zip"
       WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/deutex")
     find_program(DEUTEX_EXECUTABLE deutex
       PATHS "${CMAKE_CURRENT_BINARY_DIR}/deutex"
-      NO_DEFAULT_PATH)  
+      NO_DEFAULT_PATH)
+  else()
+    # Check if deutex is unzipped in the source dir and if it is, bring it over
+    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/deutex")
+      file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/deutex"
+        DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+      execute_process(COMMAND sh bootstrap
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/deutex")
+      execute_process(COMMAND sh configure
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/deutex")
+      execute_process(COMMAND make
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/deutex")
+      find_program(DEUTEX_EXECUTABLE deutex
+        PATHS "${CMAKE_CURRENT_BINARY_DIR}/deutex/src"
+        NO_DEFAULT_PATH)
+    endif()
   endif()
 else()
   find_program(DEUTEX_EXECUTABLE deutex

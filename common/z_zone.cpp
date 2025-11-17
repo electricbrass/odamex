@@ -1,4 +1,4 @@
-// Emacs style mode select   -*- C++ -*- 
+// Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
 // $Id$
@@ -24,14 +24,16 @@
 
 #include "odamex.h"
 
-#include <map>
+#include <unordered_map>
 #include <stdlib.h>
+#include <string.h>
 
 #include "z_zone.h"
 #include "i_system.h"
 #include "c_dispatch.h"
 #include "hashtable.h"
 #include "cmdlib.h"
+#include "m_stacktrace.h"
 
 struct OFileLine
 {
@@ -106,7 +108,7 @@ class OZone
 		OFileLine fileLine; // __FILE__, __LINE__
 	};
 
-	typedef std::map<void*, MemoryBlockInfo> MemoryBlockTable;
+	typedef std::unordered_map<void*, MemoryBlockInfo> MemoryBlockTable;
 	MemoryBlockTable m_heap;
 
 	MemoryBlockTable::iterator dealloc(MemoryBlockTable::iterator& block)
@@ -159,8 +161,8 @@ class OZone
 		if (ptr == NULL)
 		{
 			// Don't format these bytes, the byte formatter allocates.
-			I_Error("%s: Could not allocate %zu bytes at %s:%i.", __FUNCTION__, size,
-			        info.shortFile(), info.line);
+			I_Error("{}: Could not allocate {} bytes at {}:{}.\n{}", __FUNCTION__, size,
+			        info.shortFile(), info.line, M_GetStacktrace());
 		}
 
 		// Construct the memory block.
@@ -175,7 +177,7 @@ class OZone
 		block.fileLine.file = fileline.file;
 		block.fileLine.line = fileline.line;
 
-		m_heap.insert(std::make_pair(ptr, block));
+		m_heap.emplace(ptr, block);
 		if (block.user != NULL)
 		{
 			*block.user = ptr;
@@ -184,27 +186,54 @@ class OZone
 		return ptr;
 	}
 
-	void changeTag(void* ptr, zoneTag_e tag, const OFileLine& info)
+	void* realloc(void* ptr, size_t size, zoneTag_e tag, void* user, const OFileLine& info)
 	{
-		if (tag == PU_FREE)
+		if (!ptr)
+			return alloc(size, tag, user, info);
+
+		if (size == 0)
 		{
-			I_Error("%s: Tried to change a tag to PU_FREE at %s:%i.", __FUNCTION__,
-			        info.shortFile(), info.line);
+			deallocPtr(ptr, info);
+			return nullptr;
 		}
 
 		MemoryBlockTable::iterator it = m_heap.find(ptr);
 		if (it == m_heap.end())
 		{
-			I_Error("%s: Address 0x%p is not tracked by zone at %s:%i.", __FUNCTION__,
-			        it->first, info.shortFile(), info.line);
+			I_Error("{}: Address 0x{:p} is not tracked by zone at {}:{}.\n{}", __FUNCTION__,
+			        it->first, info.shortFile(), info.line, M_GetStacktrace());
+		}
+
+		const size_t copySize = std::min(size, static_cast<size_t>(it->second.size));
+		void* newPtr = alloc(size, tag, user, info);
+
+		memcpy(newPtr, ptr, copySize);
+		deallocPtr(ptr, info);
+
+		return newPtr;
+	}
+
+	void changeTag(void* ptr, zoneTag_e tag, const OFileLine& info)
+	{
+		if (tag == PU_FREE)
+		{
+			I_Error("{}: Tried to change a tag to PU_FREE at {}:{}.\n{}", __FUNCTION__,
+			        info.shortFile(), info.line, M_GetStacktrace());
+		}
+
+		MemoryBlockTable::iterator it = m_heap.find(ptr);
+		if (it == m_heap.end())
+		{
+			I_Error("{}: Address 0x{:p} is not tracked by zone at {}:{}.\n{}", __FUNCTION__,
+			        it->first, info.shortFile(), info.line, M_GetStacktrace());
 		}
 
 		if (tag >= PU_PURGELEVEL && it->second.user == NULL)
 		{
-			I_Error("%s: Found purgable block without an owner at %s:%i, "
-			        "allocated at %s:%i.",
+			I_Error("{}: Found purgable block without an owner at {}:{}, "
+			        "allocated at {}:{}.\n{}",
 			        __FUNCTION__, info.shortFile(), info.line,
-			        it->second.fileLine.shortFile(), it->second.fileLine.line);
+			        it->second.fileLine.shortFile(), it->second.fileLine.line, M_GetStacktrace());
 		}
 
 		it->second.tag = tag;
@@ -213,7 +242,7 @@ class OZone
 	void changeOwner(void* ptr, void* user, const OFileLine& info)
 	{
 		// [AM] Nothing calls this as far as I know.
-		I_Error("%s: not implemented", __FUNCTION__);
+		I_Error("{}: not implemented", __FUNCTION__);
 	}
 
 	void deallocPtr(void* ptr, const OFileLine& info)
@@ -224,8 +253,8 @@ class OZone
 		MemoryBlockTable::iterator it = m_heap.find(ptr);
 		if (it == m_heap.end())
 		{
-			I_Error("%s: Address 0x%p is not tracked by zone at %s:%i.", __FUNCTION__,
-			        it->first, info.shortFile(), info.line);
+			I_Error("{}: Address 0x{:p} is not tracked by zone at {}:{}.\n{}", __FUNCTION__,
+			        it->first, info.shortFile(), info.line, M_GetStacktrace());
 		}
 
 		dealloc(it);
@@ -251,22 +280,22 @@ class OZone
 	void dump()
 	{
 		size_t total = 0;
-		for (MemoryBlockTable::iterator it = m_heap.begin(); it != m_heap.end(); ++it)
+		for (const auto& [ptr, block] : m_heap)
 		{
-			total += it->second.size;
-			Printf("0x%p | size:%" "zu" " tag:%s user:0x%p %s:%d\n", (void*)it->first,
-			       it->second.size, TagStr(it->second.tag), (void*)it->second.user,
-			       it->second.fileLine.shortFile(), it->second.fileLine.line);
+			total += block.size;
+			PrintFmt("0x{} | size:{} tag:{} user:0x{} {}:{}\n", (void*)ptr,
+			         block.size, TagStr(block.tag), (void*)block.user,
+			         block.fileLine.shortFile(), block.fileLine.line);
 		}
 
 		std::string buf;
-		Printf("  allocation count: %" "zu" "\n", m_heap.size());
+		PrintFmt("  allocation count: {}\n", m_heap.size());
 
 		StrFormatBytes(buf, total);
-		Printf("  allocs size: %s\n", buf.c_str());
+		PrintFmt("  allocs size: {}\n", buf);
 
 		StrFormatBytes(buf, m_heap.size() * sizeof(MemoryBlockInfo));
-		Printf("  blocks size: %s\n", buf.c_str());
+		PrintFmt("  blocks size: {}\n", buf);
 	}
 } g_zone;
 
@@ -310,6 +339,11 @@ void* Z_Malloc2(size_t size, const zoneTag_e tag, void* user, const char* file,
 	return g_zone.alloc(size, tag, user, OFileLine::create(file, line));
 }
 
+void* Z_Realloc2(void* ptr, size_t size, const zoneTag_e tag, void* user, const char* file,
+                const int line)
+{
+	return g_zone.realloc(ptr, size, tag, user, OFileLine::create(file, line));
+}
 
 //
 // Z_FreeTags
@@ -327,10 +361,24 @@ void Z_ChangeTag2(void* ptr, const zoneTag_e tag, const char* file, int line)
 	return ::g_zone.changeTag(ptr, tag, OFileLine::create(file, line));
 }
 
-
+//
+// Z_ChangeOwner
+//
 void Z_ChangeOwner2(void* ptr, void* user, const char* file, int line)
 {
 	return ::g_zone.changeOwner(ptr, user, OFileLine::create(file, line));
+}
+
+//
+// Z_StrDup
+//
+char* Z_StrDup2(const char* s, const zoneTag_e tag, const char* file, int line)
+{
+	size_t len = strlen(s);
+	char* output = (char*)Z_Malloc2(len + 1, tag, NULL, file, line);
+	strncpy(output, s, len);
+	output[len] = '\0';
+	return output;
 }
 
 //

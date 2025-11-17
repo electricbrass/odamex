@@ -42,9 +42,7 @@
 
 #include "szp.h"
 
-// STL
-#include <map>
-
+#include "teamdef.h"
 //
 // NOTES: AActor
 //
@@ -138,7 +136,7 @@ public:
 		bitfield[bytenum] &= ~(1 << bitnum);
 	}
 
-	bool get(byte id) const
+	[[nodiscard]] bool get(byte id) const
 	{
 		int bytenum = id >> 3;
 		int bitnum = id & bytemask;
@@ -149,10 +147,10 @@ public:
 private:
 	static constexpr int bytesize = 8 * sizeof(byte);
 	static constexpr int bytemask = bytesize - 1;
-	
+
 	// Hacky way of getting ceil() at compile-time
 	static constexpr size_t fieldsize = (MAXPLAYERS + bytemask) / bytesize;
-	
+
 	byte	bitfield[fieldsize];
 };
 
@@ -197,15 +195,18 @@ enum mobjflag_t
 
 	MF_SKULLFLY  = BIT(24),		// skull in flight
 	MF_NOTDMATCH = BIT(25),		// don't spawn in death match (key cards)
+	MF_LINEDONE = BIT(26),      // MF - A_LineEffect - activate as if player
 
 	// Player sprites in multiplayer modes are modified
 	//  using an internal color lookup table for re-indexing.
 	// If 0x4 0x8 or 0xc, use a translation table for player colormaps
 	MF_TRANSLATION = 0xc000000,
 
-	MF_TOUCHY  = BIT(28), // MBF - UNUSED FOR NOW
-	MF_BOUNCES = BIT(29), // MBF - PARTIAL IMPLEMENTATION
-	MF_FRIEND  = BIT(30), // MBF - UNUSED FOR NOW
+	MF_TOUCHY  = BIT(28), // MBF
+	MF_BOUNCES = BIT(29), // MBF
+	MF_FRIEND  = BIT(30), // MBF
+
+	MF_TRANSLUCENT = BIT(31),
 
 	// --- mobj.flags2 ---
 	// Heretic flags
@@ -284,6 +285,7 @@ enum mobjflag_t
 	MFO_FULLBRIGHT		= BIT(8),	// monster is fullbright
 	MFO_SPECTATOR		= BIT(9),	// GhostlyDeath -- thing is/was a spectator and can't be seen!
 	MFO_FALLING			= BIT(10),	// [INTERNAL] for falling
+	MFO_ARMED				= BIT(11),	// [INTERNAL] for TOUCHY (object is armed)
 };
 
 //
@@ -339,14 +341,9 @@ struct baseline_t
 	static constexpr uint32_t MOMZ = BIT(11);
 
 	baseline_t()
-	    : angle(0), targetid(0), tracerid(0), movecount(0), movedir(0), rndindex(0)
+	    : pos(0, 0, 0), mom(0, 0, 0),
+	      angle(0), targetid(0), tracerid(0), movecount(0), movedir(0), rndindex(0)
 	{
-		pos.x = 0;
-		pos.y = 0;
-		pos.z = 0;
-		mom.x = 0;
-		mom.y = 0;
-		mom.z = 0;
 	}
 
 	void Serialize(FArchive& arc)
@@ -379,22 +376,22 @@ class AActor : public DThinker
 
 		AActorPtrCounted() {}
 
-		AActorPtr &operator= (AActorPtr other)
+		AActorPtr &operator= (const AActorPtr& other)
 		{
 			if(ptr)
 				ptr->refCount--;
 			if(other)
-				other->refCount++;
+				const_cast<AActorPtr&>(other)->refCount++; // TODO: should refCount maybe be declared as mutable?
 			ptr = other;
 			return ptr;
 		}
 
-		AActorPtr &operator= (AActorPtrCounted other)
+		AActorPtr &operator= (const AActorPtrCounted& other)
 		{
 			if(ptr)
 				ptr->refCount--;
 			if(other)
-				other->refCount++;
+				const_cast<AActorPtrCounted&>(other)->refCount++; // TODO: should refCount maybe be declared as mutable?
 			ptr = other.ptr;
 			return ptr;
 		}
@@ -414,11 +411,28 @@ class AActor : public DThinker
 			return ptr;
 		}
 
+		operator const AActorPtr() const
+		{
+			return ptr;
+		}
+		operator const AActor*() const
+		{
+			return ptr;
+		}
+
 		AActor &operator *()
 		{
 			return *ptr;
 		}
 		AActor *operator ->()
+		{
+			return ptr;
+		}
+		const AActor &operator *() const
+		{
+			return *ptr;
+		}
+		const AActor *operator ->() const
 		{
 			return ptr;
 		}
@@ -428,9 +442,9 @@ public:
 	AActor ();
 	AActor (const AActor &other);
 	AActor &operator= (const AActor &other);
-	AActor (fixed_t x, fixed_t y, fixed_t z, mobjtype_t type);
-	void Destroy ();
-	~AActor ();
+	AActor (fixed_t x, fixed_t y, fixed_t z, int32_t type);
+	void Destroy () override;
+	~AActor () override;
 
 	void RunThink () override;
 
@@ -448,7 +462,7 @@ public:
     //More drawing info: to determine current sprite.
     angle_t		angle;	// orientation
 	angle_t		prevangle;
-    spritenum_t		sprite;	// used to find patch_t and flip value
+    int32_t		sprite;	// used to find patch_t and flip value
     int			frame;	// might be ORed with FF_FULLBRIGHT
 	fixed_t		pitch;
 	angle_t		prevpitch;
@@ -463,7 +477,7 @@ public:
     fixed_t		floorz;
     fixed_t		ceilingz;
 	fixed_t		dropoffz;
-	struct sector_s		*floorsector;
+	struct sector_t	*floorsector;
 
     // For movement checking.
     fixed_t		radius;
@@ -477,7 +491,7 @@ public:
     // If == validcount, already checked.
     int			validcount;
 
-	mobjtype_t		type;
+	int32_t			type;
     mobjinfo_t*		info;	// &mobjinfo[mobj->type]
     int				tics;	// state tic counter
 	state_t			*state;
@@ -546,14 +560,24 @@ public:
 
 	unsigned char	rndindex;		// denis - because everything should have a random number generator, for prediction
 
+	byte friend_playerid; // playerid of the player who spawned this actor
+
+	team_t friend_teamid; // team of the player who spawned this actor
+
+	// killough 9/9/98: How long a monster pursues a target.
+	short pursuecount;
+
+	// killough 9/8/98: monster strafing
+	short strafecount;
+
 	// ThingIDs
 	static void ClearTIDHashes ();
 	void AddToHash ();
 	void RemoveFromHash ();
-	AActor *FindByTID (int tid) const;
-	static AActor *FindByTID (const AActor *first, int tid);
-	AActor *FindGoal (int tid, int kind) const;
-	static AActor *FindGoal (const AActor *first, int tid, int kind);
+	[[nodiscard]] AActor *FindByTID (int tid) const;
+	[[nodiscard]] static AActor *FindByTID (const AActor *first, int tid);
+	[[nodiscard]] AActor *FindGoal (int tid, int kind) const;
+	[[nodiscard]] static AActor *FindGoal (const AActor *first, int tid, int kind);
 
 	uint32_t		netid;          // every object has its own netid
 	short			tid;			// thing identifier
@@ -595,7 +619,7 @@ public:
 	private:
 		void clear();
 		size_t getIndex(int bmx, int bmy);
-		
+
 		static constexpr size_t BLOCKSX = 3;
 		static constexpr size_t BLOCKSY = 3;
 

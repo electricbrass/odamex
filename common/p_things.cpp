@@ -194,17 +194,20 @@ int SpawnableThings[] = {
 
 const int NumSpawnableThings = sizeof(SpawnableThings)/sizeof(*SpawnableThings);
 
-BOOL P_Thing_Spawn (int tid, int type, angle_t angle, BOOL fog)
+bool P_Thing_Spawn (int tid, int type, angle_t angle, bool fog)
 {
 	fixed_t z;
 	int rtn = 0;
 	int kind;
 	AActor *spot = NULL;
 
+	// type is doomednum
+	// kind is the mobjtype
+
 	if (type >= NumSpawnableThings)
 		return false;
 
-	if ( (kind = SpawnableThings[type]) == 0)
+	if ((kind = SpawnableThings[type]) == 0)
 		return false;
 
 	if ((mobjinfo[kind].flags & MF_COUNTKILL) && sv_nomonsters == 1)
@@ -245,8 +248,8 @@ BOOL P_Thing_Spawn (int tid, int type, angle_t angle, BOOL fog)
 	return rtn != 0;
 }
 
-BOOL P_Thing_Projectile (int tid, int type, angle_t angle,
-						 fixed_t speed, fixed_t vspeed, BOOL gravity)
+bool P_Thing_Projectile (int tid, int type, angle_t angle,
+						 fixed_t speed, fixed_t vspeed, bool gravity)
 {
 	int rtn = 0;
 	int kind;
@@ -290,13 +293,13 @@ BOOL P_Thing_Projectile (int tid, int type, angle_t angle,
 				rtn = P_CheckMissileSpawn (mobj);
 			else if (!P_TestMobjLocation (mobj))
 				mobj->Destroy ();
-		} 
+		}
 	}
 
 	return rtn;
 }
 
-BOOL P_ActivateMobj (AActor *mobj, AActor *activator)
+bool P_ActivateMobj (AActor *mobj, AActor *activator)
 {
 	if (mobj->flags & MF_COUNTKILL)
 	{
@@ -349,7 +352,7 @@ BOOL P_ActivateMobj (AActor *mobj, AActor *activator)
 	return false;
 }
 
-BOOL P_DeactivateMobj (AActor *mobj)
+bool P_DeactivateMobj (AActor *mobj)
 {
 	if (mobj->flags & MF_COUNTKILL)
 	{

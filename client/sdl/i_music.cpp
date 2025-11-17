@@ -24,7 +24,7 @@
 #include "odamex.h"
 
 #include "win32inc.h"
-#if defined(_WIN32) && !defined(_XBOX)
+#if defined(_WIN32)
 #include <mmsystem.h>
 #endif
 
@@ -40,15 +40,17 @@
 #include "i_musicsystem_portmidi.h"
 #endif
 #include "i_musicsystem_sdl.h"
+#include "i_musicsystem_adlmidi.h"
 
 MusicSystem* musicsystem = NULL;
 MusicSystemType current_musicsystem_type = MS_NONE;
 
 void S_StopMusic();
-void S_ChangeMusic (std::string musicname, int looping);
+void S_ChangeMusic (std::string musicname, bool looping, int order = 0);
 
 EXTERN_CVAR (snd_musicvolume)
 EXTERN_CVAR (snd_musicsystem)
+EXTERN_CVAR (snd_nomusic)
 
 
 std::string currentmusic;
@@ -140,7 +142,7 @@ bool S_MusicIsWave(byte* data, size_t length)
 //
 void I_ResetMidiVolume()
 {
-	#if defined(_WIN32) && !defined(_XBOX)
+	#if defined(_WIN32)
 	SDL_LockAudio();
 
 	for (UINT device = MIDI_MAPPER; device != midiOutGetNumDevs(); device++)
@@ -182,7 +184,7 @@ void I_InitMusic(MusicSystemType musicsystem_type)
 	I_ShutdownMusic();
 	I_ResetMidiVolume();
 
-	if (I_IsHeadless() || Args.CheckParm("-nosound") || Args.CheckParm("-nomusic") || snd_musicsystem == MS_NONE)
+	if (I_IsHeadless() || Args.CheckParm("-nosound") || Args.CheckParm("-nomusic") || snd_musicsystem == MS_NONE || snd_nomusic)
 	{
 		// User has chosen to disable music
 		musicsystem = new SilentMusicSystem();
@@ -203,6 +205,10 @@ void I_InitMusic(MusicSystemType musicsystem_type)
 			musicsystem = new PortMidiMusicSystem();
 			break;
 		#endif	// PORTMIDI
+
+		case MS_LIBADLMIDI:
+			musicsystem = new AdlMidiMusicSystem();
+			break;
 
 		case MS_SDLMIXER:	// fall through
 		default:
@@ -233,9 +239,29 @@ CVAR_FUNC_IMPL (snd_musicsystem)
 		S_StopMusic();
 	}
 	I_InitMusic();
-	
+
 	if (level.music.empty())
-		S_ChangeMusic(currentmusic.c_str(), true);	
+		S_ChangeMusic(currentmusic, true);
+	else
+		S_ChangeMusic(std::string(level.music.c_str(), 8), true);
+}
+
+CVAR_FUNC_IMPL (snd_nomusic)
+{
+	if (musicsystem)
+	{
+		I_ShutdownMusic();
+		S_StopMusic();
+	}
+	I_InitMusic();
+
+	// if we're disabling music,
+	// this will print the music disabled message twice without the early return
+	if (var)
+		return;
+
+	if (level.music.empty())
+		S_ChangeMusic(currentmusic, true);
 	else
 		S_ChangeMusic(std::string(level.music.c_str(), 8), true);
 }
@@ -262,7 +288,7 @@ static MusicSystemType I_SelectMusicSystem(byte *data, size_t length)
 	return MS_SDLMIXER;
 }
 
-void I_PlaySong(const OByteSpan data, const bool loop)
+void I_PlaySong(const OByteSpan data, const bool loop, const int order)
 {
 	if (!musicsystem)
 		return;
@@ -278,7 +304,7 @@ void I_PlaySong(const OByteSpan data, const bool loop)
 		I_InitMusic(newtype);
 	}
 
-	musicsystem->startSong(data.data(), data.size(), loop);
+	musicsystem->startSong(data.data(), data.size(), loop, order);
 
 	// Hack for problems with Windows Vista/7 & SDL_Mixer
 	// See comment for I_ResetMidiVolume().

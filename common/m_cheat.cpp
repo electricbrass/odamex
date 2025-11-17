@@ -35,6 +35,7 @@
 #include "g_skill.h"
 #include "p_local.h"
 #include "infomap.h"
+#include "c_effect.h"
 
 extern bool simulated_connection;
 EXTERN_CVAR(sv_allowcheats)
@@ -44,9 +45,10 @@ EXTERN_CVAR(sv_allowcheats)
 #include "cl_main.h"
 #include "c_dispatch.h"
 extern bool automapactive;
+EXTERN_CVAR(cl_showfriends)
 #endif
 
-void C_DoCommand(const char* cmd, uint32_t key = 0);
+void C_DoCommand(std::string_view cmd, uint32_t key = 0);
 
 //
 // CHEAT SEQUENCE PACKAGE
@@ -71,7 +73,7 @@ bool CHEAT_AutoMap(cheatseq_t* cheat)
 
 bool CHEAT_ChangeLevel(cheatseq_t* cheat)
 {
-	char buf[16];
+	std::string buf;
 
 	// What were you trying to achieve?
 	if (multiplayer)
@@ -79,10 +81,11 @@ bool CHEAT_ChangeLevel(cheatseq_t* cheat)
 
 	// [ML] Chex mode: always set the episode number to 1.
 	// FIXME: This is probably a horrible hack, it sure looks like one at least
+	// And why is there only a newline for non-chex?
 	if (gamemode == retail_chex)
-		snprintf(buf, sizeof(buf), "map 1%c", cheat->Args[1]);
+		buf = fmt::format("map 1{:c}", cheat->Args[1]);
 	else
-		snprintf(buf, sizeof(buf), "map %c%c\n", cheat->Args[0], cheat->Args[1]);
+		buf = fmt::format("map {:c}{:c}\n", cheat->Args[0], cheat->Args[1]);
 
 	AddCommandString(buf);
 	return true;
@@ -96,7 +99,7 @@ bool CHEAT_IdMyPos(cheatseq_t* cheat)
 
 bool CHEAT_BeholdMenu(cheatseq_t* cheat)
 {
-	Printf(PRINT_HIGH, "%s\n", GStrings(STSTR_BEHOLD));
+	PrintFmt(PRINT_HIGH, "{}\n", GStrings(STSTR_BEHOLD));
 	return false;
 }
 
@@ -193,16 +196,40 @@ BEGIN_COMMAND(summon)
 
 	const std::string mobname = C_ArgCombine(argc - 1, (const char**)(argv + 1));
 
-	if (!CHEAT_ValidSummonActor(mobname.c_str()))
+	if (!CHEAT_ValidSummonActor(mobname))
 	{
-		Printf(PRINT_HIGH, "Invalid summon argument: %s. Please use `dumpactors` for a valid list of actor names.\n", mobname.c_str());
+		PrintFmt(PRINT_HIGH, "Invalid summon argument: {}. Please use `dumpactors` for a valid list of actor names.\n", mobname);
 		return;
 	}
 
-	CHEAT_Summon(&consoleplayer(), mobname.c_str(), false);
+	CHEAT_Summon(&consoleplayer(), mobname, false);
 	CL_SendSummonCheat(mobname.c_str());
  }
 END_COMMAND(summon)
+
+BEGIN_COMMAND(summonfriend)
+{
+	if (!CHEAT_AreCheatsEnabled())
+		return;
+
+	if (argc < 2)
+		return;
+
+	const std::string mobname = C_ArgCombine(argc - 1, (const char**)(argv + 1));
+
+	if (!CHEAT_ValidSummonActor(mobname.c_str()))
+	{
+		PrintFmt(PRINT_HIGH,
+		         "Invalid summon argument: {}. Please use `dumpactors` for a valid list of "
+		         "actor names.\n",
+		         mobname);
+		return;
+	}
+
+	CHEAT_Summon(&consoleplayer(), mobname.c_str(), true);
+	CL_SendSummonFriendCheat(mobname.c_str());
+}
+END_COMMAND(summonfriend)
 
 BEGIN_COMMAND(mdk)
 {
@@ -237,17 +264,17 @@ bool CHEAT_AreCheatsEnabled()
 	{
 		if (!sv_allowcheats)
 		{
-			Printf(PRINT_WARNING,
-			       "You must 'set sv_allowcheats 1' in the console to enable "
-			       "this command on this difficulty.\n");
+			PrintFmt(PRINT_WARNING,
+			         "You must 'set sv_allowcheats 1' in the console to enable "
+			         "this command on this difficulty.\n");
 			return false;
 		}
 	}
 
 	if ((multiplayer || !G_IsCoopGame()) && !sv_allowcheats)
 	{
-		Printf(PRINT_WARNING, "You must run the server with '+set sv_allowcheats 1' to "
-		                      "enable this command.\n");
+		PrintFmt(PRINT_WARNING, "You must run the server with '+set sv_allowcheats 1' to "
+		                        "enable this command.\n");
 		return false;
 	}
 
@@ -258,8 +285,7 @@ extern void A_PainDie(AActor*);
 
 void CHEAT_DoCheat(player_t* player, int cheat, bool silentmsg)
 {
-	const char* msg = "";
-	char msgbuild[32];
+	std::string msg;
 
 	if (player->health <= 0 || !player)
 		return;
@@ -409,9 +435,7 @@ void CHEAT_DoCheat(player_t* player, int cheat, bool silentmsg)
 		}
 		// killough 3/22/98: make more intelligent about plural
 		// Ty 03/27/98 - string(s) *not* externalized
-		snprintf(msgbuild, 32, "%d Monster%s Killed", killcount,
-		         killcount == 1 ? "" : "s");
-		msg = msgbuild;
+		msg = fmt::format("{} Monster{} Killed", killcount, killcount == 1 ? "" : "s");
 	}
 	break;
 
@@ -449,18 +473,17 @@ void CHEAT_DoCheat(player_t* player, int cheat, bool silentmsg)
 	{
 		if (player == &consoleplayer())
 		{
-			if (msg != NULL)
-				Printf("%s\n", msg);
+			PrintFmt("{}\n", msg);
 		}
 
 #ifdef SERVER_APP
-		SV_BroadcastPrintfButPlayer(PRINT_HIGH, player->id, "%s is a cheater: %s\n",
-		                            player->userinfo.netname.c_str(), msg);
+		SV_BroadcastPrintFmtButPlayer(PRINT_HIGH, player->id, "{} is a cheater: {}\n",
+		                            player->userinfo.netname, msg);
 #endif
 	}
 }
 
-bool CHEAT_ValidSummonActor(const char* summon) {
+bool CHEAT_ValidSummonActor(const std::string& summon) {
 	std::string mobname = "";
 
 	mobjtype_t mobjtype = P_INameToMobj(summon);
@@ -473,7 +496,7 @@ bool CHEAT_ValidSummonActor(const char* summon) {
 	return true;
 }
 
-AActor* CHEAT_Summon(player_s* player, const char* sum, bool friendly)
+AActor* CHEAT_Summon(player_s* player, const std::string& sum, bool friendly)
 {
 	AActor* entity = AActor::AActorPtr();
 	AActor* source = player->mo;
@@ -511,22 +534,40 @@ AActor* CHEAT_Summon(player_s* player, const char* sum, bool friendly)
 		}
 	}
 
+	std::string cheatname = "summon";
+
+	if (friendly)
+	{
+		entity->flags |= MF_FRIEND;
+		cheatname = "summonfriend";
+		P_GiveFriendlyOwnerInfo(entity, player->mo);
+#ifdef CLIENT_APP
+		if (cl_showfriends && validplayer(displayplayer()) && displayplayer().mo &&
+			  P_IsFriendlyThing(displayplayer().mo, entity))
+		{
+		entity->effects = FX_FRIENDHEARTS;
+		entity->translation = translationref_t(&friendtable[0]);
+		}
+#endif
+	}
+
 	if (multiplayer)
-		PrintFmt(PRINT_HIGH, "{} is a cheater: summon {}\n",
+		PrintFmt(PRINT_HIGH, "{} is a cheater: {} {}\n",
 		         player->userinfo.netname,
-		 sum);
+		         cheatname,
+		         sum);
 
 	return entity;
 }
 
 void CHEAT_GiveTo(player_t* player, const char* name)
 {
-	BOOL giveall;
+	bool giveall;
 	int i;
 	gitem_t* it;
 
 	if (player != &consoleplayer())
-		Printf(PRINT_HIGH, "%s is a cheater: give %s\n", player->userinfo.netname.c_str(),
+		PrintFmt(PRINT_HIGH, "{} is a cheater: give {}\n", player->userinfo.netname,
 		       name);
 
 	if (stricmp(name, "all") == 0)
@@ -625,7 +666,7 @@ void CHEAT_GiveTo(player_t* player, const char* name)
 		if (!it)
 		{
 			if (player == &consoleplayer())
-				Printf(PRINT_HIGH, "Unknown item\n");
+				PrintFmt(PRINT_HIGH, "Unknown item\n");
 			return;
 		}
 	}

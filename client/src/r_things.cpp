@@ -88,7 +88,7 @@ extern int				NumParticles;
 extern int				ActiveParticles;
 extern int				InactiveParticles;
 extern particle_t		*Particles;
-TArray<WORD>			ParticlesInSubsec;
+std::vector<WORD>		ParticlesInSubsec;
 
 
 
@@ -119,10 +119,10 @@ vissprite_t *R_NewVisSprite()
 		int prevvisspritenum = vissprite_p - vissprites;
 
 		MaxVisSprites *= 2;
-		vissprites = (vissprite_t *)Realloc (vissprites, MaxVisSprites * sizeof(vissprite_t));
+		vissprites = (vissprite_t *)M_Realloc (vissprites, MaxVisSprites * sizeof(vissprite_t));
 		lastvissprite = &vissprites[MaxVisSprites];
 		vissprite_p = &vissprites[prevvisspritenum];
-		DPrintf ("MaxVisSprites increased to %d\n", MaxVisSprites);
+		DPrintFmt("MaxVisSprites increased to {}\n", MaxVisSprites);
 	}
 
 	vissprite_p++;
@@ -324,8 +324,8 @@ void R_DrawVisSprite (vissprite_t *vis, int x1, int x2)
 #if 0
 	if ((colfrac - vis->xiscale) >> FRACBITS != end)
 	{
-		Printf(PRINT_WARNING, "Bad vissprite bounds check! (pw:%d  ex:%d  act:%d)\n",
-		       patchWidth, end, colfrac >> FRACBITS);
+		PrintFmt(PRINT_WARNING, "Bad vissprite bounds check! (pw:{}  ex:{}  act:{})\n",
+		         patchWidth, end, colfrac >> FRACBITS);
 	}
 #endif
 
@@ -454,7 +454,7 @@ static vissprite_t* R_GenerateVisSprite(const sector_t* sector, int fakeside,
 void R_DrawHitBox(AActor* thing)
 {
 	v3fixed_t vertices[8];
-	constexpr byte color = 0x80;
+	static constexpr byte color = 0x80;
 
 	// bottom front left
 	vertices[0].x = thing->x - thing->radius;
@@ -523,8 +523,6 @@ void R_DrawHitBox(AActor* thing)
 //
 void R_ProjectSprite(AActor *thing, int fakeside)
 {
-	spritedef_t*		sprdef;
-	spriteframe_t*		sprframe;
 	int 				lump;
 	unsigned int		rot;
 	bool 				flip;
@@ -563,25 +561,27 @@ void R_ProjectSprite(AActor *thing, int fakeside)
 		thingz = thing->z;
 	}
 
+	auto it = sprites.find(thing->sprite);
+
 #ifdef RANGECHECK
-	if (static_cast<unsigned>(thing->sprite) >= static_cast<unsigned>(numsprites))
+	if (it == sprites.end())
 	{
-		DPrintf ("R_ProjectSprite: invalid sprite number %i\n", thing->sprite);
+		DPrintFmt("R_ProjectSprite: thing ({}: {}): invalid sprite number {}\n on ", thing->type, thing->info->name, thing->sprite);
 		return;
 	}
 #endif
 
-	sprdef = &sprites[thing->sprite];
+	const spritedef_t* sprdef = &it->second;
 
 #ifdef RANGECHECK
 	if ( (thing->frame & FF_FRAMEMASK) >= sprdef->numframes )
 	{
-		DPrintf ("R_ProjectSprite: invalid sprite frame %i : %i\n ", thing->sprite, thing->frame);
+		DPrintFmt("R_ProjectSprite: thing ({}: {}): invalid sprite frame {} : {}\n ", thing->type, thing->info->name, thing->sprite, thing->frame);
 		return;
 	}
 #endif
 
-	sprframe = &sprdef->spriteframes[thing->frame & FF_FRAMEMASK];
+	const spriteframe_t* sprframe = &sprdef->spriteframes[thing->frame & FF_FRAMEMASK];
 
 	// decide which patch to use for sprite relative to player
 	if (sprframe->rotate)
@@ -608,8 +608,15 @@ void R_ProjectSprite(AActor *thing, int fakeside)
 		flip = sprframe->flip[0];
 	}
 
+	if (lump == -1) {
+		char frame = (thing->frame & FF_FRAMEMASK) + 'A';
+		I_Error("Frame {} for sprite {} could not be found.", frame, sprnames[thing->sprite]);
+	}
+
 	if (sprframe->width[rot] == SPRITE_NEEDS_INFO)
+	{
 		R_CacheSprite (sprdef);	// [RH] speeds up game startup time
+	}
 
 	sector_t* sector = thing->subsector->sector;
 	fixed_t topoffs = sprframe->topoffset[rot];
@@ -702,65 +709,58 @@ void R_AddSprites (sector_t *sec, int lightlevel, int fakeside)
 //
 void R_DrawPSprite(pspdef_t* psp, unsigned flags)
 {
-	fixed_t 			tx;
-	int 				x1;
-	int 				x2;
-	spritedef_t*		sprdef;
-	spriteframe_t*		sprframe;
-	int 				lump;
-	bool 				flip;
-	vissprite_t*		vis;
 	vissprite_t 		avis;
 
 	// decide which patch to use
+	auto it = sprites.find(psp->state->sprite);
 #ifdef RANGECHECK
-	if ( (unsigned)psp->state->sprite >= (unsigned)numsprites) {
-		DPrintf ("R_DrawPSprite: invalid sprite number %i\n", psp->state->sprite);
+	if (it == sprites.end()) {
+		DPrintFmt("R_DrawPSprite: invalid sprite number {}\n", psp->state->sprite);
 		return;
 	}
 #endif
-	sprdef = &sprites[psp->state->sprite];
+	const spritedef_t* sprdef = &it->second;
 #ifdef RANGECHECK
 	if ( (psp->state->frame & FF_FRAMEMASK) >= sprdef->numframes) {
-		DPrintf ("R_DrawPSprite: invalid sprite frame %i : %i\n", psp->state->sprite, psp->state->frame);
+		DPrintFmt("R_DrawPSprite: invalid sprite frame {} : {}\n", psp->state->sprite, psp->state->frame);
 		return;
 	}
 #endif
-	sprframe = &sprdef->spriteframes[ psp->state->frame & FF_FRAMEMASK ];
+	const spriteframe_t* sprframe = &sprdef->spriteframes[ psp->state->frame & FF_FRAMEMASK ];
 
-	lump = sprframe->lump[0];
-	flip = sprframe->flip[0];
+	const int32_t lump = sprframe->lump[0];
+	const bool flip = sprframe->flip[0];
 
 	if (sprframe->width[0] == SPRITE_NEEDS_INFO)
 		R_CacheSprite (sprdef);	// [RH] speeds up game startup time
 
 	// calculate edges of the shape
-	tx = bobx - ((320 / 2) << FRACBITS);
+	fixed_t tx = bobx - ((320 / 2) << FRACBITS);
 
 	tx -= sprframe->offset[0];	// [RH] Moved out of spriteoffset[]
-	x1 = (centerxfrac + FixedMul (tx, pspritexscale)) >>FRACBITS;
+	const int32_t x1 = (centerxfrac + FixedMul (tx, pspritexscale)) >>FRACBITS;
 
 	// off the right side
 	if (x1 > viewwidth)
 		return;
 
 	tx += sprframe->width[0];	// [RH] Moved out of spritewidth[]
-	x2 = ((centerxfrac + FixedMul (tx, pspritexscale)) >>FRACBITS) - 1;
+	const int32_t x2 = ((centerxfrac + FixedMul (tx, pspritexscale)) >>FRACBITS) - 1;
 
 	// off the left side
 	if (x2 < 0)
 		return;
 
 	// store information in a vissprite
-	vis = &avis;
+	vissprite_t* vis = &avis;
 	vis->mobjflags = flags;
 	vis->statusflags = camera->player && camera->player->mo ? camera->player->mo->statusflags : 0;
 
-// [RH] +0x6000 helps it meet the screen bottom
-//		at higher resolutions while still being in
-//		the right spot at 320x200.
-// denis - bump to 0x9000
-#define WEAPONTWEAK				(0x9000)
+	// [RH] +0x6000 helps it meet the screen bottom
+	//		at higher resolutions while still being in
+	//		the right spot at 320x200.
+	// denis - bump to 0x9000
+	static constexpr fixed_t WEAPONTWEAK = 0x9000;
 
 	vis->texturemid = (BASEYCENTER << FRACBITS) + FRACUNIT / 2 -
 		(boby + WEAPONTWEAK - sprframe->topoffset[0]);	// [RH] Moved out of spritetopoffset[]
@@ -1136,12 +1136,8 @@ void R_ClearParticles (void)
 
 void R_FindParticleSubsectors ()
 {
-	if (ParticlesInSubsec.Size() < (size_t)numsubsectors)
-		ParticlesInSubsec.Reserve(numsubsectors - ParticlesInSubsec.Size());
-
 	// fill the buffer with NO_PARTICLE
-	for (int i = 0; i < numsubsectors; i++)
-		ParticlesInSubsec[i] = NO_PARTICLE;
+	ParticlesInSubsec.assign(numsubsectors, NO_PARTICLE);
 
 	if (!r_particles)
 		return;
@@ -1164,10 +1160,19 @@ void R_ProjectParticle (particle_t *particle, const sector_t *sector, int fakesi
 	fixed_t x = particle->x;
 	fixed_t y = particle->y;
 	fixed_t z = particle->z;
-	fixed_t height = particle->size*(FRACUNIT/4);
-	fixed_t width = particle->size*(FRACUNIT/4);
+	fixed_t height = particle->size * (FRACUNIT / 4);
+	fixed_t width = particle->size * (FRACUNIT / 4);
 	fixed_t topoffs = height;
 	fixed_t sideoffs = width >> 1;
+
+	if (particle->sprite != NO_PARTICLE)
+	{
+		patch_t* patch = W_CachePatch(particle->sprite);
+		height = patch->height() << FRACBITS;
+		width = patch->width() << FRACBITS;
+		topoffs = patch->topoffset();
+		sideoffs = patch->leftoffset();
+	}
 
 	vissprite_t* vis = R_GenerateVisSprite(sector, fakeside, x, y, z, height, width, topoffs, sideoffs, false);
 
@@ -1175,12 +1180,22 @@ void R_ProjectParticle (particle_t *particle, const sector_t *sector, int fakesi
 		return;
 
 	vis->translation = translationref_t();
-	vis->startfrac = particle->color;
-	vis->patch = NO_PARTICLE;
-	vis->mobjflags = particle->trans;
+	vis->translucency = 65535;
 	vis->statusflags = 0;
 	vis->mo = NULL;
 	vis->spectator = false;
+
+	if (particle->sprite == NO_PARTICLE)
+	{
+		vis->startfrac = particle->color;
+		vis->patch = NO_PARTICLE;
+		vis->mobjflags = particle->trans;
+	}
+	else
+	{
+		vis->patch = particle->sprite;
+		vis->translucency = (particle->trans + 1) << 8;
+	}
 
 	// get light level
 	if (fixedcolormap.isValid())

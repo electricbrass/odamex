@@ -47,7 +47,6 @@
 
 #include "d_netinf.h"
 #include "i_net.h"
-#include "huffman.h"
 
 #include "p_snapshot.h"
 #include "d_netcmd.h"
@@ -116,7 +115,7 @@ class player_s
 public:
 	void Serialize (FArchive &arc);
 
-	bool ingame() const
+	[[nodiscard]] bool ingame() const
 	{
 		return playerstate == PST_LIVE ||
 				playerstate == PST_DEAD ||
@@ -188,9 +187,9 @@ public:
 	weapontype_t	pendingweapon;
 	weapontype_t	readyweapon;
 
-	bool		weaponowned[NUMWEAPONS+1];
-	int			ammo[NUMAMMO];
-	int			maxammo[NUMAMMO];
+	std::array<bool, NUMWEAPONS+1> weaponowned;
+	std::array<int, NUMAMMO> ammo;
+	std::array<int, NUMAMMO> maxammo;
 
     // True if button down last tic.
 	int			attackdown, usedown;
@@ -280,12 +279,6 @@ public:
 			{
 				data.resize(0);
 			}
-
-			oldPacket_t(const oldPacket_t& other)
-			{
-				sequence = other.sequence;
-				data = other.data;
-			}
 		};
 
 		netadr_t    address;
@@ -316,17 +309,11 @@ public:
 		bool        allow_rcon;     // allow remote admin
 		bool		displaydisconnect; // display disconnect message when disconnecting
 
-		huffman_server	compressor;	// denis - adaptive huffman compression
-
-		class download_t
+		struct download_t
 		{
-		public:
-			std::string name;
-			std::string md5;
-			unsigned int next_offset;
-
-			download_t() : name(""), md5(""), next_offset(0) {}
-			download_t(const download_t& other) : name(other.name), md5(other.md5), next_offset(other.next_offset) {}
+			std::string name = "";
+			std::string md5  = "";
+			unsigned int next_offset = 0;
 		} download;
 
 		client_t()
@@ -335,10 +322,10 @@ public:
 			memset(&address, 0, sizeof(netadr_t));
 			version = 0;
 			packedversion = 0;
-			for (size_t i = 0; i < ARRAY_LENGTH(oldpackets); i++)
+			for (auto& [sequence, data] : oldpackets)
 			{
-				oldpackets[i].sequence = -1;
-				oldpackets[i].data.resize(MAX_UDP_PACKET);
+				sequence = -1;
+				data.resize(MAX_UDP_PACKET);
 			}
 			sequence = 0;
 			last_sequence = 0;
@@ -357,9 +344,8 @@ public:
 			digest = "";
 			allow_rcon = false;
 			displaydisconnect = true;
-		/*
-		huffman_server	compressor;	// denis - adaptive huffman compression*/
 		}
+
 		client_t(const client_t &other)
 			: address(other.address),
 			netbuf(other.netbuf),
@@ -378,7 +364,6 @@ public:
 			digest(other.digest),
 			allow_rcon(false),
 			displaydisconnect(true),
-			compressor(other.compressor),
 			download(other.download)
 		{
 			for (size_t i = 0; i < ARRAY_LENGTH(oldpackets); i++)
@@ -386,11 +371,42 @@ public:
 				oldpackets[i] = other.oldpackets[i];
 			}
 		}
+
+		client_t& operator=(const client_t& other)
+		{
+			if (this == &other)
+				return *this;
+
+			address = other.address;
+			netbuf = other.netbuf;
+			reliablebuf = other.reliablebuf;
+			version = other.version;
+			packedversion = other.packedversion;
+			sequence = other.sequence;
+			last_sequence = other.last_sequence;
+			packetnum = other.packetnum;
+			rate = other.rate;
+			reliable_bps = other.reliable_bps;
+			unreliable_bps = other.unreliable_bps;
+			last_received = other.last_received;
+			lastcmdtic = other.lastcmdtic;
+			lastclientcmdtic = other.lastclientcmdtic;
+			digest = other.digest;
+			allow_rcon = false;
+			displaydisconnect = true;
+			download = other.download;
+			for (size_t i = 0; i < ARRAY_LENGTH(oldpackets); i++)
+			{
+				oldpackets[i] = other.oldpackets[i];
+			}
+
+			return *this;
+		}
 	} client;
 
 	struct ticcmd_t netcmds[BACKUPTICS];
 
-	int GetPlayerNumber() const
+	[[nodiscard]] int GetPlayerNumber() const
 	{
 		return id - 1;
 	}
@@ -416,7 +432,17 @@ player_t		&displayplayer();
 player_t		&listenplayer();
 player_t		&idplayer(byte id);
 player_t		&nameplayer(const std::string &netname);
-bool			validplayer(player_t &ref);
+bool			validplayer(const player_t &ref);
+
+// A helper spawn object.
+// One object = 1 spawn
+struct HelperSpawns
+{
+	mobjtype_t helpertype;
+	int playerid;
+};
+
+extern std::vector<HelperSpawns> helperspawns;
 
 /**
  * @brief A collection of pointers to players, commonly called a "view".
@@ -455,10 +481,8 @@ struct PlayerResults
 
 	PlayerResults() : count(0), total(0)
 	{
-		for (size_t i = 0; i < ARRAY_LENGTH(teamCount); i++)
-			teamCount[i] = 0;
-		for (size_t i = 0; i < ARRAY_LENGTH(teamTotal); i++)
-			teamTotal[i] = 0;
+		ArrayInit(teamCount, 0);
+		ArrayInit(teamTotal, 0);
 	}
 };
 
@@ -656,7 +680,7 @@ extern byte displayplayer_id;
 //
 typedef struct wbplayerstruct_s
 {
-	BOOL		in;			// whether the player is in game
+	bool		in;			// whether the player is in game
 
 	// Player stats, kills, collected items etc.
 	int			skills;
@@ -672,11 +696,11 @@ typedef struct wbstartstruct_s
 {
 	int			epsd;	// episode # (0-2)
 
-	char		current[9];	// [RH] Name of map just finished
-	char		next[9];	// next level, [RH] actual map name
+	OLumpName	current;	// [RH] Name of map just finished
+	OLumpName	next;	// next level, [RH] actual map name
 
-	char		lname0[9];
-	char		lname1[9];
+	OLumpName	lname0;
+	OLumpName	lname1;
 
 	int			maxkills;
 	int			maxitems;

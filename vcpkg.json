@@ -13,7 +13,9 @@
         "protobuf",
         "sdl2",
         "sdl2-mixer",
-        "zlib"
+        "zlib",
+        "cpptrace",
+        "libadlmidi"
       ]
     },
     "server": {
@@ -24,7 +26,8 @@
         "minilzo",
         "miniupnpc",
         "protobuf",
-        "zlib"
+        "zlib",
+        "cpptrace"
       ]
     },
     "launcher": {

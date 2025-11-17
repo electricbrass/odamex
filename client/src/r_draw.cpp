@@ -216,19 +216,20 @@ argb_t translationRGB[MAXPLAYERS+1][16];
 byte *Ranges;
 static byte *translationtablesmem = NULL;
 byte bosstable[256];
+byte friendtable[256];
 byte greentable[MAXPLAYERS + 1][256];
 byte redtable[MAXPLAYERS + 1][256];
 
 static void R_BuildFontTranslation(int color_num, argb_t start_color, argb_t end_color)
 {
-	constexpr palindex_t chexstart_index = 0x70;
-	constexpr palindex_t chexend_index = 0x7F;
-	constexpr palindex_t hacxstart_index = 0xC3;
-	constexpr palindex_t hacxmid1_index = 0xCF;
-	constexpr palindex_t hacxmid2_index = 0xF0;
-	constexpr palindex_t hacxend_index = 0xF2;
-	constexpr palindex_t start_index = 0xB0;
-	constexpr palindex_t end_index = 0xBF;
+	static constexpr palindex_t chexstart_index = 0x70;
+	static constexpr palindex_t chexend_index = 0x7F;
+	static constexpr palindex_t hacxstart_index = 0xC3;
+	static constexpr palindex_t hacxmid1_index = 0xCF;
+	static constexpr palindex_t hacxmid2_index = 0xF0;
+	static constexpr palindex_t hacxend_index = 0xF2;
+	static constexpr palindex_t start_index = 0xB0;
+	static constexpr palindex_t end_index = 0xBF;
 	const int index_range = end_index - start_index + 1;
 
 	palindex_t* dest = (palindex_t*)Ranges + color_num * 256;
@@ -401,6 +402,18 @@ void R_InitTranslationTables()
 		                 SoftLight(bot.getb(), ytop.getb()));
 
 		::bosstable[i] = V_BestColor(V_GetDefaultPalette()->basecolors, mul);
+	}
+
+	// Friend translation is a pink tint.
+	const argb_t ptop(0xff, 0x70, 0xB9);
+	for (size_t i = 0; i < ARRAY_LENGTH(::friendtable); i++)
+	{
+		const argb_t bot = V_GetDefaultPalette()->basecolors[i];
+		const argb_t mul(SoftLight(bot.getr(), ptop.getr()),
+		                 SoftLight(bot.getg(), ptop.getg()),
+		                 SoftLight(bot.getb(), ptop.getb()));
+
+		::friendtable[i] = V_BestColor(V_GetDefaultPalette()->basecolors, mul);
 	}
 
 	translationtablesmem = new byte[256*(MAXPLAYERS+3+22)+255]; // denis - fixme - magic numbers?
@@ -622,7 +635,7 @@ static forceinline void R_FillColumnGeneric(PIXEL_T* dest, const drawcolumn_t& d
 #ifdef RANGECHECK
 	if (drawcolumn.x < 0 || drawcolumn.x >= viewwidth || drawcolumn.yl < 0 || drawcolumn.yh >= viewheight)
 	{
-		Printf (PRINT_HIGH, "R_FillColumn: %i to %i at %i\n", drawcolumn.yl, drawcolumn.yh, drawcolumn.x);
+		PrintFmt(PRINT_HIGH, "R_FillColumn: {} to {} at {}\n", drawcolumn.yl, drawcolumn.yh, drawcolumn.x);
 		return;
 	}
 #endif
@@ -661,7 +674,7 @@ static forceinline void R_DrawColumnGeneric(PIXEL_T* dest, const drawcolumn_t& d
 #ifdef RANGECHECK
 	if (drawcolumn.x < 0 || drawcolumn.x >= viewwidth || drawcolumn.yl < 0 || drawcolumn.yh >= viewheight)
 	{
-		Printf (PRINT_HIGH, "R_DrawColumn: %i to %i at %i\n", drawcolumn.yl, drawcolumn.yh, drawcolumn.x);
+		PrintFmt(PRINT_HIGH, "R_DrawColumn: {} to {} at {}\n", drawcolumn.yl, drawcolumn.yh, drawcolumn.x);
 		return;
 	}
 #endif
@@ -769,7 +782,7 @@ static forceinline void R_FillSpanGeneric(PIXEL_T* dest, const drawspan_t& draws
 	if (drawspan.x2 < drawspan.x1 || drawspan.x1 < 0 || drawspan.x2 >= viewwidth ||
 		drawspan.y >= viewheight || drawspan.y < 0)
 	{
-		Printf(PRINT_HIGH, "R_FillSpan: %i to %i at %i", drawspan.x1, drawspan.x2, drawspan.y);
+		PrintFmt(PRINT_HIGH, "R_FillSpan: {} to {} at {}", drawspan.x1, drawspan.x2, drawspan.y);
 		return;
 	}
 #endif
@@ -802,7 +815,7 @@ static forceinline void R_DrawLevelSpanGeneric(PIXEL_T* dest, const drawspan_t& 
 	if (drawspan.x2 < drawspan.x1 || drawspan.x1 < 0 || drawspan.x2 >= viewwidth ||
 		drawspan.y >= viewheight || drawspan.y < 0)
 	{
-		Printf(PRINT_HIGH, "R_DrawLevelSpan: %i to %i at %i", drawspan.x1, drawspan.x2, drawspan.y);
+		PrintFmt(PRINT_HIGH, "R_DrawLevelSpan: {} to {} at {}", drawspan.x1, drawspan.x2, drawspan.y);
 		return;
 	}
 #endif
@@ -855,7 +868,7 @@ static forceinline void R_DrawSlopedSpanGeneric(PIXEL_T* dest, const drawspan_t&
 	if (drawspan.x2 < drawspan.x1 || drawspan.x1 < 0 || drawspan.x2 >= viewwidth ||
 		drawspan.y >= viewheight || drawspan.y < 0)
 	{
-		Printf(PRINT_HIGH, "R_DrawSlopedSpan: %i to %i at %i", drawspan.x1, drawspan.x2, drawspan.y);
+		PrintFmt(PRINT_HIGH, "R_DrawSlopedSpan: {} to {} at {}", drawspan.x1, drawspan.x2, drawspan.y);
 		return;
 	}
 #endif
@@ -1599,7 +1612,7 @@ void R_InitializeScreenblocksCanvas()
 	    surface_height = primary_surface->getHeight();
 
 	// background
-	int lumpnum = W_CheckNumForName(::gameinfo.borderFlat.c_str(), ns_flats);
+	int lumpnum = W_CheckNumForName(::gameinfo.borderFlat, ns_flats);
 
 	// Draw screenblocks to a 320x200 surface and scale it based on viewport height
 	// If it doesn't reach the side edges of viewport or over, scale it via
@@ -1703,22 +1716,22 @@ void R_DrawViewBorder()
 	// draw beveled edge for the viewing window's top and bottom edges
 	for (int x = viewwindowx; x < viewwindowx + viewwidth; x += size)
 	{
-		canvas->DrawPatch(W_CachePatch(border.t.c_str()), x, viewwindowy - offset);
-		canvas->DrawPatch(W_CachePatch(border.b.c_str()), x, viewwindowy + viewheight);
+		canvas->DrawPatch(W_CachePatch(border.t), x, viewwindowy - offset);
+		canvas->DrawPatch(W_CachePatch(border.b), x, viewwindowy + viewheight);
 	}
 
 	// draw beveled edge for the viewing window's left and right edges
 	for (int y = viewwindowy; y < viewwindowy + viewheight; y += size)
 	{
-		canvas->DrawPatch(W_CachePatch(border.l.c_str()), viewwindowx - offset, y);
-		canvas->DrawPatch(W_CachePatch(border.r.c_str()), viewwindowx + viewwidth, y);
+		canvas->DrawPatch(W_CachePatch(border.l), viewwindowx - offset, y);
+		canvas->DrawPatch(W_CachePatch(border.r), viewwindowx + viewwidth, y);
 	}
 
 	// draw beveled edge for the viewing window's corners
-	canvas->DrawPatch(W_CachePatch(border.tl.c_str()), viewwindowx - offset, viewwindowy - offset);
-	canvas->DrawPatch(W_CachePatch(border.tr.c_str()), viewwindowx + viewwidth, viewwindowy - offset);
-	canvas->DrawPatch(W_CachePatch(border.bl.c_str()), viewwindowx - offset, viewwindowy + viewheight);
-	canvas->DrawPatch(W_CachePatch(border.br.c_str()), viewwindowx + viewwidth, viewwindowy + viewheight);
+	canvas->DrawPatch(W_CachePatch(border.tl), viewwindowx - offset, viewwindowy - offset);
+	canvas->DrawPatch(W_CachePatch(border.tr), viewwindowx + viewwidth, viewwindowy - offset);
+	canvas->DrawPatch(W_CachePatch(border.bl), viewwindowx - offset, viewwindowy + viewheight);
+	canvas->DrawPatch(W_CachePatch(border.br), viewwindowx + viewwidth, viewwindowy + viewheight);
 
 	V_MarkRect(left, top, right, bottom);
 }
@@ -1765,7 +1778,7 @@ static std::string get_optimization_name_list(const bool includeNone)
 
 static void print_optimizations()
 {
-	Printf(PRINT_HIGH, "r_optimize detected \"%s\"\n", get_optimization_name_list(false).c_str());
+	PrintFmt(PRINT_HIGH, "r_optimize detected \"{}\"\n", get_optimization_name_list(false));
 }
 
 static bool detect_optimizations()
@@ -1830,8 +1843,8 @@ CVAR_FUNC_IMPL(r_optimize)
 		optimize_kind = optimizations_available.back();
 	else
 	{
-		Printf(PRINT_HIGH, "Invalid value for r_optimize. Availible options are \"%s, detect\"\n",
-				get_optimization_name_list(true).c_str());
+		PrintFmt(PRINT_HIGH, "Invalid value for r_optimize. Availible options are \"{}, detect\"\n",
+		         get_optimization_name_list(true));
 
 		// Restore the original setting:
 		var.Set(get_optimization_name(optimize_kind));
@@ -1843,7 +1856,7 @@ CVAR_FUNC_IMPL(r_optimize)
 	{
 		// update the cvar string
 		// this will trigger the callback to run a second time
-		Printf(PRINT_HIGH, "r_optimize set to \"%s\" based on availability\n", optimize_name);
+		PrintFmt(PRINT_HIGH, "r_optimize set to \"{}\" based on availability\n", optimize_name);
 		var.Set(optimize_name);
 	}
 	else

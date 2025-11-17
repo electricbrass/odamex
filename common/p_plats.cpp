@@ -426,7 +426,7 @@ DPlat::DPlat(sector_t* sec, int target, int delay, int speed, int trigger)
 		m_High = P_FindHighestFloorSurrounding(sec);
 		if (m_High < sec->floorheight)
 			m_High = sec->floorheight;
-		m_Status = (EPlatState)(P_Random() & 1 ? DPlat::down : DPlat::up);
+		m_Status = P_Random() & 1 ? DPlat::down : DPlat::up;
 		break;
 	default:
 		break;
@@ -488,14 +488,14 @@ DPlat* DPlat::Clone(sector_t* sec) const
 //	[RH] Changed amount to height and added delay,
 //		 lip, change, tag, and speed parameters.
 //
-BOOL EV_DoPlat (int tag, line_t *line, DPlat::EPlatType type, fixed_t height,
+bool EV_DoPlat (int tag, line_t *line, DPlat::EPlatType type, fixed_t height,
 				int speed, int delay, fixed_t lip, int change)
 {
 	DPlat *plat;
 	int secnum;
 	sector_t *sec;
 	int rtn = false;
-	BOOL manual = false;
+	bool manual = false;
 
 	// [RH] If tag is zero, use the sector on the back side
 	//		of the activating line (if any).
@@ -559,13 +559,13 @@ manual_plat:
 	return rtn;
 }
 
-BOOL EV_DoGenLift(line_t* line)
+bool EV_DoGenLift(line_t* line)
 {
 	DPlat* plat;
 	int secnum;
 	sector_t* sec;
-	BOOL rtn = false;
-	BOOL manual = false;
+	bool rtn = false;
+	bool manual = false;
 	unsigned value = (unsigned)line->special - GenLiftBase;
 
     int Targ = (value & LiftTarget) >> LiftTargetShift;

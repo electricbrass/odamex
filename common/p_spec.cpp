@@ -68,17 +68,22 @@
 
 #include "p_boomfspec.h"
 #include "p_zdoomhexspec.h"
+#include "p_mobj.h"
 
 EXTERN_CVAR(sv_allowexit)
 EXTERN_CVAR(sv_fragexitswitch)
 EXTERN_CVAR(co_boomphys)
+
+#ifdef CLIENT_APP
+EXTERN_CVAR(cl_showfriends)
+#endif
 
 std::list<movingsector_t> movingsectors;
 std::list<sector_t*> specialdoors;
 bool s_SpecialFromServer;
 
 int P_FindSectorFromLineTag(int tag, int start);
-BOOL EV_DoDoor(DDoor::EVlDoor type, line_t* line, AActor* thing, int tag, int speed,
+bool EV_DoDoor(DDoor::EVlDoor type, line_t* line, AActor* thing, int tag, int speed,
                int delay, card_t lock);
 bool P_ShootCompatibleSpecialLine(AActor* thing, line_t* line);
 bool P_ActivateZDoomLine(line_t* line, AActor* mo, int side,
@@ -91,13 +96,7 @@ bool P_UseCompatibleSpecialLine(AActor* thing, line_t* line, int side,
 //
 std::list<movingsector_t>::iterator P_FindMovingSector(sector_t *sector)
 {
-	std::list<movingsector_t>::iterator itr;
-	for (itr = movingsectors.begin(); itr != movingsectors.end(); ++itr)
-		if (sector == itr->sector)
-			return itr;
-
-	// not found
-	return movingsectors.end();
+	return std::find_if(movingsectors.begin(), movingsectors.end(), [sector](const auto& it){ return it.sector == sector; });
 }
 
 fixed_t P_ArgsToFixed(fixed_t arg_i, fixed_t arg_f)
@@ -221,31 +220,61 @@ int P_IsUnderDamage(AActor* actor)
 * P_IsFriendlyThing
 * @brief Helper function to determine if a particular thing is of friendly origin.
 *
-* @param actor Source actor
-* @param friendshiptest Thing to test friendliness
+* @param actor - Source actor
+* @param friendshiptest - Thing to test friendliness
 */
 bool P_IsFriendlyThing(AActor* actor, AActor* friendshiptest)
 {
+	if (!actor || !friendshiptest)
+	{
+		return true;
+	}
+
 	if (friendshiptest->flags & MF_FRIEND)
 	{
 		if (G_IsCoopGame())
 		{
+			if (actor->flags & MF_FRIEND)
+				return true;
+		}
+		else if (actor->player)
+		{
+			if (actor->player->id == friendshiptest->friend_playerid)
+			{
+				// Don't attack me, I love you!
+				return true;
+			}
+			else if (G_IsTeamGame())
+			{
+				if (actor->player->userinfo.team == friendshiptest->friend_teamid)
+				{
+				   return true;
+				}
+			}
+		}
+		else if (actor->friend_playerid == 0 || friendshiptest->friend_playerid == 0 ||
+		         actor->friend_playerid == friendshiptest->friend_playerid)
+		{
+			// Fellow friend (or general friend)
+			// Do not attack.
 			return true;
 		}
-		else if (actor->player && friendshiptest->target && friendshiptest->target->player &&
-		    actor->player->userinfo.team == friendshiptest->target->player->userinfo.team)
+		else if (G_IsTeamGame())
 		{
-			return true;
-		}
-		else
-		{
-			return false;
+			if (actor->friend_teamid == friendshiptest->friend_teamid)
+			{
+				// Friendly is of the same team as this friendly.
+				// Don't attack
+				return true;
+			}
 		}
 	}
 	else
 	{
-		return false;
+		if (!(actor->flags & MF_FRIEND))
+			return true;
 	}
+	return false;
 }
 
 //
@@ -270,7 +299,7 @@ void P_AddMovingCeiling(sector_t *sector)
 	}
 	else
 	{
-		movingsectors.push_back(movingsector_t());
+		movingsectors.emplace_back();
 		movesec = &(movingsectors.back());
 	}
 
@@ -305,7 +334,7 @@ void P_AddMovingFloor(sector_t *sector)
 	}
 	else
 	{
-		movingsectors.push_back(movingsector_t());
+		movingsectors.emplace_back();
 		movesec = &(movingsectors.back());
 	}
 
@@ -467,6 +496,7 @@ void DPusher::Serialize (FArchive &arc)
 	else
 	{
 		arc >> m_Type;
+		// [CMB] copy ctr and assignment operator to m_Source was previously causing an unlinking issue resulting in a nullptr
 		DObject* temp = nullptr;
 		arc.ReadObject(temp, DPusher::StaticType());
 		m_Source = temp ? static_cast<AActor*>(temp)->ptr() : AActor::AActorPtr();
@@ -827,7 +857,7 @@ void P_InitPicAnims (void)
 	if(anims)
 	{
 		M_Free(anims);
-		lastanim = 0;
+		lastanim = nullptr;
 		maxanims = 0;
 	}
 
@@ -847,7 +877,7 @@ void P_InitPicAnims (void)
 			if (lastanim >= anims + maxanims)
 			{
 				size_t newmax = maxanims ? maxanims*2 : MAXANIMS;
-				anims = (anim_t *)Realloc(anims, newmax*sizeof(*anims));   // killough
+				anims = (anim_t*) M_Realloc(anims, newmax*sizeof(*anims));   // killough
 				lastanim = anims + maxanims;
 				maxanims = newmax;
 			}
@@ -887,7 +917,7 @@ void P_InitPicAnims (void)
 			lastanim->curframe = 0;
 
 			if (lastanim->numframes < 2)
-				Printf (PRINT_WARNING, "P_InitPicAnims: bad cycle from %s to %s",
+				PrintFmt(PRINT_WARNING, "P_InitPicAnims: bad cycle from {} to {}",
 						 fmt::ptr(anim_p + 10) /* .startname */,
 						 fmt::ptr(anim_p + 1) /* .endname */);
 
@@ -1805,7 +1835,7 @@ bool P_CanUnlockGenDoor(line_t* line, player_t* player)
 //	Returns true if the player has the desired key,
 //	false otherwise.
 
-BOOL P_CheckKeys (player_t *p, card_t lock, BOOL remote)
+bool P_CheckKeys (player_t *p, card_t lock, bool remote)
 {
 	if ((lock & 0x7f) == NoKey)
 		return true;
@@ -1814,8 +1844,8 @@ BOOL P_CheckKeys (player_t *p, card_t lock, BOOL remote)
 		return false;
 
 	const OString* msg = NULL;
-	BOOL bc, rc, yc, bs, rs, ys;
-	BOOL equiv = lock & 0x80;
+	bool bc, rc, yc, bs, rs, ys;
+	bool equiv = lock & 0x80;
 
         lock = (card_t)(lock & 0x7f);
 
@@ -2301,16 +2331,15 @@ CVAR_FUNC_IMPL (sv_forcewater)
 {
 	if (gamestate == GS_LEVEL)
 	{
-		int i;
 		byte set = var ? 2 : 0;
 
-		for (i = 0; i < numsectors; i++)
+		for (sector_t& sector : R_GetSectors())
 		{
-			if (sectors[i].heightsec &&
-				!(sectors[i].heightsec->MoreFlags & SECF_IGNOREHEIGHTSEC) &&
-				sectors[i].heightsec->waterzone != 1)
+			if (sector.heightsec &&
+				!(sector.heightsec->MoreFlags & SECF_IGNOREHEIGHTSEC) &&
+				sector.heightsec->waterzone != 1)
 
-				sectors[i].heightsec->waterzone = set;
+				sector.heightsec->waterzone = set;
 		}
 	}
 }
@@ -2322,14 +2351,10 @@ CVAR_FUNC_IMPL (sv_forcewater)
 */
 void P_SetupWorldState(void)
 {
-	sector_t* sector;
-	int i;
-
 	//	Init special SECTORs.
-	sector = sectors;
-	for (i = 0; i < numsectors; i++, sector++)
+	for (sector_t& sector : R_GetSectors())
 	{
-		map_format.init_sector_special(sector);
+		map_format.init_sector_special(&sector);
 	}
 
 	// Init other misc stuff
@@ -2346,6 +2371,11 @@ void P_SetupWorldState(void)
 	{
 		level.behavior->StartTypedScripts(SCRIPT_Open, NULL, 0, 0, 0, false);
 	}
+
+#ifdef CLIENT_APP
+	if (cl_showfriends)
+		P_FriendlyEffects(); // Mark any new friendly monsters with an effect
+#endif
 }
 
 void P_AddSectorSecret(sector_t* sector)
@@ -2670,10 +2700,9 @@ DScroller::DScroller (fixed_t dx, fixed_t dy, const line_t *l,
 // Initialize the scrollers
 static void P_SpawnScrollers(void)
 {
-	int i;
 	line_t *l = lines;
 
-	for (i = 0; i < numlines; i++, l++)
+	for (int i = 0; i < numlines; i++, l++)
 	{
 		map_format.spawn_scroller(l, i);
 	}
@@ -2744,12 +2773,9 @@ bool P_ArgToCrushType(byte arg)
 
 static void P_SpawnFriction(void)
 {
-	int i;
-	line_t *l = lines;
-
-	for (i = 0 ; i < numlines ; i++,l++)
+	for (line_t& l : R_GetLines())
 	{
-		map_format.spawn_friction(l);
+		map_format.spawn_friction(&l);
 	}
 }
 
@@ -2888,16 +2914,33 @@ DPusher::DPusher (DPusher::EPusher type, line_t *l, int magnitude, int angle,
 
 DPusher *tmpusher; // pusher structure for blockmap searches
 
-BOOL PIT_PushThing (AActor *thing)
+bool PIT_PushThing (AActor *thing)
 {
-	if (thing->player &&
-		!(thing->flags & (MF_NOGRAVITY | MF_NOCLIP)))
+	if (!P_IsMBFCompatMode() ?
+			thing->player && !(thing->flags & (MF_NOGRAVITY | MF_NOCLIP)) :
+			(sentient(thing) || thing->flags & MF_SHOOTABLE) &&
+			!(thing->flags & MF_NOCLIP))
 	{
 		int sx = tmpusher->m_X;
 		int sy = tmpusher->m_Y;
 		int dist = P_AproxDistance (thing->x - sx,thing->y - sy);
 		int speed = (tmpusher->m_Magnitude -
 					((dist>>FRACBITS)>>1))<<(FRACBITS-PUSH_FACTOR-1);
+
+		// killough 10/98: make magnitude decrease with square
+		// of distance, making it more in line with real nature,
+		// so long as it's still in range with original formula.
+		//
+		// Removes angular distortion, and makes effort required
+		// to stay close to source, grow increasingly hard as you
+		// get closer, as expected. Still, it doesn't consider z :(
+
+		if (speed > 0 && P_IsMBFCompatMode())
+		{
+			int x = (thing->x - sx) >> FRACBITS;
+			int y = (thing->y - sy) >> FRACBITS;
+			speed = (int)(((uint64_t)tmpusher->m_Magnitude << 23) / (x * x + y * y + 1));
+		}
 
 		// If speed <= 0, you're outside the effective radius. You also have
 		// to be able to see the push/pull source point.
@@ -3085,12 +3128,9 @@ AActor *P_GetPushThing (int s)
 
 static void P_SpawnPushers(void)
 {
-	int i;
-	line_t *l = lines;
-
-	for (i = 0; i < numlines; i++, l++)
+	for (line_t& l : R_GetLines())
 	{
-		map_format.spawn_pusher(l);
+		map_format.spawn_pusher(&l);
 	}
 }
 

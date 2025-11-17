@@ -47,11 +47,12 @@ static MobjMap g_MonsterMap;
 
 static void MapMobj(const mobjtype_t type, const std::string& name, const uint32_t flags)
 {
-	::g_MonsterMap.insert(MobjMap::value_type(name, type));
+	::g_MonsterMap.emplace(name, type);
 }
 
-static void InitMap()
+void P_InitMobjNameMap()
 {
+	::g_MonsterMap.clear();
 	MapMobj(MT_PLAYER, "DoomPlayer", MC_NONE);
 	MapMobj(MT_POSSESSED, "ZombieMan", MC_NONE);
 	MapMobj(MT_SHOTGUY, "ShotgunGuy", MC_NONE);
@@ -200,6 +201,8 @@ static void InitMap()
 	MapMobj(MT_AVATAR, "PlayerAvatar", MC_NONE);
 	MapMobj(MT_HORDESPAWN, "HordeSpawn", MC_NONE);
 	MapMobj(MT_CAREPACK, "CarePackage", MC_NONE);
+	MapMobj(MT_EXTRALIFE, "ExtraLifePowerUp", MC_NONE);
+	MapMobj(MT_RESTEAMMATE, "ResurrectTeammatePowerUp", MC_NONE);
 	// [AM] Deh_Actor_145-149 are reserved.
 	MapMobj(MT_EXTRA00, "Deh_Actor_150", MC_NONE);
 	MapMobj(MT_EXTRA01, "Deh_Actor_151", MC_NONE);
@@ -304,18 +307,31 @@ static void InitMap()
 }
 
 /**
+ * @brief Add a new DeHackEd thing to the map (for ID24 DEHTHING_x strings)
+ */
+void P_MapDehThing(const mobjtype_t type, const std::string& name)
+{
+	if (::g_MonsterMap.empty())
+	{
+		P_InitMobjNameMap();
+	}
+
+	MapMobj(type, name, MC_NONE);
+}
+
+/**
  * @brief Convert a UMAPINFO/ZDoom class name to a MT Mobj index.
  */
 mobjtype_t P_NameToMobj(const std::string& name)
 {
 	if (::g_MonsterMap.empty())
 	{
-		InitMap();
+		P_InitMobjNameMap();
 	}
 
 	MobjMap::iterator it = ::g_MonsterMap.find(name);
 
-	if (it == ::g_MonsterMap.end())
+	if (it == ::g_MonsterMap.end() || mobjinfo.find(it->second) == mobjinfo.end())
 	{
 		return MT_NULL;
 	}
@@ -330,31 +346,31 @@ mobjtype_t P_INameToMobj(const std::string& name)
 {
 	if (::g_MonsterMap.empty())
 	{
-		InitMap();
+		P_InitMobjNameMap();
 	}
 
-	for (MobjMap::iterator it = ::g_MonsterMap.begin(); it != ::g_MonsterMap.end(); ++it)
+	for (const auto& [mapname, type] : ::g_MonsterMap)
 	{
-		if (iequals(it->first, name))
+		if (iequals(mapname, name) && mobjinfo.find(type) != mobjinfo.end())
 		{
-			return it->second;
+			return type;
 		}
 	}
 	return MT_NULL;
 }
 
-std::string P_MobjToName(const mobjtype_t name)
+std::string P_MobjToName(const mobjtype_t type)
 {
 	if (::g_MonsterMap.empty())
 	{
-		InitMap();
+		P_InitMobjNameMap();
 	}
 
-	for (MobjMap::iterator it = ::g_MonsterMap.begin(); it != ::g_MonsterMap.end(); ++it)
+	for (const auto& [name, maptype] : ::g_MonsterMap)
 	{
-		if (it->second == name)
+		if (type == maptype)
 		{
-			return it->first.c_str();
+			return name;
 		}
 	}
 
@@ -412,9 +428,9 @@ std::vector<MobjPair> OrderedMobjMap()
 {
 	std::vector<MobjPair> orderedVector;
 
-	for (MobjMap::iterator it = ::g_MonsterMap.begin(); it != ::g_MonsterMap.end(); ++it)
+	for (const auto& pair : ::g_MonsterMap)
 	{
-		orderedVector.push_back(MobjPair(it->first, it->second));
+		orderedVector.push_back(pair);
 	}
 
 	std::sort(orderedVector.begin(), orderedVector.end(),
@@ -429,17 +445,16 @@ BEGIN_COMMAND(dumpactors)
 {
 	if (::g_MonsterMap.empty())
 	{
-		InitMap();
+		P_InitMobjNameMap();
 	}
 
 	std::vector<MobjPair> infomap = OrderedMobjMap();
 
 	PrintFmt(PRINT_HIGH, "Total amount of actors: {}\n", infomap.size());
 
-	for (std::vector<MobjPair>::iterator it = infomap.begin(); it != infomap.end();
-	     ++it)
+	for (const auto& [name, _] : infomap)
 	{
-		PrintFmt(PRINT_HIGH, "{}\n", it->first);
+		PrintFmt(PRINT_HIGH, "{}\n", name);
 	}
 }
 END_COMMAND(dumpactors)

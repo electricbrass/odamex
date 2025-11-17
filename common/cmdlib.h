@@ -58,13 +58,13 @@ bool	IsRealNum(const char* str);
 
 // [Russell] Returns 0 if strings are the same, optional parameter for case
 // sensitivity
-bool iequals(const std::string &, const std::string &);
+bool iequals(std::string_view, std::string_view);
 
 size_t  StdStringFind(const std::string& haystack, const std::string& needle,
-    size_t pos, size_t n, bool CIS);
+    size_t pos = 0, size_t n = std::string::npos, bool CIS = false);
 
 size_t  StdStringRFind(const std::string& haystack, const std::string& needle,
-    size_t pos, size_t n, bool CIS);
+    size_t pos = 0, size_t n = std::string::npos, bool CIS = false);
 
 std::string StdStringToLower(const std::string&, size_t n = std::string::npos);
 std::string StdStringToLower(const char*, size_t n = std::string::npos);
@@ -81,17 +81,16 @@ bool IsHexString(const std::string& str, const size_t len);
 char	*COM_Parse (char *data);
 
 extern	char	com_token[8192];
-extern	BOOL	com_eof;
+extern	bool	com_eof;
 
 char	*copystring(const char *s);
+bool M_StringCopy(char *dest, const char *src, size_t dest_size);
 
 std::vector<std::string> VectorArgs(size_t argc, char **argv);
 std::string JoinStrings(const std::vector<std::string> &pieces, const std::string &glue = "");
 
 typedef std::vector<std::string> StringTokens;
 StringTokens TokenizeString(const std::string& str, const std::string& delim);
-
-void STACK_ARGS VStrFormat(std::string& out, const char* fmt, va_list va);
 
 void StrFormatBytes(std::string& out, size_t bytes);
 bool StrFormatISOTime(std::string& s, const tm* utc_tm);
@@ -108,7 +107,6 @@ void StripColorCodes(std::string& str);
 double Remap(const double value, const double low1, const double high1, const double low2,
              const double high2);
 uint32_t Log2(uint32_t n);
-float NextAfter(const float from, const float to);
 
 /**
  * @brief Initialize an array with a specific value.

@@ -41,21 +41,6 @@
 // For __BIG_ENDIAN__ macro, requires forceinline
 #include "m_swap.h"
 
-#ifdef GEKKO
-	#include <gctypes.h>
-#endif
-
-#ifdef _MSC_VER
-	#define FORMAT_PRINTF(index, first_arg)
-#else
-	#define FORMAT_PRINTF(index, first_arg) __attribute__ ((format(printf, index, first_arg)))
-#endif
-
-// [RH] Some windows includes already define this
-#if !defined(_WINDEF_) && !defined(__wtypes_h__) && !defined(GEKKO)
-typedef int BOOL;
-#endif
-
 typedef unsigned char byte;
 typedef unsigned int uint;
 
@@ -68,7 +53,7 @@ using OByteSpan = nonstd::span<byte>;
 #endif
 
 // Predefined with some OS.
-#if !defined(UNIX) && !defined(_WIN32) && !defined(GEKKO)
+#if !defined(UNIX) && !defined(_WIN32)
 	#include <limits.h>
 	#include <float.h>
 #endif
@@ -81,7 +66,7 @@ using OByteSpan = nonstd::span<byte>;
 	#define __int64 long
 #endif
 
-#if (defined _XBOX || defined _MSC_VER)
+#if defined _MSC_VER
 	#define DBL_EPSILON 2.2204460492503131e-016
 	#define FLT_EPSILON 1.192092896e-07F
 #else
@@ -183,36 +168,10 @@ typedef uint64_t			dtime_t;
  * @param a Low bit in the mask.
  * @param b High bit in the mask.
  */
-static inline uint32_t BIT_MASK(uint32_t a, uint32_t b)
+static constexpr uint32_t BIT_MASK(uint32_t a, uint32_t b)
 {
     return (static_cast<uint32_t>(-1) >> (31 - b)) & ~(BIT(a) - 1);
 }
-
-/**
- * @brief Print to all clients in a server, or to the local player offline.
- *
- * @note This could really use a new name, like "ServerPrintf".
- *
- * @param format printf-style format string.
- * @param ... printf-style arguments.
- */
-void STACK_ARGS SV_BroadcastPrintf(const char* format, ...) FORMAT_PRINTF(1, 2);
-
-/**
- * @brief Print to all clients in a server, or to the local player offline.
- *
- * @note This could really use a new name, like "ServerPrintf".
- *
- * @param printlevel PRINT_* constant designating what kind of print this is.
- * @param format printf-style format string.
- * @param ... printf-style arguments.
- */
-void STACK_ARGS SV_BroadcastPrintf(int printlevel, const char* format, ...)
-    FORMAT_PRINTF(2, 3);
-
-#ifdef SERVER_APP
-void STACK_ARGS SV_BroadcastPrintfButPlayer(int printlevel, int player_id, const char* format, ...);
-#endif
 
 // game print flags
 typedef enum {
@@ -230,6 +189,7 @@ typedef enum {
 	PRINT_NORCON,		// Do NOT send the message to any rcon client.
 
 	PRINT_FILTERCHAT,	// Filter the message to not be displayed ingame, but only in the console (ugly hack)
+	PRINT_FILTERHIGH,	// Filter the message to not be displayed ingame, but only in the console (ugly hack)
 
 	PRINT_MAXPRINT
 } printlevel_t;
@@ -284,20 +244,11 @@ forceinline constexpr T clamp(const T in, const T min, const T max)
 //
 // Safely counts the number of items in an C array.
 //
-// https://www.drdobbs.com/cpp/counting-array-elements-at-compile-time/197800525?pgno=1
-//
-#define ARRAY_LENGTH(arr) ( \
-	0 * sizeof(reinterpret_cast<const ::Bad_arg_to_ARRAY_LENGTH*>(arr)) + \
-	0 * sizeof(::Bad_arg_to_ARRAY_LENGTH::check_type((arr), &(arr))) + \
-	sizeof(arr) / sizeof((arr)[0]) )
-
-struct Bad_arg_to_ARRAY_LENGTH {
-	class Is_pointer; // incomplete
-	class Is_array {};
-	template <typename T>
-	static Is_pointer check_type(const T*, const T* const*);
-	static Is_array check_type(const void*, const void*);
-};
+template <typename T, size_t N>
+constexpr size_t ARRAY_LENGTH(T (&arr)[N])
+{
+	return std::extent_v<T[N]>;
+}
 
 
 // ----------------------------------------------------------------------------
@@ -357,7 +308,7 @@ public:
 	{	a_num = _a; r_num = _r; g_num = _g; b_num = _b;	}
 
 private:
-	static uint8_t a_num, r_num, g_num, b_num;
+	static inline uint8_t a_num, r_num, g_num, b_num;
 
 	union
 	{
@@ -480,7 +431,6 @@ class translationref_t
 
 public:
 	translationref_t();
-	translationref_t(const translationref_t &other);
 	translationref_t(const palindex_t *table);
 	translationref_t(const palindex_t *table, const int player_id);
 
@@ -540,7 +490,6 @@ public:
 
 public:
 	shaderef_t();
-	shaderef_t(const shaderef_t &other);
 	shaderef_t(const shademap_t * const colors, const int mapnum);
 
 	// Determines if m_colors is NULL
@@ -556,7 +505,7 @@ public:
 
 	argb_t tlate(const translationref_t &translation, const byte c) const;
 
-	bool operator==(const shaderef_t &other) const;
+	[[nodiscard]] bool operator==(const shaderef_t &other) const;
 };
 
 forceinline bool shaderef_t::isValid() const

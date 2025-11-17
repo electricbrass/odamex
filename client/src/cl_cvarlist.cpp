@@ -36,6 +36,9 @@ CVAR(					am_followplayer, "1", "",
 CVAR(					am_rotate, "0", "",
 						CVARTYPE_BOOL, CVAR_CLIENTARCHIVE)
 
+CVAR_RANGE(				am_thickness, "1", "Scale the thickness of the automap lines by this value. Set to 0 for auto.",
+						CVARTYPE_BYTE, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE, 0.0f, 6.0f)
+
 CVAR_RANGE(				am_overlay, "0", "",
 						CVARTYPE_BYTE, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE, 0.0f, 3.0f)
 
@@ -57,7 +60,10 @@ CVAR(					am_classicmapstring, "0", "",
 CVAR(					am_usecustomcolors, "0", "",
 						CVARTYPE_BOOL, CVAR_CLIENTARCHIVE)
 
-CVAR(					am_ovshare, "0", "",
+CVAR(					am_showlocked, "0", "Show locked doors on the automap even when custom colors are disabled.",
+						CVARTYPE_BOOL, CVAR_CLIENTARCHIVE)
+
+CVAR(					am_ovshare, "0", "Overlay automap uses the same custom colors as the non-overlayed automap.",
 						CVARTYPE_BOOL, CVAR_CLIENTARCHIVE)
 
 CVAR(					am_backcolor, "00 00 3a", "",
@@ -309,7 +315,7 @@ CVAR (joy_turnaxis, "2", "", CVARTYPE_FLOAT, CVAR_CLIENTARCHIVE | CVAR_NOENABLED
 CVAR (joy_lookaxis, "3", "", CVARTYPE_FLOAT, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE)
 CVAR (joy_sensitivity, "10.0", "", CVARTYPE_FLOAT, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE)
 CVAR (joy_fastsensitivity, "15.0", "", CVARTYPE_FLOAT, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE)
-CVAR (joy_freelook, "0", "", CVARTYPE_FLOAT, CVAR_CLIENTARCHIVE)
+CVAR_FUNC_DECL (joy_freelook, "0", "Look up or down with the joystick", CVARTYPE_BOOL, CVAR_CLIENTARCHIVE)
 CVAR (joy_invert, "0", "", CVARTYPE_FLOAT, CVAR_CLIENTARCHIVE)
 
 CVAR_RANGE (joy_deadzone, "0.20", "", CVARTYPE_FLOAT, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE,  0.0f, 0.75f)
@@ -380,8 +386,8 @@ CVAR(				cl_forcedownload, "0", "Forces the client to download the last WAD file
 // Client Preferences
 // ------------------
 
-#ifdef _XBOX // Because Xbox players may be unable to communicate for now -- Hyper_Eye
-CVAR_FUNC_DECL(		cl_name, "Xbox Player", "",
+#ifdef GCONSOLE // Because Xbox players may be unable to communicate for now -- Hyper_Eye
+CVAR_FUNC_DECL(		cl_name, "Console Player", "",
 					CVARTYPE_STRING, CVAR_USERINFO | CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE)
 #else
 CVAR_FUNC_DECL(		cl_name, "Player", "",
@@ -418,6 +424,9 @@ CVAR(in_autosr50, "1", "+strafe activates automatic SR50", CVARTYPE_BOOL,
 CVAR(				cl_showspawns, "0", "Show spawn points as particle fountains",
 					CVARTYPE_BOOL, CVAR_CLIENTARCHIVE | CVAR_LATCH)
 
+CVAR(				cl_showfriends, "0", "Show an indicator on friendly monsters.",
+					CVARTYPE_BOOL, CVAR_CLIENTARCHIVE | CVAR_LATCH)
+
 // Netdemo Preferences
 // --------------------
 
@@ -429,12 +438,18 @@ CVAR_FUNC_DECL(		cl_netdemoname, "Odamex_%g_%d_%t_%w_%m",
 					"either the first PWAD or the IWAD\n// %m: Map lump\n// %%: Literal percent sign",
 					CVARTYPE_STRING, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE)
 
+CVAR(				cl_netdemodir, "", "Directory for Odamex to save netdemos to.",
+					CVARTYPE_STRING, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE)
+
 // Screenshot format string
 CVAR_FUNC_DECL(		cl_screenshotname, "Odamex_%g_%d_%t",
 					"Default screenshot name.  Parses the following tokens:\n// " \
 					"%d: date in YYYYMMDD format\n// %t: time in HHMMSS format\n// " \
 					"%n: player name\n// %g: gametype\n// %w: WAD file loaded; " \
 					"either the first PWAD or the IWAD\n// %m: Map lump\n// %%: Literal percent sign",
+					CVARTYPE_STRING, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE)
+
+CVAR(				cl_screenshotdir, "", "Directory for Odamex to save screenshots to.",
 					CVARTYPE_STRING, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE)
 
 CVAR(				cl_autorecord, "0", "Automatically record netdemos",
@@ -586,7 +601,7 @@ CVAR_RANGE(hud_extendedinfo, "0",
 		   "Show kills, items, and secrets:\n// 0: Off\n// 1: DIGFONT\n// 2: SMALLFONT\n// 3: DIGFONT, vertical arrangement\n// 4: SMALLFONT, vertical arrangement",
 		   CVARTYPE_INT, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE, 0.0, 4.0)
 
-#ifdef _XBOX
+#ifdef GCONSOLE
 CVAR (chatmacro0, "Hi.", "",	CVARTYPE_STRING, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE)                       // A
 CVAR (chatmacro1, "I'm ready to kick butt!", "",	CVARTYPE_STRING, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE)   // B
 CVAR (chatmacro2, "Help!", "",	CVARTYPE_STRING, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE)                     // X
@@ -596,7 +611,7 @@ CVAR (chatmacro5, "Yes", "",	CVARTYPE_STRING, CVAR_CLIENTARCHIVE | CVAR_NOENABLE
 CVAR (chatmacro6, "I'll take care of it.", "",	CVARTYPE_STRING, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE)     // Left Trigger
 CVAR (chatmacro7, "Come here!", "",	CVARTYPE_STRING, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE)                // Right Trigger
 CVAR (chatmacro8, "Thanks for the game. Bye.", "",	CVARTYPE_STRING, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE) // Start
-CVAR (chatmacro9, "I am on Xbox and can only use chat macros.", "",	CVARTYPE_STRING, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE) // Back
+CVAR (chatmacro9, "I am on a game console and can only use chat macros.", "",	CVARTYPE_STRING, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE) // Back
 #else
 // GhostlyDeath <November 2, 2008> -- someone had the order wrong (0-9!)
 CVAR (chatmacro1, "I'm ready to kick butt!", "",	CVARTYPE_STRING, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE)
@@ -628,6 +643,8 @@ CVAR_RANGE(		snd_voxtype, "2", "Voice announcer type",
 
 CVAR(			snd_gamesfx, "1", "Game SFX", CVARTYPE_BOOL, CVAR_CLIENTARCHIVE)
 
+CVAR(			snd_votesfx, "1", "Enable vote UI sounds", CVARTYPE_BOOL, CVAR_CLIENTARCHIVE)
+
 CVAR(			snd_crossover, "0", "Stereo switch",	CVARTYPE_BOOL, CVAR_CLIENTARCHIVE)
 
 CVAR_RANGE_FUNC_DECL(snd_samplerate, "44100", "Audio samplerate",
@@ -638,6 +655,18 @@ CVAR_RANGE_FUNC_DECL(snd_samplerate, "44100", "Audio samplerate",
 CVAR_RANGE_FUNC_DECL(snd_channels, "32", "Number of channels for sound effects",
                      CVARTYPE_BYTE, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE, 4.0f,
                      32.0f)
+
+CVAR_RANGE_FUNC_DECL(	snd_oplcore, "0", "OPL emulation quality",
+				CVARTYPE_INT, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE, 0.0f, 2.0f)
+
+CVAR_FUNC_DECL(			snd_oplpan, "1", "Full-range OPL panning",
+				CVARTYPE_BOOL, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE)
+
+CVAR_RANGE_FUNC_DECL(	snd_oplchips, "6", "Number of emulated OPL chips",
+				CVARTYPE_INT, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE, 1.0f, 8.0f)
+
+CVAR_RANGE_FUNC_DECL(	snd_oplbank, "1", "OPL instrument set",
+				CVARTYPE_INT, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE, 0.0f, 2.0f)
 
 //
 // C_GetDefaultMuiscSystem()
@@ -654,8 +683,12 @@ static char *C_GetDefaultMusicSystem()
 	defaultmusicsystem = MS_AUDIOUNIT;
 	#endif
 
-	#if defined _WIN32 && !defined _XBOX
+	#if defined _WIN32
 	defaultmusicsystem = MS_PORTMIDI;
+	#endif
+
+	#ifdef __linux__
+	defaultmusicsystem = MS_LIBADLMIDI;
 	#endif
 
 	// don't overflow str
@@ -680,6 +713,9 @@ CVAR_RANGE(		snd_midireset, "1", "MIDI reset type (0: None, 1: GM, 2: GS, 3: XG)
 
 CVAR_FUNC_DECL(	snd_musicsystem, C_GetDefaultMusicSystem(), "Music subsystem preference",
 				CVARTYPE_BYTE, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE)
+
+CVAR_FUNC_DECL(	snd_nomusic, "0", "Disables music",
+				CVARTYPE_BOOL, CVAR_CLIENTARCHIVE)
 
 CVAR(			snd_musicdevice, "", "Music output device for the chosen music subsystem",
 				CVARTYPE_STRING, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE)
@@ -708,6 +744,9 @@ CVAR(			r_flashhom, "0", "Draws flashing colors where there is HOM",
 CVAR(			r_drawflat, "0", "Disables all texturing of walls, floors and ceilings",
 				CVARTYPE_BOOL, CVAR_NULL)
 
+CVAR(			r_clipmaskedspecial, "1", "Vertically clip masked midtextures when surrounding sectors have differing specials (mimics Hexen and DSDA-Doom behavior)",
+				CVARTYPE_BOOL, CVAR_NULL)
+
 #if 0
 CVAR(			r_drawhitboxes, "0", "Draws a box outlining every actor's hitboxes",
 				CVARTYPE_BOOL, CVAR_NULL)
@@ -721,6 +760,9 @@ CVAR(			r_particles, "1", "Draw particles",
 
 CVAR_RANGE_FUNC_DECL(r_stretchsky, "2", "Stretch sky textures. (0 - always off, 1 - always on, 2 - auto)",
 				CVARTYPE_BYTE, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE, 0.0f, 2.0f)
+
+CVAR(			r_linearsky, "0", "Render skies without horizonal stretching",
+				CVARTYPE_BOOL, CVAR_CLIENTARCHIVE)
 
 CVAR(			r_skypalette, "0", "Invulnerability sphere changes the palette of the sky",
 				CVARTYPE_BOOL, CVAR_CLIENTARCHIVE)
@@ -737,13 +779,8 @@ CVAR_FUNC_DECL(	r_forceteamcolor, "0", "Changes the color of all teammates to th
 CVAR_FUNC_DECL(	r_teamcolor, "40 cf 00", "",
 				CVARTYPE_STRING, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE)
 
-#ifdef _XBOX // The burn wipe works better in 720p
-CVAR_RANGE(		r_wipetype, "2", "",
-				CVARTYPE_BYTE, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE, 0.0f, 3.0f)
-#else
 CVAR_RANGE(		r_wipetype, "1", "",
 				CVARTYPE_BYTE, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE, 0.0f, 3.0f)
-#endif
 
 CVAR_RANGE(		r_showendoom, "0", "Display the ENDDOOM text after quitting",
 				CVARTYPE_BYTE, CVAR_CLIENTARCHIVE | CVAR_NOENABLEDISABLE, 0.0f, 2.0f)   // [ML] 1/5/10: Add endoom support

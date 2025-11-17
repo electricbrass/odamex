@@ -35,38 +35,6 @@
 // to switch to a specific map out of order, otherwise false.
 bool unnatural_level_progression;
 
-FORMAT_PRINTF(2, 3)
-void STACK_ARGS SV_BroadcastPrintf(int printlevel, const char* format, ...)
-{
-	if (!serverside)
-		return;
-
-	// Local game, print the message normally.
-	std::string str;
-	va_list va;
-	va_start(va, format);
-	VStrFormat(str, format, va);
-	va_end(va);
-
-	Printf(printlevel, "%s", str.c_str());
-}
-
-FORMAT_PRINTF(1, 2)
-void STACK_ARGS SV_BroadcastPrintf(const char* format, ...)
-{
-	if (!serverside)
-		return;
-
-	// Local game, print the message normally.
-	std::string str;
-	va_list va;
-	va_start(va, format);
-	VStrFormat(str, format, va);
-	va_end(va);
-
-	Printf(PRINT_HIGH, "%s", str.c_str());
-}
-
 void D_SendServerInfoChange(const cvar_t *cvar, const char *value) {}
 void D_DoServerInfoChange(byte **stream) {}
 void D_WriteUserInfoStrings(int i, byte **stream, bool compact) {}
@@ -77,6 +45,7 @@ void SV_TouchSpecial(AActor *special, player_t *player) {}
 ItemEquipVal SV_FlagTouch (player_t &player, team_t f, bool firstgrab) { return IEV_NotEquipped; }
 void SV_SocketTouch (player_t &player, team_t f) {}
 void SV_SendKillMobj(AActor *source, AActor *target, AActor *inflictor, bool joinkill) {}
+void SV_SendRaiseMobj(AActor* source, AActor* corpse) { }
 void SV_SendDamagePlayer(player_t *player, AActor* inflictor, int healthDamage, int armorDamage) {}
 void SV_SendDamageMobj(AActor *target, int pain) {}
 void SV_CTFEvent(team_t f, flag_score_t event, player_t &who) {}

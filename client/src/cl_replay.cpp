@@ -182,7 +182,7 @@ void ClientReplay::itemReplay()
 			continue;
 		}
 
-		std::string weaponname = P_MobjToName(mo->type);
+		std::string weaponname = P_MobjToName(static_cast<mobjtype_t>(mo->type));
 		weapontype_t weapontype = P_NameToWeapon(weaponname);
 		bool weaponSwitch = P_CheckSwitchWeapon(&player, weapontype);
 
@@ -201,7 +201,7 @@ void ClientReplay::itemReplay()
 		{
 			for (int i = 0; i < ticDelta; ++i)
 			{
-					P_MovePsprites(&player);
+				P_MovePsprites(&player);
 			}
 		}
 

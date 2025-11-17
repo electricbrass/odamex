@@ -31,7 +31,6 @@
 
 #include <ctime>
 #include <functional>
-#include <map>
 #include <sstream>
 
 #include "win32inc.h"
@@ -41,25 +40,44 @@
 
 #include "fmt/ranges.h"
 
-#ifdef GEKKO
-#include "i_wii.h"
-#endif
-
 #ifdef __SWITCH__
 #include "nx_system.h"
 #endif
 
 
 char		com_token[8192];
-BOOL		com_eof;
+bool		com_eof;
+
+// Safe string copy function that works like OpenBSD's strlcpy().
+// Returns true if the string was not truncated.
+// from Chocolate Doom m_misc.cpp
+
+bool M_StringCopy(char *dest, const char *src, size_t dest_size)
+{
+    size_t len;
+
+    if (dest_size >= 1)
+    {
+        dest[dest_size - 1] = '\0';
+        strncpy(dest, src, dest_size - 1);
+    }
+    else
+    {
+        return false;
+    }
+
+    len = strlen(dest);
+    return src[len] == '\0';
+}
 
 char *copystring (const char *s)
 {
 	char *b;
 	if (s)
 	{
-		b = new char[strlen(s)+1];
-		strcpy (b, s);
+		size_t len = strlen(s) + 1;
+		b = new char[len];
+		M_StringCopy(b, s, len);
 	}
 	else
 	{
@@ -166,7 +184,7 @@ int ParseHex(const char* hex)
 		else if (*str >= 'A' && *str <= 'F')
 			num += 10 + *str-'A';
 		else {
-			DPrintf("Bad hex number: %s\n",hex);
+			DPrintFmt("Bad hex number: {}\n",hex);
 			return 0;
 		}
 		str++;
@@ -242,9 +260,9 @@ bool IsRealNum(const char* str)
 
 // [Russell] Returns 0 if strings are the same, optional parameter for case
 // sensitivity
-bool iequals(const std::string& s1, const std::string& s2)
+bool iequals(std::string_view s1, std::string_view s2)
 {
-	return stricmp(s1.c_str(), s2.c_str()) == 0;
+	return stricmp(s1.data(), s2.data()) == 0;
 }
 
 size_t StdStringFind(const std::string& haystack, const std::string& needle,
@@ -269,13 +287,13 @@ size_t StdStringFind(const std::string& haystack, const std::string& needle,
 }
 
 size_t StdStringFind(const std::string& haystack, const std::string& needle,
-    size_t pos = 0, size_t n = std::string::npos, bool CIS = false)
+    size_t pos, size_t n, bool CIS)
 {
     return StdStringFind(haystack, needle, pos, n, CIS, false);
 }
 
 size_t StdStringRFind(const std::string& haystack, const std::string& needle,
-    size_t pos = 0, size_t n = std::string::npos, bool CIS = false)
+    size_t pos, size_t n, bool CIS)
 {
     return StdStringFind(haystack, needle, pos, n, CIS, true);
 }
@@ -345,44 +363,10 @@ StringTokens TokenizeString(const std::string& str, const std::string& delim) {
 	while (delimPos != std::string::npos) {
 		delimPos = str.find(delim, prevDelim);
 		tokens.push_back(str.substr(prevDelim, delimPos - prevDelim));
-		prevDelim = delimPos + 1;
+		prevDelim = delimPos + delim.length();
 	}
 
 	return tokens;
-}
-
-//
-// A quick and dirty std::string formatting that uses snprintf under the covers.
-//
-void STACK_ARGS VStrFormat(std::string& out, const char* fmt, va_list va)
-{
-	va_list va2;
-	va_copy(va2, va);
-
-	// Get desired length of buffer.
-	int chars = vsnprintf(NULL, 0, fmt, va);
-	if (chars < 0)
-	{
-		I_Error("Encoding error detected in StrFormat\n");
-	}
-	size_t len = (size_t)chars + sizeof('\0');
-
-	// Allocate the buffer.
-	char* buf = (char*)malloc(len);
-	if (buf == NULL)
-	{
-		I_Error("Could not allocate StrFormat buffer\n");
-	}
-
-	// Actually write to the buffer.
-	int ok = vsnprintf(buf, len, fmt, va2);
-	if (ok != chars)
-	{
-		I_Error("Truncation detected in StrFormat\n");
-	}
-
-	out = buf;
-	free(buf);
 }
 
 /**
@@ -505,10 +489,7 @@ bool StrToTime(std::string str, time_t &tim) {
 		i = j;
 
 		// Push to tokens vector
-		token_t token;
-		token.first = num;
-		token.second = timeword;
-		tokens.push_back(token);
+		tokens.emplace_back(num, timeword);
 
 		// Skip whitespace and commas.
 		while ((str[i] == ' ' || str[i] == ',') && i < size) {
@@ -516,25 +497,25 @@ bool StrToTime(std::string str, time_t &tim) {
 		}
 	}
 
-	for (tokens_t::iterator it = tokens.begin();it != tokens.end();++it) {
-		if (it->second.compare(std::string("seconds").substr(0, it->second.size())) == 0) {
-			tim += it->first;
-		} else if (it->second.compare("secs") == 0) {
-			tim += it->first;
-		} else if (it->second.compare(std::string("minutes").substr(0, it->second.size())) == 0) {
-			tim += it->first * 60;
-		} else if (it->second.compare("mins") == 0) {
-			tim += it->first * 60;
-		} else if (it->second.compare(std::string("hours").substr(0, it->second.size())) == 0) {
-			tim += it->first * 3600;
-		} else if (it->second.compare(std::string("days").substr(0, it->second.size())) == 0) {
-			tim += it->first * 86400;
-		} else if (it->second.compare(std::string("weeks").substr(0, it->second.size())) == 0) {
-			tim += it->first * 604800;
-		} else if (it->second.compare(std::string("months").substr(0, it->second.size())) == 0) {
-			tim += it->first * 2592000;
-		} else if (it->second.compare(std::string("years").substr(0, it->second.size())) == 0) {
-			tim += it->first * 31536000;
+	for (const auto& [count, timeword] : tokens) {
+		if (timeword.compare(std::string("seconds").substr(0, timeword.size())) == 0) {
+			tim += count;
+		} else if (timeword.compare("secs") == 0) {
+			tim += count;
+		} else if (timeword.compare(std::string("minutes").substr(0, timeword.size())) == 0) {
+			tim += count * 60;
+		} else if (timeword.compare("mins") == 0) {
+			tim += count * 60;
+		} else if (timeword.compare(std::string("hours").substr(0, timeword.size())) == 0) {
+			tim += count * 3600;
+		} else if (timeword.compare(std::string("days").substr(0, timeword.size())) == 0) {
+			tim += count * 86400;
+		} else if (timeword.compare(std::string("weeks").substr(0, timeword.size())) == 0) {
+			tim += count * 604800;
+		} else if (timeword.compare(std::string("months").substr(0, timeword.size())) == 0) {
+			tim += count * 2592000;
+		} else if (timeword.compare(std::string("years").substr(0, timeword.size())) == 0) {
+			tim += count * 31536000;
 		} else {
 			// Unrecognized timeword
 			return false;
@@ -617,9 +598,8 @@ std::string &TrimString(std::string &s)
 // Ensure that a string only has valid viewable ASCII in it.
 bool ValidString(const std::string& s)
 {
-	for (std::string::const_iterator it = s.begin();it != s.end();++it)
+	for (const auto c : s)
 	{
-		const char c = *it;
 		if (c < ' ' || c > '~')
 			return false;
 	}
@@ -631,11 +611,11 @@ bool IsHexString(const std::string& str, const size_t len)
 	if (str.length() != len)
 		return false;
 
-	for (std::string::const_iterator it = str.begin(); it != str.end(); ++it)
+	for (const auto c : str)
 	{
-		if (*it >= '0' && *it <= '9')
+		if (c >= '0' && c <= '9')
 			continue;
-		if (*it >= 'A' && *it <= 'F')
+		if (c >= 'A' && c <= 'F')
 			continue;
 		return false;
 	}
@@ -787,41 +767,6 @@ uint32_t Log2(uint32_t n)
 		return (t = (tt >> 8)) ? 24 + LogTable256[t] : 16 + LogTable256[tt];
 	else
 		return (t = (n >> 8)) ? 8 + LogTable256[t] : LogTable256[n];
-}
-
-/**
- * This file has no copyright assigned and is placed in the Public Domain.
- * This file is part of the mingw-w64 runtime package.
- * No warranty is given; refer to the file DISCLAIMER.PD within this package.
- */
-
-/**
- * @brief Returns the next representable value of from in the direction of to.
- */
-float NextAfter(const float from, const float to)
-{
-	const float x = from;
-	const float y = to;
-	union {
-		float f;
-		unsigned int i;
-	} u;
-	if (isnan(y) || isnan(x))
-		return x + y;
-	if (x == y)
-		/* nextafter (0.0, -O.0) should return -0.0.  */
-		return y;
-	u.f = x;
-	if (x == 0.0F)
-	{
-		u.i = 1;
-		return y > 0.0F ? u.f : -u.f;
-	}
-	if (((x > 0.0F) ^ (y > x)) == 0)
-		u.i++;
-	else
-		u.i--;
-	return u.f;
 }
 
 VERSION_CONTROL (cmdlib_cpp, "$Id$")
