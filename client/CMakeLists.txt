@@ -148,7 +148,7 @@ if(TARGET SDL2::SDL2 OR TARGET SDL::SDL)
       $<IF:$<TARGET_EXISTS:SDL2_mixer::SDL2_mixer>,SDL2_mixer::SDL2_mixer,SDL2_mixer::SDL2_mixer-static>)
   endif()
 
-  target_link_libraries(odamex PRIVATE CURL::libcurl PNG::PNG PortMidi::portmidi)
+  target_link_libraries(odamex PRIVATE CURL::libcurl PNG::PNG PortMidi::portmidi libADLMIDI::ADLMIDI)
 
   if(NOT GCONSOLE)
     target_include_directories(odamex PRIVATE gui)

@@ -201,6 +201,8 @@ find_package(protobuf CONFIG)
 find_package(SDL2 CONFIG)
 find_package(SDL2_mixer CONFIG)
 find_package(wxWidgets CONFIG)
+find_package(cpptrace CONFIG)
+find_package(libadlmidi CONFIG)
 
 # WAD building
 add_subdirectory(wad)
