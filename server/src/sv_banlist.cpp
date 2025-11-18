@@ -497,14 +497,14 @@ bool Banlist::json_replace(const Json::Value &json_bans)
 		Json::Value value;
 
 		// Range
-		value = json_ban.get("range", Json::Value::null);
+		value = json_ban.get("range", Json::Value{});
 		if (value.isNull())
 			continue;
 		else
 			ban.range.set(json_ban.get("range", false).asString());
 
 		// Expire time
-		value = json_ban.get("expire", Json::Value::null);
+		value = json_ban.get("expire", Json::Value{});
 		if (!value.isNull())
 		{
 			if (StrParseISOTime(value.asString(), &tmp))
@@ -512,12 +512,12 @@ bool Banlist::json_replace(const Json::Value &json_bans)
 		}
 
 		// Name
-		value = json_ban.get("name", Json::Value::null);
+		value = json_ban.get("name", Json::Value{});
 		if (!value.isNull())
 			ban.name = value.asString();
 
 		// Reason
-		value = json_ban.get("reason", Json::Value::null);
+		value = json_ban.get("reason", Json::Value{});
 		if (!value.isNull())
 			ban.reason = value.asString();
 
