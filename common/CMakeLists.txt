@@ -7,7 +7,7 @@ add_library(odamex-common INTERFACE)
 target_sources(odamex-common INTERFACE ${COMMON_SOURCES} ${COMMON_HEADERS})
 target_include_directories(odamex-common INTERFACE . ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(odamex-common INTERFACE
-  ZLIB::ZLIB fmt::fmt JsonCpp::JsonCpp minilzo::minilzo cpptrac::cpptrace odaproto)
+  ZLIB::ZLIB fmt::fmt JsonCpp::JsonCpp minilzo::minilzo cpptrace::cpptrace odaproto)
 
 if(UNIX)
   include(CheckSymbolExists)
