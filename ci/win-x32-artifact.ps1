@@ -11,12 +11,18 @@ Set-Location "build-x32"
 mkdir artifact | Out-Null
 
 # Copy all built files into artifact directory
-Copy-Item `
-    -Path ".\client\RelWithDebInfo\odamex.exe", ".\client\RelWithDebInfo\odamex.pdb", `
-    ".\server\RelWithDebInfo\odasrv.exe", ".\server\RelWithDebInfo\odasrv.pdb", `
+Copy-Item -Path `
+    ".\client\RelWithDebInfo\odamex.exe", `
+    ".\client\RelWithDebInfo\odamex.pdb", `
+    ".\client\RelWithDebInfo\*.dll", `
+    ".\server\RelWithDebInfo\odasrv.exe", `
+    ".\server\RelWithDebInfo\odasrv.pdb", `
+    ".\odalaunch\RelWithDebInfo\odalaunch.exe", `
+    ".\odalaunch\RelWithDebInfo\odalaunch.pdb", `
+    ".\odalaunch\RelWithDebInfo\*.dll", `
     ".\wad\odamex.wad", `
-    ".\libraries\SDL2-2.32.8\lib\x86\*.dll", ".\libraries\SDL2_mixer-2.8.1\lib\x86\*.dll", ".\libraries\SDL2_mixer-2.8.1\lib\x86\optional\*.dll", `
-    "C:\Windows\System32\msvcp140.dll", "C:\Windows\System32\vcruntime140.dll", `
+    "C:\Windows\System32\msvcp140.dll", `
+    "C:\Windows\System32\vcruntime140.dll", `
     "C:\Windows\System32\vcruntime140_1.dll" `
     -Destination "artifact"
 
