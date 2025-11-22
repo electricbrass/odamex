@@ -17,5 +17,10 @@ vcpkg_cmake_configure(
 
 vcpkg_cmake_install()
 vcpkg_copy_pdbs()
-vcpkg_copy_tools(TOOL_NAMES fltk-options fltk-options-cmd AUTO_CLEAN)
-vcpkg_cmake_config_fixup(CONFIG_PATH "CMake")
+if(VCPKG_TARGET_IS_WINDOWS)
+    vcpkg_copy_tools(TOOL_NAMES fltk-options fltk-options-cmd AUTO_CLEAN)
+    vcpkg_cmake_config_fixup(CONFIG_PATH "CMake")
+else()
+    vcpkg_copy_tools(TOOL_NAMES fltk-options fltk-options AUTO_CLEAN)
+    vcpkg_cmake_config_fixup(CONFIG_PATH "share/fltk")
+endif()
