@@ -11,6 +11,15 @@
             }
         },
         {
+            "name": "make-linux",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+                "VCPKG_TARGET_TRIPLET": "x64-linux"
+            }
+        },
+        {
             "name": "ninja",
             "generator": "Ninja Multi-Config",
             "binaryDir": "${sourceDir}/build",
