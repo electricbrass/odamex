@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -42,9 +42,7 @@
     #include <process.h>
     #include <mmsystem.h>
     #include <direct.h> // SoM: I don't know HOW this has been overlooked until now...
-	#ifndef _XBOX
-		#include <winsock2.h>
-	#endif  // !_XBOX
+	#include <winsock2.h>
 #endif
 
 #ifdef UNIX
@@ -144,7 +142,7 @@ void *I_ZoneBase (size_t *size)
 	// Die if the system has insufficient memory
 	if (got_heapsize < min_heapsize)
 		I_FatalError("I_ZoneBase: Insufficient memory available! Minimum size "
-					 "is %lu MB but got %lu MB instead",
+					 "is {} MB but got {} MB instead",
 					 min_heapsize,
 					 got_heapsize);
 
@@ -181,7 +179,7 @@ dtime_t I_GetTime()
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts.tv_sec * 1000LL * 1000LL * 1000LL + ts.tv_nsec;
 
-#elif defined WIN32 && !defined _XBOX
+#elif defined WIN32
 	static bool initialized = false;
 	static LARGE_INTEGER initial_count;
 	static double nanoseconds_per_count;
@@ -250,7 +248,7 @@ void I_Sleep(dtime_t sleep_time)
 #if defined UNIX
 	usleep(sleep_time / 1000LL);
 
-#elif defined(WIN32) && !defined(_XBOX)
+#elif defined(WIN32)
 	Sleep(sleep_time / 1000000LL);
 
 #else
@@ -354,54 +352,40 @@ void STACK_ARGS I_Quit (void)
 //
 // I_Error
 //
-BOOL gameisdead;
+bool gameisdead;
 
 #define MAX_ERRORTEXT	1024
 
 void STACK_ARGS call_terms (void);
 
-void STACK_ARGS I_FatalError (const char *error, ...)
+void I_BaseError(const std::string& errortext)
 {
-    static BOOL alreadyThrown = false;
-    gameisdead = true;
-
-    if (!alreadyThrown)         // ignore all but the first message -- killough
-    {
-                alreadyThrown = true;
-                char errortext[MAX_ERRORTEXT];
-                va_list argptr;
-                va_start (argptr, error);
-                #ifdef _WIN32
-                int index = vsnprintf (errortext, MAX_ERRORTEXT, error, argptr);
-                snprintf (errortext + index, 1024 - static_cast<size_t>(index), "\nGetLastError = %ld", GetLastError());
-				#else
-                vsnprintf (errortext, MAX_ERRORTEXT, error, argptr);
-				#endif
-                va_end (argptr);
-
-                throw CFatalError (errortext);
-    }
-
-    if (!has_exited)    // If it hasn't exited yet, exit now -- killough
-    {
-        has_exited = 1; // Prevent infinitely recursive exits -- killough
-
-        call_terms();
-
-        exit(EXIT_FAILURE);
-    }
+	throw CRecoverableError(errortext);
 }
 
-void STACK_ARGS I_Error (const char *error, ...)
+[[noreturn]] void I_BaseFatalError(const std::string& errortext)
 {
-    va_list argptr;
-    char errortext[MAX_ERRORTEXT];
+	static bool alreadyThrown = false;
+	gameisdead = true;
 
-    va_start (argptr, error);
-	vsnprintf(errortext, MAX_ERRORTEXT, error, argptr);
-    va_end (argptr);
+	if (!alreadyThrown) // ignore all but the first message -- killough
+	{
+		alreadyThrown = true;
+		std::string error = errortext;
+#ifdef _WIN32
+		error += fmt::format("\nGetLastError = {}", GetLastError());
+#endif
+		throw CFatalError(error);
+	}
 
-    throw CRecoverableError (errortext);
+	if (!has_exited) // If it hasn't exited yet, exit now -- killough
+	{
+		has_exited = 1; // Prevent infinitely recursive exits -- killough
+
+		call_terms();
+
+		exit(EXIT_FAILURE);
+	}
 }
 
 char DoomStartupTitle[256] = { 0 };
@@ -414,7 +398,7 @@ void I_SetTitleString (const char *title)
                 DoomStartupTitle[i] = title[i] | 0x80;
 }
 
-void I_PrintStr (int xp, const char *cp, int count, BOOL scroll)
+void I_PrintStr (int xp, const char *cp, int count, bool scroll)
 {
         char string[4096];
 
@@ -503,7 +487,7 @@ std::string I_ConsoleInput (void)
             // Accept return but not unusual characters as input (eg Ctrl-B)
             if ((ch != '\n' && ch != '\r') && (ch < 32 || ch > 126))
                 continue;
-			
+
 			buffer[len++] = ch;
 		}
 
@@ -524,7 +508,7 @@ std::string I_ConsoleInput (void)
 		fwrite(&ch, 1, 1, stdout);
 		fflush(stdout);
 
-		strcpy(text, buffer);
+		M_StringCopy(text, buffer, 1024);
 		text[len-1] = 0; // rip off the /n and terminate
 		buffer[0] = 0;
 		len = 0;

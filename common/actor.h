@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -42,9 +42,7 @@
 
 #include "szp.h"
 
-// STL
-#include <map>
-
+#include "teamdef.h"
 //
 // NOTES: AActor
 //
@@ -111,12 +109,12 @@
 
 //
 // [SL] 2012-04-30 - A bit field to store a bool value for every player.
-// 
+//
 class PlayerBitField
 {
 public:
 	PlayerBitField() { clear(); }
-	
+
 	void clear()
 	{
 		memset(bitfield, 0, sizeof(bitfield));
@@ -126,33 +124,33 @@ public:
 	{
 		int bytenum = id >> 3;
 		int bitnum = id & bytemask;
-	
+
 		bitfield[bytenum] |= (1 << bitnum);
 	}
-	
+
 	void unset(byte id)
 	{
 		int bytenum = id >> 3;
 		int bitnum = id & bytemask;
-	
+
 		bitfield[bytenum] &= ~(1 << bitnum);
 	}
-	
-	bool get(byte id) const
+
+	[[nodiscard]] bool get(byte id) const
 	{
 		int bytenum = id >> 3;
-		int bitnum = id & bytemask;	
-	
+		int bitnum = id & bytemask;
+
 		return ((bitfield[bytenum] & (1 << bitnum)) != 0);
 	}
-	
+
 private:
-	static const int bytesize = 8*sizeof(byte);
-	static const int bytemask = bytesize - 1;
-	
+	static constexpr int bytesize = 8 * sizeof(byte);
+	static constexpr int bytemask = bytesize - 1;
+
 	// Hacky way of getting ceil() at compile-time
-	static const size_t fieldsize = (MAXPLAYERS + bytemask) / bytesize;
-	
+	static constexpr size_t fieldsize = (MAXPLAYERS + bytemask) / bytesize;
+
 	byte	bitfield[fieldsize];
 };
 
@@ -198,14 +196,19 @@ enum mobjflag_t
 	MF_SKULLFLY  = BIT(24),		// skull in flight
 	MF_NOTDMATCH = BIT(25),		// don't spawn in death match (key cards)
 
+	MF_TRANSLATION1 = BIT(26),
+	MF_TRANSLATION2 = BIT(27),
+
 	// Player sprites in multiplayer modes are modified
 	//  using an internal color lookup table for re-indexing.
 	// If 0x4 0x8 or 0xc, use a translation table for player colormaps
-	MF_TRANSLATION = 0xc000000,
+	MF_TRANSLATION = MF_TRANSLATION1 | MF_TRANSLATION2,
 
-	MF_TOUCHY  = BIT(28), // MBF - UNUSED FOR NOW
-	MF_BOUNCES = BIT(29), // MBF - PARTIAL IMPLEMENTATION
-	MF_FRIEND  = BIT(30), // MBF - UNUSED FOR NOW
+	MF_TOUCHY  = BIT(28), // MBF
+	MF_BOUNCES = BIT(29), // MBF
+	MF_FRIEND  = BIT(30), // MBF
+
+	MF_TRANSLUCENT = BIT(31),
 
 	// --- mobj.flags2 ---
 	// Heretic flags
@@ -268,7 +271,7 @@ enum mobjflag_t
 	MF3_E3M8BOSS		= BIT(14),	// is an E3M8 boss
 	MF3_E4M6BOSS		= BIT(15),	// is an E4M6 boss
 	MF3_E4M8BOSS		= BIT(16),	// is an E4M8 boss
-									// BIT 15 is MF2_RIP -- RESERVED
+									// BIT 17 is MF2_RIP -- RESERVED
 	MF3_FULLVOLSOUNDS	= BIT(18),	// full volume see / death sound
 
 	// --- mobj.oflags ---
@@ -284,6 +287,24 @@ enum mobjflag_t
 	MFO_FULLBRIGHT		= BIT(8),	// monster is fullbright
 	MFO_SPECTATOR		= BIT(9),	// GhostlyDeath -- thing is/was a spectator and can't be seen!
 	MFO_FALLING			= BIT(10),	// [INTERNAL] for falling
+	MFO_ARMED			= BIT(11),	// [INTERNAL] for TOUCHY (object is armed)
+	MFO_LINEDONE 		= BIT(12),  // [INTERNAL] for A_LineEffect, line special already done
+	// MFO_STEALTH			= BIT(13),	// Andy Baker's stealth monsters
+};
+
+//
+// Status flags
+// Flags to set when you want to indicate the status of a player to other players
+// Like powerups, lagging, etc
+//
+enum statusflag_t
+{
+	SF_INVULN = BIT(0),
+	SF_BERSERK = BIT(1),
+	SF_IRONFEET = BIT(2),
+	SF_INVIS = BIT(3),
+	SF_ALLMAP = BIT(4),
+	SF_INFRARED = BIT(5)
 };
 
 #define MF_TRANSSHIFT	0x1A
@@ -310,28 +331,23 @@ struct baseline_t
 	byte rndindex;
 
 	// Flags are a varint, so order from most to least likely.
-	static const uint32_t POSX = BIT(0);
-	static const uint32_t POSY = BIT(1);
-	static const uint32_t POSZ = BIT(2);
-	static const uint32_t ANGLE = BIT(3);
-	static const uint32_t MOVEDIR = BIT(4);
-	static const uint32_t MOVECOUNT = BIT(5);
-	static const uint32_t RNDINDEX = BIT(6);
-	static const uint32_t TARGET = BIT(7);
-	static const uint32_t TRACER = BIT(8);
-	static const uint32_t MOMX = BIT(9);
-	static const uint32_t MOMY = BIT(10);
-	static const uint32_t MOMZ = BIT(11);
+	static constexpr uint32_t POSX = BIT(0);
+	static constexpr uint32_t POSY = BIT(1);
+	static constexpr uint32_t POSZ = BIT(2);
+	static constexpr uint32_t ANGLE = BIT(3);
+	static constexpr uint32_t MOVEDIR = BIT(4);
+	static constexpr uint32_t MOVECOUNT = BIT(5);
+	static constexpr uint32_t RNDINDEX = BIT(6);
+	static constexpr uint32_t TARGET = BIT(7);
+	static constexpr uint32_t TRACER = BIT(8);
+	static constexpr uint32_t MOMX = BIT(9);
+	static constexpr uint32_t MOMY = BIT(10);
+	static constexpr uint32_t MOMZ = BIT(11);
 
 	baseline_t()
-	    : angle(0), targetid(0), tracerid(0), movecount(0), movedir(0), rndindex(0)
+	    : pos(0, 0, 0), mom(0, 0, 0),
+	      angle(0), targetid(0), tracerid(0), movecount(0), movedir(0), rndindex(0)
 	{
-		pos.x = 0;
-		pos.y = 0;
-		pos.z = 0;
-		mom.x = 0;
-		mom.y = 0;
-		mom.z = 0;
 	}
 
 	void Serialize(FArchive& arc)
@@ -364,22 +380,22 @@ class AActor : public DThinker
 
 		AActorPtrCounted() {}
 
-		AActorPtr &operator= (AActorPtr other)
+		AActorPtr &operator= (const AActorPtr& other)
 		{
 			if(ptr)
 				ptr->refCount--;
 			if(other)
-				other->refCount++;
+				const_cast<AActorPtr&>(other)->refCount++; // TODO: should refCount maybe be declared as mutable?
 			ptr = other;
 			return ptr;
 		}
 
-		AActorPtr &operator= (AActorPtrCounted other)
+		AActorPtr &operator= (const AActorPtrCounted& other)
 		{
 			if(ptr)
 				ptr->refCount--;
 			if(other)
-				other->refCount++;
+				const_cast<AActorPtrCounted&>(other)->refCount++; // TODO: should refCount maybe be declared as mutable?
 			ptr = other.ptr;
 			return ptr;
 		}
@@ -399,11 +415,28 @@ class AActor : public DThinker
 			return ptr;
 		}
 
+		operator const AActorPtr() const
+		{
+			return ptr;
+		}
+		operator const AActor*() const
+		{
+			return ptr;
+		}
+
 		AActor &operator *()
 		{
 			return *ptr;
 		}
 		AActor *operator ->()
+		{
+			return ptr;
+		}
+		const AActor &operator *() const
+		{
+			return *ptr;
+		}
+		const AActor *operator ->() const
 		{
 			return ptr;
 		}
@@ -413,11 +446,11 @@ public:
 	AActor ();
 	AActor (const AActor &other);
 	AActor &operator= (const AActor &other);
-	AActor (fixed_t x, fixed_t y, fixed_t z, mobjtype_t type);
-	void Destroy ();
-	~AActor ();
+	AActor (fixed_t x, fixed_t y, fixed_t z, int32_t type);
+	void Destroy () override;
+	~AActor () override;
 
-	virtual void RunThink ();
+	void RunThink () override;
 
     // Info for drawing: position.
     fixed_t		x;
@@ -433,22 +466,20 @@ public:
     //More drawing info: to determine current sprite.
     angle_t		angle;	// orientation
 	angle_t		prevangle;
-    spritenum_t		sprite;	// used to find patch_t and flip value
+    int32_t		sprite;	// used to find patch_t and flip value
     int			frame;	// might be ORed with FF_FULLBRIGHT
 	fixed_t		pitch;
 	angle_t		prevpitch;
 
 	DWORD			effects;			// [RH] see p_effect.h
 
-    // Interaction info, by BLOCKMAP.
-    // Links in blocks (if needed).
 	struct subsector_s		*subsector;
 
     // The closest interval over all contacted Sectors.
     fixed_t		floorz;
     fixed_t		ceilingz;
 	fixed_t		dropoffz;
-	struct sector_s		*floorsector;
+	struct sector_t	*floorsector;
 
     // For movement checking.
     fixed_t		radius;
@@ -462,15 +493,16 @@ public:
     // If == validcount, already checked.
     int			validcount;
 
-	mobjtype_t		type;
+	int32_t			type;
     mobjinfo_t*		info;	// &mobjinfo[mobj->type]
     int				tics;	// state tic counter
 	state_t			*state;
-	int				damage;			// For missiles	
+	int				damage;			// For missiles
 	int				flags;
 	int				flags2;	// Heretic flags
 	int				flags3;	// MBF21 flags
 	int				oflags;			// Odamex flags
+	int				statusflags; // Flags indicating a players status to other players
 	int				special1;		// Special info
 	int				special2;		// Special info
 	int 			health;
@@ -530,14 +562,24 @@ public:
 
 	unsigned char	rndindex;		// denis - because everything should have a random number generator, for prediction
 
+	byte friend_playerid; // playerid of the player who spawned this actor
+
+	team_t friend_teamid; // team of the player who spawned this actor
+
+	// killough 9/9/98: How long a monster pursues a target.
+	short pursuecount;
+
+	// killough 9/8/98: monster strafing
+	short strafecount;
+
 	// ThingIDs
 	static void ClearTIDHashes ();
 	void AddToHash ();
 	void RemoveFromHash ();
-	AActor *FindByTID (int tid) const;
-	static AActor *FindByTID (const AActor *first, int tid);
-	AActor *FindGoal (int tid, int kind) const;
-	static AActor *FindGoal (const AActor *first, int tid, int kind);
+	[[nodiscard]] AActor *FindByTID (int tid) const;
+	[[nodiscard]] static AActor *FindByTID (const AActor *first, int tid);
+	[[nodiscard]] AActor *FindGoal (int tid, int kind) const;
+	[[nodiscard]] static AActor *FindGoal (const AActor *first, int tid, int kind);
 
 	uint32_t		netid;          // every object has its own netid
 	short			tid;			// thing identifier
@@ -545,8 +587,8 @@ public:
 	bool			baseline_set;	// Have we set our baseline yet?
 
 private:
-	static const size_t TIDHashSize = 256;
-	static const size_t TIDHashMask = TIDHashSize - 1;
+	static constexpr size_t TIDHashSize = 256;
+	static constexpr size_t TIDHashMask = TIDHashSize - 1;
 	static AActor *TIDHash[TIDHashSize];
 	static inline int TIDHASH (int key) { return key & TIDHashMask; }
 
@@ -559,7 +601,7 @@ public:
 	void SetOrigin (fixed_t x, fixed_t y, fixed_t z);
 
 	AActorPtr ptr(){ return self; }
-	
+
 	//
 	// ActorBlockMapListNode
 	//
@@ -579,12 +621,12 @@ public:
 	private:
 		void clear();
 		size_t getIndex(int bmx, int bmy);
-		
-		static const size_t BLOCKSX = 3;
-		static const size_t BLOCKSY = 3;
+
+		static constexpr size_t BLOCKSX = 3;
+		static constexpr size_t BLOCKSY = 3;
 
 		AActor		*actor;
-			
+
 		// the top-left blockmap the actor is in
 		int			originx;
 		int			originy;
@@ -597,7 +639,9 @@ public:
 		AActor		*next[BLOCKSX * BLOCKSY];
 		AActor		**prev[BLOCKSX * BLOCKSY];
 	};
-	
+
+	// Interaction info, by BLOCKMAP.
+    // Links in blocks (if needed).
 	ActorBlockMapListNode bmapnode;
 };
 

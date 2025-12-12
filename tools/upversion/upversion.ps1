@@ -13,11 +13,11 @@ $min = "$env:MINORVERSION"
 $patch = "$env:PATCHVERSION"
 
 if ([String]::IsNullOrWhiteSpace($maj)) {
-    $maj = "10"
+    $maj = "12"
 }
 
 if ([String]::IsNullOrWhiteSpace($min)) {
-    $min = "6"
+    $min = "0"
 }
 
 if ([String]::IsNullOrWhiteSpace($patch)) {
@@ -32,7 +32,7 @@ $majminpatchbuildComma = "$maj,$min,$patch,0"
 
 if (([int]$maj -le 9) -and ([int]$min -le 9) -and ([int]$patch -le 9))
 {
-  $configver = "$maj" + "$min" + "$patch"  
+  $configver = "$maj" + "$min" + "$patch"
 }
 else
 {
@@ -44,12 +44,12 @@ $year = "2006-$curYear"
 $majminpatchFiles = @(
 '.\README',
 '.\CMakeLists.txt',
-'.\Xbox\README.Xbox',
 '.\ag-odalaunch\res\Info.plist',
 '.\common\version.h',
 '.\odalaunch\res\Info.plist',
 '.\switch.cmake',
-'.\tools\upversion\upversion.ini'
+'.\tools\upversion\upversion.ini',
+'.\packaging\linux\net.odamex.Odamex.metainfo.xml'
 )
 
 $majminpatchCfgs = Get-ChildItem '.\config-samples' -Filter "*.cfg"
@@ -139,7 +139,7 @@ foreach ($file in $configverFiles) {
    }
 }
 
-# Update years (e.g. 2006-2024)
+# Update years (e.g. 2006-2025)
 foreach ($file in $yearFiles) {
    $filename = $file.FullName
    $content = Get-Content -Raw $filename

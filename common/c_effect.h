@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -30,6 +30,7 @@
 #define FX_ROCKET			0x00000001
 #define FX_GRENADE			0x00000002
 #define FX_VISIBILITYPULSE	0x00000040
+#define FX_FRIENDHEARTS 0x00000080
 
 #define FX_FOUNTAINMASK		0x00070000
 #define FX_FOUNTAINSHIFT	16

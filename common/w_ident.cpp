@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -37,10 +37,10 @@
 
 #include "w_ident.h"
 
-//static const uint32_t IDENT_NONE = 0; // unused
-static const uint32_t IDENT_COMMERCIAL = BIT(0);
-static const uint32_t IDENT_IWAD = BIT(1);
-static const uint32_t IDENT_DEPRECATED = BIT(2);
+//static constexpr uint32_t IDENT_NONE = 0; // unused
+static constexpr uint32_t IDENT_COMMERCIAL = BIT(0);
+static constexpr uint32_t IDENT_IWAD = BIT(1);
+static constexpr uint32_t IDENT_DEPRECATED = BIT(2);
 
 struct identData_t
 {
@@ -64,10 +64,11 @@ struct identData_t
 #define FREEDM_PREFIX "FreeDM"
 #define NERVE_PREFIX "No Rest for the Living"
 #define MASTERLV_PREFIX "Master Levels"
+#define CHEX3_PREFIX "Chex Quest 3"
 
 #define PWAD_NO_WEIGHT 0
 
-static const identData_t identdata[] = {
+static constexpr identData_t identdata[] = {
     // ------------------------------------------------------------------------
     // DOOM2.WAD
     // ------------------------------------------------------------------------
@@ -551,6 +552,15 @@ static const identData_t identdata[] = {
     // ID1.WAD
     // ------------------------------------------------------------------------
     {
+        "Legacy of Rust v1.3",              // mIdName
+        "ID1.WAD",                          // mFilename
+        "666CB0E0",                         // mCRC32Sum
+        "713C5A3C1734B1D55B2813A3DD0136D9", // mMd5Sum
+        "Legacy of Rust",                   // mGroupName
+        IDENT_COMMERCIAL,                   // flags
+        PWAD_NO_WEIGHT                      // weight
+    },
+    {
         "Legacy of Rust v1.2",              // mIdName
         "ID1.WAD",                          // mFilename
         "3A495080",                         // mCRC32Sum
@@ -573,7 +583,16 @@ static const identData_t identdata[] = {
     // IDDM1.WAD
     // ------------------------------------------------------------------------
     {
-        "ID Deathmatch Pack #1",            // mIdName
+        "ID Deathmatch Pack #1 v1.3",       // mIdName
+        "IDDM1.WAD",                        // mFilename
+        "585C7750",                         // mCRC32Sum
+        "CB92010B8EC05F8924AC966A8ED95B74", // mMd5Sum
+        "ID Deathmatch Pack #1",            // mGroupName
+        IDENT_COMMERCIAL,                   // flags
+        PWAD_NO_WEIGHT                      // weight
+    },
+    {
+        "ID Deathmatch Pack #1 v1.1",       // mIdName
         "IDDM1.WAD",                        // mFilename
         "11fe5048",                         // mCRC32Sum
         "5670fd8fe8eb6910ec28f9e27969d84f", // mMd5Sum
@@ -622,6 +641,32 @@ static const identData_t identdata[] = {
         "ec81d166",                         // mCRC32Sum
         "b3247939c60f6a819c625036b52a5f53", // mMd5Sum
         "id1-weap",                         // mGroupName
+        IDENT_COMMERCIAL,                   // flags
+        PWAD_NO_WEIGHT                      // weight
+    },
+
+    // ------------------------------------------------------------------------
+    // ID1-TEX.WAD
+    // ------------------------------------------------------------------------
+    {
+        "id1-tex v1.0",                     // mIdName
+        "ID1-TEX.WAD",                      // mFilename
+        "128930F7",                         // mCRC32Sum
+        "187BFE543F8328B379E46957976E800D", // mMd5Sum
+        "id1-tex",                          // mGroupName
+        IDENT_COMMERCIAL,                   // flags
+        PWAD_NO_WEIGHT                      // weight
+    },
+
+    // ------------------------------------------------------------------------
+    // ID1-MUS.WAD
+    // ------------------------------------------------------------------------
+    {
+        "id1-mus v1.0",                     // mIdName
+        "ID1-MUS.WAD",                      // mFilename
+        "815C9CA8",                         // mCRC32Sum
+        "436C83DD83A47F8DD251BA15108E9459", // mMd5Sum
+        "id1-mus",                          // mGroupName
         IDENT_COMMERCIAL,                   // flags
         PWAD_NO_WEIGHT                      // weight
     },
@@ -962,6 +1007,45 @@ static const identData_t identdata[] = {
     },
 
     // ------------------------------------------------------------------------
+    // CHEX3ODX-RCD4.WAD
+    // ------------------------------------------------------------------------
+    {
+        CHEX3_PREFIX " v2.0 RC4",           // mIdName
+        "CHEX3ODX-RC4.WAD",                 // mFilename
+        "D85A48E2",                         // mCRC32Sum
+        "D7FF45AD937D8F26D0723D70349E38CC", // mMd5Sum
+        "chex3v2",                          // mGroupName
+        IDENT_IWAD,                         // flags
+        600,                                // weight
+    },
+
+    // ------------------------------------------------------------------------
+    // CHEX3V.WAD
+    // ------------------------------------------------------------------------
+    {
+        CHEX3_PREFIX " Vanilla Edition",    // mIdName
+        "CHEX3V.WAD",                       // mFilename
+        "C57A9F82",                         // mCRC32Sum
+        "99325880D3D91EE1F8B47BFD9665A887", // mMd5Sum
+        "chex3vanilla",                     // mGroupName
+        IDENT_IWAD,                         // flags
+        600,                                // weight
+    },
+
+    // ------------------------------------------------------------------------
+    // CHEX3D2.WAD
+    // ------------------------------------------------------------------------
+    {
+        CHEX3_PREFIX "V Modding Version",   // mIdName
+        "CHEX3D2.WAD",                      // mFilename
+        "67EA7CD5",                         // mCRC32Sum
+        "B43DB49801C6C9577B89810A8650CF1D", // mMd5Sum
+        "chex3vanillad2",                   // mGroupName
+        IDENT_IWAD,                         // flags
+        600,                                // weight
+    },
+
+    // ------------------------------------------------------------------------
     // HACX.WAD
     // ------------------------------------------------------------------------
     {
@@ -1093,12 +1177,12 @@ public:
 
 		if (!crc32Hash.empty())
 		{
-			mCRC32SumLookup.insert(std::make_pair(file->mCRC32Sum, id));
+			mCRC32SumLookup.emplace(file->mCRC32Sum, id);
 		}
 
 		if (!md5Hash.empty())
 		{
-			mMd5SumLookup.insert(std::make_pair(file->mMd5Sum, id));
+			mMd5SumLookup.emplace(file->mMd5Sum, id);
 		}
 
         if (iwad)
@@ -1117,9 +1201,9 @@ public:
 	bool isCommercialFilename(const std::string& filename) const
 	{
 		OString upper = StdStringToUpper(filename);
-		for (IdentifierTable::const_iterator it = mIdentifiers.begin(); it != mIdentifiers.end(); ++it)
+		for (const auto& id : mIdentifiers)
 		{
-			if (it->mIsCommercial && it->mFilename == upper)
+			if (id.mIsCommercial && id.mFilename == upper)
 				return true;
 		}
 		return false;
@@ -1128,10 +1212,9 @@ public:
 	bool isKnownIWADFilename(const std::string& filename) const
 	{
 		OString upper = StdStringToUpper(filename);
-		for (IdentifierTable::const_iterator it = mIdentifiers.begin();
-		     it != mIdentifiers.end(); ++it)
+		for (const auto& id : mIdentifiers)
 		{
-			if (it->mIsIWAD && it->mFilename == upper)
+			if (id.mIsIWAD && id.mFilename == upper)
 				return true;
 		}
 		return false;
@@ -1164,8 +1247,8 @@ public:
 
 		// [SL] not an offical IWAD.
 		// Check for lumps that are required by vanilla Doom.
-		static const int NUM_CHECKLUMPS = 6;
-		static const char checklumps[NUM_CHECKLUMPS][8] = {
+		static constexpr int NUM_CHECKLUMPS = 6;
+		static constexpr char checklumps[NUM_CHECKLUMPS][8] = {
 		    {'P', 'L', 'A', 'Y', 'P', 'A', 'L'},      // 0
 		    {'C', 'O', 'L', 'O', 'R', 'M', 'A', 'P'}, // 1
 		    {'F', '_', 'S', 'T', 'A', 'R', 'T'},      // 2
@@ -1192,7 +1275,7 @@ public:
 		return file1->mGroupName == file2->mGroupName;
 	}
 
-	const OString identify(const OResFile& file)
+	const OString identify(const OResFile& file) const
 	{
 		const fileIdentifier_t* fileid = lookupByMd5Sum(file.getMD5());
 
@@ -1202,8 +1285,8 @@ public:
 		// Not a registered file.
 		// Try to identify if it's compatible with known IWADs.
 
-		static const int NUM_CHECKLUMPS = 12;
-		static const char checklumps[NUM_CHECKLUMPS][8] = {
+		static constexpr int NUM_CHECKLUMPS = 12;
+		static constexpr char checklumps[NUM_CHECKLUMPS][8] = {
 			{ 'E','1','M','1' },					// 0
 			{ 'E','2','M','1' },					// 1
 			{ 'E','4','M','1' },					// 2
@@ -1290,11 +1373,9 @@ public:
 
 	void dump() const
 	{
-		for (IdentifierTable::const_iterator it = mIdentifiers.begin();
-		     it != mIdentifiers.end(); ++it)
+		for (const auto& id : mIdentifiers)
 		{
-			Printf(PRINT_HIGH, "%s %s %s\n", it->mGroupName.c_str(),
-			       it->mFilename.c_str(), it->mMd5Sum.getHexCStr());
+			PrintFmt(PRINT_HIGH, "{} {} {}\n", id.mGroupName, id.mFilename, id.mMd5Sum.getHexStr());
 		}
 	}
 
@@ -1380,111 +1461,154 @@ const fileIdentifier_t* W_GameInfo(const OMD5Hash& md5)
 //
 void W_ConfigureGameInfo(const OResFile& iwad)
 {
-	extern gameinfo_t SharewareGameInfo;
-	extern gameinfo_t RegisteredGameInfo;
-	extern gameinfo_t RetailGameInfo;
-	extern gameinfo_t CommercialGameInfo;
-	extern gameinfo_t RetailBFGGameInfo;
-	extern gameinfo_t CommercialBFGGameInfo;
-
 	const OString idname = identtab.identify(iwad);
+
+    gameinfo = gameinfo_t();
 
 	if (idname.find("REKKR") == 0)
     {
 		gamemode = retail;
-		gameinfo = RetailGameInfo;
 		gamemission = doom;
+		gameinfo.flags = GI_MENUHACK_RETAIL;
+		gameinfo.maxSwitch = 2;
+		gameinfo.titleString = "REKKR";
 	}
 	else if (idname.find("HACX") == 0)
 	{
-		gameinfo = CommercialGameInfo;
 		gamemode = commercial;
 		gamemission = commercial_hacx;
+		gameinfo.flags = GI_MAPxx | GI_MENUHACK_COMMERCIAL;
+		gameinfo.maxSwitch = 3;
+		gameinfo.titleString = "HACX";
 	}
 	else if (idname.find(OStringToUpper(OString(PLUTONIA_PREFIX))) == 0)
 	{
-		gameinfo = CommercialGameInfo;
 		gamemode = commercial;
 		gamemission = pack_plut;
+		gameinfo.flags = GI_MAPxx | GI_MENUHACK_COMMERCIAL;
+		gameinfo.maxSwitch = 3;
+		gameinfo.titleString = "DOOM 2: Plutonia Experiment";
 	}
 	else if (idname.find(OStringToUpper(OString(TNT_PREFIX))) == 0)
 	{
-		gameinfo = CommercialGameInfo;
 		gamemode = commercial;
 		gamemission = pack_tnt;
+		gameinfo.flags = GI_MAPxx | GI_MENUHACK_COMMERCIAL;
+		gameinfo.maxSwitch = 3;
+		gameinfo.titleString = "DOOM 2: TNT - Evilution";
+	}
+    else if (idname.find("CHEX QUEST 3V MODDING") == 0)
+	{
+		gamemission = chex3d2;
+		gamemode = commercial;
+		gameinfo.flags = GI_MAPxx | GI_MENUHACK_COMMERCIAL;
+		gameinfo.maxSwitch = 3;
+		gameinfo.titleString = "Chex Quest 3 Modding Version";
+	}
+    else if (idname.find(OStringToUpper(OString(CHEX3_PREFIX))) == 0)
+	{
+		gamemission = idname.find("VANILLA") != std::string::npos ? chex3v : chex3;
+		gamemode = registered;
+		gameinfo.flags = GI_MENUHACK_RETAIL;
+		gameinfo.maxSwitch = 2;
+		gameinfo.titleString = "Chex Quest 3";
 	}
 	else if (idname.find("CHEX QUEST") == 0)
 	{
 		gamemission = chex;
 		gamemode = retail_chex;
-		gameinfo = RetailGameInfo;
+		gameinfo.flags = GI_MENUHACK_RETAIL;
+		gameinfo.maxSwitch = 2;
+		gameinfo.titleString = "Chex Quest";
 	}
 	else if (idname.find(OStringToUpper(OString(FREEDOOM1_PREFIX))) == 0)
 	{
 		gamemode = retail;
-		gameinfo = RetailGameInfo;
 		gamemission = retail_freedoom;
+		gameinfo.flags = GI_MENUHACK_RETAIL;
+		gameinfo.maxSwitch = 2;
+		gameinfo.titleString = "FreeDoom: Phase 1";
 	}
 	else if (idname.find("FREEDOOM") == 0)
 	{
 		gamemode = commercial;
-		gameinfo = CommercialGameInfo;
 		gamemission = commercial_freedoom;
+		gameinfo.flags = GI_MAPxx | GI_MENUHACK_COMMERCIAL;
+		gameinfo.maxSwitch = 3;
+		gameinfo.titleString = "FreeDoom: Phase 2";
 	}
 	else if (idname.find(OStringToUpper(OString(FREEDOOM2_PREFIX))) == 0)
 	{
 		gamemode = commercial;
-		gameinfo = CommercialGameInfo;
 		gamemission = commercial_freedoom;
+		gameinfo.flags = GI_MAPxx | GI_MENUHACK_COMMERCIAL;
+		gameinfo.maxSwitch = 3;
+		gameinfo.titleString = "FreeDoom: Phase 2";
 	}
 
 	else if (idname.find(OStringToUpper(OString(FREEDM_PREFIX))) == 0)
 	{
 		gamemode = commercial;
-		gameinfo = CommercialGameInfo;
 		gamemission = commercial_freedoom;
+		gameinfo.flags = GI_MAPxx | GI_MENUHACK_COMMERCIAL;
+		gameinfo.maxSwitch = 3;
+		gameinfo.titleString = "FreeDM";
 	}
 	else if (idname.find(OStringToUpper(OString(DOOMSW_PREFIX))) == 0)
 	{
 		gamemode = shareware;
-		gameinfo = SharewareGameInfo;
 		gamemission = doom;
+		gameinfo.flags = GI_SHAREWARE | GI_NOCRAZYDEATH;
+		gameinfo.maxSwitch = 1;
+		gameinfo.titleString = "DOOM Shareware";
 	}
 	else if (idname.find(OStringToUpper(OString(UDOOM_PREFIX " BFG"))) == 0)
 	{
 		gamemode = retail_bfg;
-		gameinfo = RetailBFGGameInfo;
 		gamemission = doom;
+		gameinfo.flags = GI_MENUHACK_RETAIL;
+		gameinfo.maxSwitch = 2;
+		gameinfo.titleString = "The Ultimate DOOM (BFG Edition)";
 	}
 	else if (idname.find(OStringToUpper(OString(UDOOM_PREFIX))) == 0)
 	{
 		gamemode = retail;
-		gameinfo = RetailGameInfo;
 		gamemission = doom;
+		gameinfo.flags = GI_MENUHACK_RETAIL;
+		gameinfo.maxSwitch = 2;
+		gameinfo.titleString = "The Ultimate DOOM";
 	}
 	else if (idname.find(OStringToUpper(OString(DOOM2_PREFIX " BFG"))) == 0)
 	{
-		gameinfo = CommercialBFGGameInfo;
 		gamemode = commercial_bfg;
 		gamemission = doom2;
+		gameinfo.flags = GI_MAPxx | GI_MENUHACK_COMMERCIAL;
+		gameinfo.maxSwitch = 3;
+		gameinfo.titleString = "DOOM 2: Hell on Earth (BFG Edition)";
 	}
 	else if (idname.find(OStringToUpper(OString(DOOM2_PREFIX))) == 0)
 	{
-		gameinfo = CommercialGameInfo;
 		gamemode = commercial;
 		gamemission = doom2;
+		gameinfo.flags = GI_MAPxx | GI_MENUHACK_COMMERCIAL;
+		gameinfo.maxSwitch = 3;
+		gameinfo.titleString = "DOOM 2: Hell on Earth";
 	}
 	else if (idname.find(OStringToUpper(OString(DOOM_PREFIX))) == 0)
 	{
 		gamemode = registered;
-		gameinfo = RegisteredGameInfo;
 		gamemission = doom;
+		gameinfo.flags = 0;
+		gameinfo.maxSwitch = 2;
+		gameinfo.titleString = "DOOM Registered";
 	}
 	else
 	{
 		gamemode = undetermined;
-		gameinfo = SharewareGameInfo;
 		gamemission = doom;
+		gameinfo.flags = GI_SHAREWARE | GI_NOCRAZYDEATH;
+		gameinfo.maxSwitch = 1;
+		gameinfo.titleString = "Unknown IWAD";
 	}
 }
 

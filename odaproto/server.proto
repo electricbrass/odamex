@@ -92,12 +92,12 @@ message LoadMap
 	{
 		string name = 1;
 		string hash = 2;
-	}	
+	}
 
 	repeated Resource wadnames = 1;
 	repeated Resource patchnames = 2;
 	string mapname = 3;
-	int32 time = 4;	
+	int32 time = 4;
 }
 
 // svc_consoleplayer
@@ -142,6 +142,7 @@ message SpawnPlayer
 {
 	int32 pid = 1;
 	Actor actor = 2;
+	uint32 cards = 3;
 }
 
 // svc_damageplayer
@@ -164,6 +165,13 @@ message KillMobj
 	int32 mod = 5;
 	bool joinkill = 6;
 	sint32 lives = 7; // Default is -1.
+}
+
+// svc_raisemobj
+message RaiseMobj
+{
+	uint32 source_netid = 1;
+	Actor corpse = 2;
 }
 
 // svc_fireweapon
@@ -349,7 +357,7 @@ message Say
 {
 	bool visibility = 1;
 	int32 pid = 2;
-	string message = 3;	
+	string message = 3;
 }
 
 // svc_ctfrefresh
@@ -455,7 +463,7 @@ message ResetMap
 message PlayerQueuePos
 {
 	int32 pid = 1;
-	int32 queuepos = 2;	
+	int32 queuepos = 2;
 }
 
 // svc_fullupdatestart
@@ -551,14 +559,14 @@ message ThinkerUpdate
 	{
 		int32 sector = 1;
 		int32 min_light = 2;
-		int32 max_light = 3;	
+		int32 max_light = 3;
 	}
 
 	message LightFlash
 	{
 		int32 sector = 1;
 		int32 min_light = 2;
-		int32 max_light = 3;	
+		int32 max_light = 3;
 	}
 
 	message Strobe
@@ -630,7 +638,8 @@ message MaplistUpdate
 	message Row
 	{
 		uint32 map = 1;
-		repeated uint32 wads = 2;
+		uint32 lastmap = 2;
+		repeated uint32 wads = 3;
 	}
 
 	int32 status = 1;
@@ -664,13 +673,12 @@ message HordeInfo
 	int32 wave = 2;
 	int32 wave_time = 3;
 	int32 boss_time = 4;
-	uint64 legacy_id = 5; // [AM] Remove me after 10.x.
-	int32 spawned_health = 6;
-	int32 killed_health = 7;
-	int32 boss_health = 8;
-	int32 boss_damage = 9;
-	int32 wave_start_health = 10;
-	uint64 define_id = 11;
+	int32 spawned_health = 5;
+	int32 killed_health = 6;
+	int32 boss_health = 7;
+	int32 boss_damage = 8;
+	int32 wave_start_health = 9;
+	uint64 define_id = 10;
 }
 
 // svc_netdemocap

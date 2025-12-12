@@ -3,7 +3,7 @@
 //
 // $Id$
 //
-// Copyright (C) 2006-2021 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -73,9 +73,7 @@ static void ParsePowerupConfig(OScanner& os, hordeDefine_t::powConfig_t& outConf
 		else
 		{
 			// We don't know what this token is.
-			std::string buffer;
-			StrFormat(buffer, "Unknown Powerup Token \"%s\".", os.getToken().c_str());
-			os.error(buffer.c_str());
+			os.error("Unknown Powerup Token \"{}\".", os.getToken());
 		}
 	}
 }
@@ -108,12 +106,17 @@ static void ParseMonsterConfig(OScanner& os, hordeDefine_t::monConfig_t& outConf
 			os.mustScanFloat();
 			outConfig.chance = os.getTokenFloat();
 		}
+		else if (os.compareToken("limit"))
+		{
+			os.mustScan();
+			os.assertTokenIs("=");
+			os.mustScanInt();
+			outConfig.limit = os.getTokenInt();
+		}
 		else
 		{
 			// We don't know what this token is.
-			std::string buffer;
-			StrFormat(buffer, "Unknown Monster/Boss Token \"%s\".", os.getToken().c_str());
-			os.error(buffer.c_str());
+			os.error("Unknown Monster/Boss Token \"{}\".", os.getToken());
 		}
 	}
 }
@@ -176,10 +179,7 @@ static void ParseDefine(OScanner& os)
 					}
 					else
 					{
-						std::string buffer;
-						StrFormat(buffer, "Unknown weapon \"%s\".",
-						          os.getToken().c_str());
-						os.error(buffer.c_str());
+						os.error("Unknown weapon \"{}\".", os.getToken());
 					}
 				}
 				define.weapons.push_back(weapon);
@@ -199,9 +199,7 @@ static void ParseDefine(OScanner& os)
 			const mobjtype_t type = NameOrAliasToMobj(os.getToken());
 			if (type == MT_NULL)
 			{
-				std::string buffer;
-				StrFormat(buffer, "Unknown powerup \"%s\".", os.getToken().c_str());
-				os.error(buffer.c_str());
+				os.error("Unknown powerup \"{}\".", os.getToken());
 			}
 
 			// Config block.
@@ -226,9 +224,7 @@ static void ParseDefine(OScanner& os)
 			const mobjtype_t type = NameOrAliasToMobj(os.getToken());
 			if (type == MT_NULL)
 			{
-				std::string buffer;
-				StrFormat(buffer, "Unknown monster \"%s\".", os.getToken().c_str());
-				os.error(buffer.c_str());
+				os.error("Unknown monster \"{}\".", os.getToken());
 			}
 
 			// Config block.
@@ -253,9 +249,7 @@ static void ParseDefine(OScanner& os)
 			const mobjtype_t type = NameOrAliasToMobj(os.getToken());
 			if (type == MT_NULL)
 			{
-				std::string buffer;
-				StrFormat(buffer, "Unknown boss \"%s\".", os.getToken().c_str());
-				os.error(buffer.c_str());
+				os.error("Unknown boss \"{}\".", os.getToken());
 			}
 
 			// Config block.
@@ -276,25 +270,22 @@ static void ParseDefine(OScanner& os)
 		else
 		{
 			// We don't know what this token is.
-			std::string buffer;
-			StrFormat(buffer, "Unknown Token \"%s\".", os.getToken().c_str());
-			os.error(buffer.c_str());
+			os.error("Unknown Token \"{}\".", os.getToken());
 		}
 	}
 
 	// Add ammo for the weapons in order of their definition.
 	std::set<ammotype_t> ammoAdded;
-	for (size_t i = 0; i < define.weapons.size(); i++)
+	for (const auto weap : define.weapons)
 	{
 		// Is the weapon valid?
-		const weapontype_t& weap = define.weapons.at(i);
 		if (weap < wp_fist || weap >= NUMWEAPONS)
 		{
 			continue;
 		}
 
 		// Does the weapon have ammo?
-		const ammotype_t& ammo = ::weaponinfo[weap].ammotype;
+		const ammotype_t ammo = ::weaponinfo[weap].ammotype;
 		if (ammo == am_noammo)
 		{
 			continue;
@@ -310,61 +301,51 @@ static void ParseDefine(OScanner& os)
 		define.ammos.push_back(ammo);
 	}
 
-	std::string buf;
 	if (define.name.empty())
 	{
 		os.error("Define doesn't have a name.");
 	}
 	if (define.weapons.empty())
 	{
-		StrFormat(buf, "No weapon pickups found for define \"%s\".", define.name.c_str());
-		os.warning(buf.c_str());
+		os.warning("No weapon pickups found for define \"{}\".", define.name);
 	}
 	if (define.monsters.empty())
 	{
-		StrFormat(buf, "No monsters found for define \"%s\".", define.name.c_str());
-		os.error(buf.c_str());
+		os.error("No monsters found for define \"{}\".", define.name);
 	}
 	if (define.powerups.empty())
 	{
-		StrFormat(buf, "No powerups found for define \"%s\".", define.name.c_str());
-		os.error(buf.c_str());
+		os.error("No powerups found for define \"{}\".", define.name);
 	}
 	if (define.minGroupHealth < 0)
 	{
-		StrFormat(buf, "Minimum group health for define \"%s\" was not set.",
-		          define.name.c_str());
-		os.error(buf.c_str());
+		os.error("Minimum group health for define \"{}\" was not set.",
+		         define.name);
 	}
 	if (define.maxGroupHealth <= 0)
 	{
-		StrFormat(buf, "Maximum group health for define \"%s\" was not set.",
-		          define.name.c_str());
-		os.error(buf.c_str());
+		os.error("Maximum group health for define \"{}\" was not set.",
+		         define.name);
 	}
 	if (define.minGroupHealth > define.maxGroupHealth)
 	{
-		StrFormat(buf, "Maximum group health for define \"%s\" is less than minimum.",
-		          define.name.c_str());
-		os.error(buf.c_str());
+		os.error("Maximum group health for define \"{}\" is less than minimum.",
+		         define.name);
 	}
 	if (define.minBossHealth < 0)
 	{
-		StrFormat(buf, "Minimum boss health for define \"%s\" was not set.",
-		          define.name.c_str());
-		os.error(buf.c_str());
+		os.error("Minimum boss health for define \"{}\" was not set.",
+		         define.name);
 	}
 	if (define.maxBossHealth <= 0)
 	{
-		StrFormat(buf, "Maximum boss health for define \"%s\" was not set.",
-		          define.name.c_str());
-		os.error(buf.c_str());
+		os.error("Maximum boss health for define \"{}\" was not set.",
+		         define.name);
 	}
 	if (define.minBossHealth > define.maxBossHealth)
 	{
-		StrFormat(buf, "Maximum boss health for define \"%s\" is less than minimum.",
-		          define.name.c_str());
-		os.error(buf.c_str());
+		os.error("Maximum boss health for define \"{}\" is less than minimum.",
+		         define.name);
 	}
 
 	::WAVE_DEFINES.push_back(define);
@@ -382,23 +363,19 @@ static void ParseAlias(OScanner& os)
 	if (otype == MT_NULL)
 	{
 		// We don't know what this token is.
-		std::string buffer;
-		StrFormat(buffer, "Can't alias unknown thing \"%s\".", original.c_str());
-		os.error(buffer.c_str());
+		os.error("Can't alias unknown thing \"{}\".", original);
 	}
 
 	if (!CheckIfDehActorDefined(otype))
 	{
 		// [Blair] DEHEXTRA monster not defined
-		std::string buffer;
-		StrFormat(buffer, "The following actor is undefined: \"%s\".", original.c_str());
-		os.error(buffer.c_str());
+		os.error("The following actor is undefined: \"{}\".", original);
 	}
 
-	g_aliasMap.insert(std::make_pair(alias, otype));
+	g_aliasMap.emplace(alias, otype);
 }
 
-static void ParseHordeDef(const int lump, const char* name)
+static void ParseHordeDef(const int lump, const OLumpName& name)
 {
 	const char* buffer = static_cast<char*>(W_CacheLumpNum(lump, PU_STATIC));
 
@@ -427,9 +404,7 @@ static void ParseHordeDef(const int lump, const char* name)
 		else
 		{
 			// We don't know what this token is.
-			std::string buffer;
-			StrFormat(buffer, "Unknown Token \"%s\".", os.getToken().c_str());
-			os.error(buffer.c_str());
+			os.error("Unknown Token \"{}\".", os.getToken());
 		}
 	}
 }
@@ -465,15 +440,7 @@ static void ParseHordeDefs()
 	// Must be stable for wave ID's to be the same on client and server.
 	std::stable_sort(::WAVE_DEFINES.begin(), ::WAVE_DEFINES.end(), CmpHordeDefs);
 
-	// Dedupe wave defines.  Note that this has a gigantic hack for 10.0 that keeps
-	// track of the original wave ID so it can be sent to 10.0 clients.  This hack
-	// should be removed in 11.0 at the soonest.
-
-	for (size_t i = 0; i < ::WAVE_DEFINES.size(); i++)
-	{
-		::WAVE_DEFINES[i].legacyID = i;
-	}
-
+	// Dedupe wave defines.
 	for (std::vector<hordeDefine_t>::iterator it = ::WAVE_DEFINES.begin();
 	     it != ::WAVE_DEFINES.end(); ++it)
 	{
@@ -516,9 +483,9 @@ const hordeDefine_t& G_HordeDefine(size_t id)
 {
 	if (id >= ::WAVE_DEFINES.size())
 	{
-		Printf(PRINT_WARNING,
-		       "Tried to access horde wave %lu but only have %lu horde defines!\n", id,
-		       ::WAVE_DEFINES.size());
+		PrintFmt(PRINT_WARNING,
+		         "Tried to access horde wave {} but only have {} horde defines!\n", id,
+		         ::WAVE_DEFINES.size());
 		return EMPTY_WAVE_DEFINE;
 	}
 

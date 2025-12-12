@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -40,8 +40,10 @@
 #include "svc_message.h"
 #include "p_horde.h"
 #include "com_misc.h"
+#include "gi.h"
 #include "g_skill.h"
 #include "p_mapformat.h"
+#include "p_unlag.h"
 
 #ifdef SERVER_APP
 #include "sv_main.h"
@@ -56,6 +58,7 @@ EXTERN_CVAR(sv_monsterdamage)
 EXTERN_CVAR(sv_fraglimit)
 EXTERN_CVAR(sv_fragexitswitch) // [ML] 04/4/06: Added compromise for older exit method
 EXTERN_CVAR(sv_friendlyfire)
+EXTERN_CVAR(sv_friendlymonsterfire)
 EXTERN_CVAR(sv_allowexit)
 EXTERN_CVAR(sv_forcerespawn)
 EXTERN_CVAR(sv_forcerespawntime)
@@ -63,6 +66,7 @@ EXTERN_CVAR(co_zdoomphys)
 EXTERN_CVAR(cl_predictpickup)
 EXTERN_CVAR(co_zdoomsound)
 EXTERN_CVAR(co_globalsound)
+EXTERN_CVAR(co_helpfriends)
 EXTERN_CVAR(g_lives)
 
 // sapientlion - experimental
@@ -85,6 +89,7 @@ void SV_SocketTouch(player_t &player, team_t f);
 void SV_SendKillMobj(AActor *source, AActor *target, AActor *inflictor, bool joinkill);
 void SV_SendDamagePlayer(player_t *player, AActor* inflictor, int healthDamage, int armorDamage);
 void SV_SendDamageMobj(AActor *target, int pain);
+void SV_UpdateMobj(AActor* mo);
 void SV_ActorTarget(AActor *actor);
 void PickupMessage(AActor *toucher, const char *message);
 void WeaponPickupMessage(AActor *toucher, weapontype_t &Weapon);
@@ -96,12 +101,12 @@ void SV_ShareKeys(card_t card, player_t& player);
 static void PersistPlayerDamage(player_t& p)
 {
 	// Send this information to everybody.
-	for (Players::iterator it = ::players.begin(); it != ::players.end(); ++it)
+	for (auto& player : ::players)
 	{
-		if (!it->ingame())
+		if (!player.ingame())
 			continue;
 
-		MSG_WriteSVC(&it->client.netbuf, SVC_PlayerMembers(p, SVC_PM_DAMAGE));
+		MSG_WriteSVC(&player.client.netbuf, SVC_PlayerMembers(p, SVC_PM_DAMAGE));
 	}
 }
 
@@ -123,12 +128,12 @@ static void PersistPlayerScore(player_t& p, const bool lives, const bool score)
 		flags |= SVC_PM_SCORE;
 
 	// Send this information to everybody.
-	for (Players::iterator it = ::players.begin(); it != ::players.end(); ++it)
+	for (auto& player : players)
 	{
-		if (!it->ingame())
+		if (!player.ingame())
 			continue;
 
-		MSG_WriteSVC(&it->client.netbuf, SVC_PlayerMembers(p, flags));
+		MSG_WriteSVC(&player.client.netbuf, SVC_PlayerMembers(p, flags));
 	}
 }
 
@@ -139,11 +144,11 @@ static void PersistTeamScore(team_t team)
 		return;
 
 	// Send this information to everybody.
-	for (Players::iterator it = ::players.begin(); it != ::players.end(); ++it)
+	for (auto& player : players)
 	{
-		if (!it->ingame())
+		if (!player.ingame())
 			continue;
-		MSG_WriteSVC(&it->client.netbuf, SVC_TeamMembers(team));
+		MSG_WriteSVC(&player.client.netbuf, SVC_TeamMembers(team));
 	}
 }
 
@@ -254,8 +259,6 @@ int P_GetDeathCount(const player_t* player)
 // mbf21: take into account new weapon autoswitch flags
 static ItemEquipVal P_GiveAmmoAutoSwitch(player_t* player, ammotype_t ammo, int oldammo)
 {
-	int i;
-
 	// Keep the original behaviour while playbacking demos only.
 	if (demoplayback)
 	{
@@ -296,15 +299,16 @@ static ItemEquipVal P_GiveAmmoAutoSwitch(player_t* player, ammotype_t ammo, int 
 	else if (player->userinfo.switchweapon != WPSW_NEVER)
 	{
 		if (weaponinfo[player->readyweapon].flags & WPF_AUTOSWITCHFROM &&
-		    player->ammo[weaponinfo[player->readyweapon].ammotype] != ammo)
+			(weaponinfo[player->readyweapon].ammotype == am_noammo ||
+		     player->ammo[weaponinfo[player->readyweapon].ammotype] != ammo))
 		{
-			for (i = NUMWEAPONS - 1; i > player->readyweapon; --i)
+			for (int i = NUMWEAPONS - 1; i > player->readyweapon; --i)
 			{
 				if (player->weaponowned[i] &&
 				    !(weaponinfo[i].flags & WPF_NOAUTOSWITCHTO) &&
 				    weaponinfo[i].ammotype == ammo &&
-				    weaponinfo[i].ammouse > oldammo &&
-				    weaponinfo[i].ammouse <= player->ammo[ammo])
+				    weaponinfo[i].ammopershot > oldammo &&
+				    weaponinfo[i].ammopershot <= player->ammo[ammo])
 				{
 					player->pendingweapon = (weapontype_t)i;
 					break;
@@ -324,7 +328,7 @@ ItemEquipVal P_GiveAmmo(player_t *player, ammotype_t ammotype, float num)
 
 	if (ammotype < 0 || ammotype > NUMAMMO)
     {
-		I_Error("P_GiveAmmo: bad type %i", ammotype);
+		I_Error("P_GiveAmmo: bad type {}", ammotype);
     }
 
 	if (player->ammo[ammotype] == player->maxammo[ammotype])
@@ -380,14 +384,15 @@ ItemEquipVal P_GiveAmmo(player_t *player, ammotype_t ammotype, float num)
 // P_GiveWeapon
 // The weapon name may have a MF_DROPPED flag ored in.
 //
-ItemEquipVal P_GiveWeapon(player_t *player, weapontype_t weapon, BOOL dropped)
+ItemEquipVal P_GiveWeapon(player_t *player, weapontype_t weapon, bool dropped)
 {
 	bool gaveammo;
 	bool gaveweapon;
 
 	// [RH] Don't get the weapon if no graphics for it
-	state_t *state = states + weaponinfo[weapon].readystate;
-	if ((state->frame & FF_FRAMEMASK) >= sprites[state->sprite].numframes)
+	// state_t* state = states + weaponinfo[weapon].readystate;
+	const state_t& state = states[weaponinfo[weapon].readystate];
+	if ((state.frame & FF_FRAMEMASK) >= sprites[state.sprite].numframes)
 	{
 		return IEV_NotEquipped;
 	}
@@ -518,7 +523,7 @@ ItemEquipVal P_GiveCard(player_t *player, card_t card)
 	{
 #ifdef SERVER_APP
 		// Register the key
-		SV_ShareKeys(card, *player);	
+		SV_ShareKeys(card, *player);
 #endif
 
 
@@ -576,15 +581,87 @@ ItemEquipVal P_GivePower(player_t *player, int /*powertype_t*/ power)
 
 #include "v_textcolors.h"
 
+	/*
+ * @brief Player grabbed a resurrect player powerup
+ */
+static void P_ResurrectPlayerPowerUp(player_t* player)
+{
+	// Not lives game? Nothing to do.
+	if (!G_IsLivesGame())
+		return;
+
+	if (!player)
+		return;
+
+	// Grab all the players in game, make a list of their ids, then pick one at random
+	PlayersView ingame = PlayerQuery().notHasLives().execute().players;
+	std::vector<int> ingameplayers;
+	for (const auto& p : ingame)
+	{
+		if (p->id != player->id)
+			ingameplayers.push_back(p->id);
+	}
+
+	if (ingameplayers.empty())
+	{
+		SV_BroadcastPrintFmt("{} tried to resurrect someone, but everyone is alive!\n",
+		                   player->userinfo.netname);
+		return;
+	}
+
+	int arrayindex = M_RandomInt(ingameplayers.size());
+
+	int playerid = ingameplayers.at(arrayindex);
+
+	player_t* pl = &idplayer(playerid);
+
+	if (!validplayer(*pl))
+		return;
+
+	pl->lives += 1;
+	pl->playerstate = PST_REBORN;
+
+	SV_BroadcastPrintFmt("{} has brought {} back into the fight!\n",
+	                   player->userinfo.netname, pl->userinfo.netname);
+
+	// Send a res sound directly to this player.
+	MSG_WriteSVC(&pl->client.reliablebuf, SVC_PlayerInfo(*pl));
+	S_PlayerSound(pl, NULL, CHAN_INTERFACE, "misc/plraise", ATTN_NONE);
+
+	MSG_BroadcastSVC(CLBUF_RELIABLE, SVC_PlayerMembers(*pl, SVC_PM_LIVES),
+	                 playerid);
+}
+
+/*
+ * @brief Player grabbed an extra life powerup
+ */
+static void P_AwardExtraLifePowerUp(player_t* player)
+{
+	// Not lives game? Nothing to do.
+	if (!G_IsLivesGame())
+		return;
+
+	if (!player)
+		return;
+
+	SV_BroadcastPrintFmt("{} was awarded an extra life!\n",
+	                   player->userinfo.netname);
+
+	player->lives += 1;
+	MSG_WriteSVC(&player->client.reliablebuf, SVC_PlayerInfo(*player));
+	MSG_BroadcastSVC(CLBUF_RELIABLE, SVC_PlayerMembers(*player, SVC_PM_LIVES),
+	                 player->id);
+}
+
 /**
  * @brief Give the player a care package.
- * 
+ *
  * @detail A care package gives you a small collection of items based on what
  *         you're already holding.  TODO: These messages should be LANGUAGE'ed.
  */
 static void P_GiveCarePack(player_t* player)
 {
-	const int ammomulti[NUMAMMO] = {2, 1, 1, 2};
+	constexpr int ammomulti[NUMAMMO] = {2, 1, 1, 2};
 
 	// [AM] There is way too much going on in here to accurately predict.
 	if (!::serverside)
@@ -620,9 +697,8 @@ static void P_GiveCarePack(player_t* player)
 	// Players who are extremely low on ammo for a weapon they are holding
 	// always get ammo for that weapon.
 	const hordeDefine_t::ammos_t& ammos = P_HordeAmmos();
-	for (size_t i = 0; i < ammos.size(); i++)
+	for (const auto ammo : ammos)
 	{
-		const ammotype_t ammo = ammos.at(i);
 		if (blocks < 1)
 		{
 			break;
@@ -656,11 +732,11 @@ static void P_GiveCarePack(player_t* player)
 	if (blocks >= 1)
 	{
 		const hordeDefine_t::weapons_t& weapons = P_HordeWeapons();
-		for (size_t i = 0; i < weapons.size(); i++)
+		for (const auto weapon : weapons)
 		{
 			// No weapon is a special case that means give the player
 			// berserk strength (without the health).
-			if (weapons.at(i) == wp_none && player->powers[pw_strength] < 1)
+			if (weapon == wp_none && player->powers[pw_strength] < 1)
 			{
 				player->powers[pw_strength] = 1;
 				blocks -= 1;
@@ -669,13 +745,13 @@ static void P_GiveCarePack(player_t* player)
 				midmessage = "Got berserk";
 				break;
 			}
-			else if (weapons.at(i) != wp_none && !player->weaponowned[weapons.at(i)])
+			else if (weapon != wp_none && !player->weaponowned[weapon])
 			{
-				P_GiveWeapon(player, weapons.at(i), false);
+				P_GiveWeapon(player, weapon, false);
 				blocks -= 1;
 
 				message = "You found a weapon in this supply cache!";
-				switch (weapons.at(i))
+				switch (weapon)
 				{
 				case wp_chainsaw:
 					midmessage = "Got Chainsaw";
@@ -709,7 +785,7 @@ static void P_GiveCarePack(player_t* player)
 				case NUMWEAPONS:
 					break;
 				}
-				
+
 				break;
 			}
 		}
@@ -768,7 +844,7 @@ static void P_GiveCarePack(player_t* player)
 	}
 	else
 	{
-		Printf(PRINT_PICKUP, "%s\n", message.c_str());
+		PrintFmt(PRINT_PICKUP, "{}\n", message.c_str());
 		if (!midmessage.empty())
 		{
 			std::string buf = std::string(TEXTCOLOR_GREEN) + midmessage;
@@ -1121,6 +1197,18 @@ void P_GiveSpecial(player_t *player, AActor *special)
 		    M_LogWDLPickupEvent(player, special, WDL_PICKUP_CAREPACKAGE, false);
 			break;
 
+		case SPR_O1UP:
+		    // Award an extra life to the player who collects this
+		    P_AwardExtraLifePowerUp(player);
+		    M_LogWDLPickupEvent(player, special, WDL_PICKUP_EXTRALIFE, false);
+		    break;
+
+		case SPR_RSTM:
+		    // Resurrect a player with this power up
+		    P_ResurrectPlayerPowerUp(player);
+		    M_LogWDLPickupEvent(player, special, WDL_PICKUP_RESTEAMMATE, false);
+		    break;
+
 		// weapons
 	    case SPR_BFUG:
             val = P_GiveWeapon(player, wp_bfg, special->flags & MF_DROPPED);
@@ -1223,7 +1311,7 @@ void P_GiveSpecial(player_t *player, AActor *special)
 
 			if (!teamItemSuccess)
 			{
-				Printf(PRINT_HIGH, "P_SpecialThing: Unknown gettable thing %d: %s\n", special->sprite, special->info->name);
+				PrintFmt(PRINT_HIGH, "P_SpecialThing: Unknown gettable thing {}: {}\n", special->sprite, special->info->name);
 				return;
 			}
 		}
@@ -1314,9 +1402,9 @@ void P_TouchSpecialThing(AActor *special, AActor *toucher)
 	if (toucher->type == MT_AVATAR)
 	{
 		PlayersView pr = PlayerQuery().execute().players;
-		for (PlayersView::iterator it = pr.begin(); it != pr.end(); ++it)
+		for (const auto& player : pr)
 		{
-			P_GiveSpecial(*it, special);
+			P_GiveSpecial(player, special);
 		}
 	}
 	else if (toucher->player)
@@ -1330,27 +1418,21 @@ void P_TouchSpecialThing(AActor *special, AActor *toucher)
 // SexMessage: Replace parts of strings with gender-specific pronouns
 //
 // The following expansions are performed:
-//		%g -> he/she/it
-//		%h -> him/her/it
-//		%p -> his/her/its
+//		%g -> he/she/it/they
+//		%h -> him/her/it/them
+//		%p -> his/her/its/their
 //		%o -> other (victim)
 //		%k -> killer
 //
-void SexMessage (const char *from, char *to, int gender, const char *victim, const char *killer)
+void SexMessage (const char *from, char *to, gender_t gender, std::string_view victim, std::string_view killer)
 {
-	static const char *genderstuff[3][3] =
+	static constexpr std::string_view genderstuff[4][3] =
 	{
 		{ "he",  "him", "his" },
 		{ "she", "her", "her" },
-		{ "it",  "it",  "its" }
+		{ "it",  "it",  "its" },
+		{ "they",  "them",  "their" },
 	};
-	static const int gendershift[3][3] =
-	{
-		{ 2, 3, 3 },
-		{ 3, 3, 3 },
-		{ 2, 2, 3 }
-	};
-	const char *subst = NULL;
 
 	do
 	{
@@ -1361,6 +1443,7 @@ void SexMessage (const char *from, char *to, int gender, const char *victim, con
 		else
 		{
 			int gendermsg = -1;
+			std::string_view subst{};
 
 			switch (from[1])
 			{
@@ -1370,13 +1453,11 @@ void SexMessage (const char *from, char *to, int gender, const char *victim, con
 			case 'o':	subst = victim;	break;
 			case 'k':	subst = killer;	break;
 			}
-			if (subst != NULL)
+			if (!subst.empty())
 			{
-				int len = strlen (subst);
-				memcpy (to, subst, len);
-				to += len;
+				strncpy(to, subst.data(), subst.length());
+				to += subst.length();
 				from++;
-				subst = NULL;
 			}
 			else if (gendermsg < 0)
 			{
@@ -1384,8 +1465,8 @@ void SexMessage (const char *from, char *to, int gender, const char *victim, con
 			}
 			else
 			{
-				strcpy (to, genderstuff[gender][gendermsg]);
-				to += gendershift[gender][gendermsg];
+				strncpy(to, genderstuff[gender][gendermsg].data(), genderstuff[gender][gendermsg].length());
+				to += genderstuff[gender][gendermsg].length();
 				from++;
 			}
 		}
@@ -1407,7 +1488,7 @@ static void ClientObituary(AActor* self, AActor* inflictor, AActor* attacker)
 	if (!G_CanShowObituary() || gamestate != GS_LEVEL)
 		return;
 
-	int gender = self->player->userinfo.gender;
+	gender_t gender = self->player->userinfo.gender;
 
 	// Treat voodoo dolls as unknown deaths
 	if (inflictor && inflictor->player == self->player)
@@ -1583,9 +1664,9 @@ static void ClientObituary(AActor* self, AActor* inflictor, AActor* attacker)
 
 	if (message)
 	{
-		SexMessage(message, gendermessage, gender, self->player->userinfo.netname.c_str(),
-		           self->player->userinfo.netname.c_str());
-		SV_BroadcastPrintf(PRINT_OBITUARY, "%s\n", gendermessage);
+		SexMessage(message, gendermessage, gender, self->player->userinfo.netname,
+		           self->player->userinfo.netname);
+		SV_BroadcastPrintFmt(PRINT_OBITUARY, "{}\n", gendermessage);
 
 		toast_t toast;
 		toast.flags = toast_t::ICON | toast_t::RIGHT_PID;
@@ -1659,9 +1740,9 @@ static void ClientObituary(AActor* self, AActor* inflictor, AActor* attacker)
 
 	if (message && attacker && attacker->player)
 	{
-		SexMessage(message, gendermessage, gender, self->player->userinfo.netname.c_str(),
-		           attacker->player->userinfo.netname.c_str());
-		SV_BroadcastPrintf(PRINT_OBITUARY, "%s\n", gendermessage);
+		SexMessage(message, gendermessage, gender, self->player->userinfo.netname,
+		           attacker->player->userinfo.netname);
+		SV_BroadcastPrintFmt(PRINT_OBITUARY, "{}\n", gendermessage);
 
 		toast_t toast;
 		toast.flags = toast_t::LEFT_PID | toast_t::ICON | toast_t::RIGHT_PID;
@@ -1673,9 +1754,9 @@ static void ClientObituary(AActor* self, AActor* inflictor, AActor* attacker)
 	}
 
 	SexMessage(GStrings(OB_DEFAULT), gendermessage, gender,
-	           self->player->userinfo.netname.c_str(),
-	           self->player->userinfo.netname.c_str());
-	SV_BroadcastPrintf(PRINT_OBITUARY, "%s\n", gendermessage);
+	           self->player->userinfo.netname,
+	           self->player->userinfo.netname);
+	SV_BroadcastPrintFmt(PRINT_OBITUARY, "{}\n", gendermessage);
 
 	toast_t toast;
 	toast.flags = toast_t::ICON | toast_t::RIGHT_PID;
@@ -1864,6 +1945,13 @@ void P_KillMobj(AActor *source, AActor *target, AActor *inflictor, bool joinkill
 			// don't die in auto map, switch view prior to dying
 			AM_Stop();
 		}
+
+		// Clear unlagged history as the player is now dead
+		if (serverside)
+		{
+			Unlag::getInstance().clearPlayerHistory(tplayer->id);
+		}
+
 	}
 
 	if (target->health > 0) // denis - when this function is used standalone
@@ -1874,7 +1962,8 @@ void P_KillMobj(AActor *source, AActor *target, AActor *inflictor, bool joinkill
 	P_RemoveHealthPool(target);
 	P_QueueCorpseForDestroy(target);
 
-    if (target->info->xdeathstate && target->health < target->info->gibhealth)
+    if (target->info->xdeathstate &&
+		static_cast<float>(target->health) < static_cast<float>(target->info->gibhealth) * gameinfo.gibFactor)
     {
         P_SetMobjState(target, target->info->xdeathstate);
     }
@@ -1900,8 +1989,8 @@ void P_KillMobj(AActor *source, AActor *target, AActor *inflictor, bool joinkill
 
 	// [AM] Save the "out of lives" message until after the obit.
 	if (g_lives && tplayer && tplayer->lives <= 0)
-		SV_BroadcastPrintf("%s is out of lives.\n",
-		                   tplayer->userinfo.netname.c_str());
+		SV_BroadcastPrintFmt("{} is out of lives.\n",
+		                     tplayer->userinfo.netname.c_str());
 
 	// Check sv_fraglimit.
 	if (source && source->player && target->player && level.time)
@@ -1919,15 +2008,10 @@ void P_KillMobj(AActor *source, AActor *target, AActor *inflictor, bool joinkill
 	if (target->player && level.time)
 		G_LivesCheckEndGame();
 
-	if (gamemode == retail_chex)	// [ML] Chex Quest mode - monsters don't drop items
-    {
-		return;
-    }
-
 	// Drop stuff.
 	// This determines the kind of object spawned
 	// during the death frame of a thing.
-	mobjtype_t item = (mobjtype_t)0;
+	int32_t item = 0;
 
 	//
 	// sapientlion - if player killed themselves or were killed by the other
@@ -2001,7 +2085,7 @@ void P_KillMobj(AActor *source, AActor *target, AActor *inflictor, bool joinkill
 	}
 }
 
-static bool P_InfightingImmune(AActor* target, AActor* source)
+bool P_InfightingImmune(AActor* target, AActor* source)
 {
 	return // not default behaviour, and same group
 		mobjinfo[target->type].infighting_group != IG_DEFAULT &&
@@ -2052,9 +2136,19 @@ void P_DamageMobj(AActor *target, AActor *inflictor, AActor *source, int damage,
     }
 
 	// [AM] Target is invulnerable to infighting from any non-player source.
-	if (source && source->player == NULL && target->oflags & MFO_INFIGHTINVUL)
+	// Unless it is friendly (and thus hostile to bosses)
+	if (source && target->oflags & MFO_INFIGHTINVUL && (source->player == NULL && P_IsFriendlyThing(source, target)))
 	{
 		return;
+	}
+
+	// No damage with sv_friendlymonsterfire
+	if (!sv_friendlymonsterfire && source && target != source && mod != MOD_TELEFRAG)
+	{
+		if (source->flags & MF_FRIEND && P_IsFriendlyThing(source, target))
+		{
+			return;
+		}
 	}
 
 	MeansOfDeath = mod;
@@ -2100,21 +2194,20 @@ void P_DamageMobj(AActor *target, AActor *inflictor, AActor *source, int damage,
 	// inflict thrust and push the victim out of reach,
 	// thus kick away unless using the chainsaw.
 
-	if (inflictor && 
-		!(target->flags & MF_NOCLIP) && 
+	if (inflictor &&
+		!(target->flags & MF_NOCLIP) &&
 	    (!source || !source->player || !(weaponinfo[source->player->readyweapon].flags & WPF_NOTHRUST)) &&
 	    !(inflictor->flags2 & MF2_NODMGTHRUST))
 	{
 
 		unsigned int ang = P_PointToAngle(inflictor->x, inflictor->y, target->x, target->y);
 
-		fixed_t thrust = damage * (FRACUNIT >> 3) * 100 / target->info->mass;
+		fixed_t thrust = damage * (FRACUNIT >> 3) * gameinfo.defKickback / target->info->mass;
 
 		// make fall forwards sometimes
 		if (damage < 40
 			&& damage > target->health
-			&& target->z - inflictor->z > 64 * FRACUNIT
-			&& (P_Random() & 1))
+			&& target->z - inflictor->z > 64 * FRACUNIT && (P_Random(target) & 1))
 		{
 			ang += ANG180;
 			thrust *= 4;
@@ -2123,6 +2216,10 @@ void P_DamageMobj(AActor *target, AActor *inflictor, AActor *source, int damage,
 		ang >>= ANGLETOFINESHIFT;
 		target->momx += FixedMul(thrust, finecosine[ang]);
 		target->momy += FixedMul(thrust, finesine[ang]);
+
+		/* killough 11/98: thrust objects hanging off ledges */
+		if (target->oflags & MFO_FALLING && target->gear >= MAXGEAR)
+			target->gear = 0;
 	}
 
 	// player specific
@@ -2156,7 +2253,7 @@ void P_DamageMobj(AActor *target, AActor *inflictor, AActor *source, int damage,
 		if (!sv_friendlyfire && source && source->player && target != source &&
 			mod != MOD_TELEFRAG)
 		{
-			if (G_IsCoopGame() || 
+			if (G_IsCoopGame() ||
 				(G_IsTeamGame() && player->userinfo.team == source->player->userinfo.team))
 			{
 				damage = 0;
@@ -2183,8 +2280,8 @@ void P_DamageMobj(AActor *target, AActor *inflictor, AActor *source, int damage,
 
 		// WDL damage events - they have to be up here to ensure we know how
 		// much armor is subtracted.
-		int low = std::max(target->health - damage, 0);
-		int actualdamage = target->health - low;
+		const int low = std::max(target->health - damage, 0);
+		const int actualdamage = target->health - low;
 
 		angle_t sangle = 0;
 
@@ -2254,7 +2351,7 @@ void P_DamageMobj(AActor *target, AActor *inflictor, AActor *source, int damage,
 			else
 			{
 				player->health = 0;
-			} 
+			}
 		}
 
 		player->attacker = source ? source->ptr() : AActor::AActorPtr();
@@ -2334,9 +2431,15 @@ void P_DamageMobj(AActor *target, AActor *inflictor, AActor *source, int damage,
 		return;
 	}
 
-    if (!(target->flags2 & MF2_DORMANT))
+	 /* If target is a player, set player's target to source,
+	 * so that a friend can tell who's hurting a player
+	 */
+	if (source && player && co_helpfriends)
+		target->target = source->ptr();
+
+	if (!(target->flags2 & MF2_DORMANT))
 	{
-		int pain = P_Random();
+		int pain = P_Random(target);
 
 		if (target->oflags & MFO_UNFLINCHING)
 		{
@@ -2372,7 +2475,10 @@ void P_DamageMobj(AActor *target, AActor *inflictor, AActor *source, int damage,
 		    !(source->flags3 & MF3_DMGIGNORED) &&
 		    !(source->oflags & MFO_INFIGHTINVUL) &&
 		    (!target->threshold || target->flags3 & MF3_NOTHRESHOLD) &&
-		    !P_InfightingImmune(target, source))
+		    !P_InfightingImmune(target, source) &&
+		    !((level.flags2 & LEVEL2_INFIGHTINGMASK) ?
+			    level.flags2 & LEVEL2_NOINFIGHTING :
+			    G_GetCurrentSkill().flags & SKILL_NOINFIGHTING))
 		{
 			// if not intent on another player, chase after this one
 			// [AM] Infight invul monsters will never provoke attacks.
@@ -2395,6 +2501,10 @@ void P_DamageMobj(AActor *target, AActor *inflictor, AActor *source, int damage,
             }
             SV_ActorTarget(target);
 		}
+	}
+	else
+	{
+		SV_UpdateMobj(target);
 	}
 }
 
@@ -2456,7 +2566,7 @@ void P_HealMobj(AActor* mo, int num)
 	}
 	else
 	{
-		int max = mobjinfo[mo->type].spawnhealth;
+		const int max = mobjinfo[mo->type].spawnhealth;
 
 		mo->health += num;
 		if (mo->health > max)

@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -95,13 +95,11 @@ typedef struct
 	mpoint_t a, b;
 } mline_t;
 
-extern am_default_colors_t AutomapDefaultColors;
-extern am_colors_t AutomapDefaultCurrentColors;
-
-extern int am_cheating;
+inline int am_cheating;
+inline bool automapactive = false;
 
 // Called by main loop.
-BOOL AM_Responder(event_t* ev);
+bool AM_Responder(event_t* ev);
 
 // Called by main loop.
 void AM_Ticker();
@@ -114,9 +112,16 @@ void AM_Drawer();
 // if the level is completed while it is up.
 void AM_Stop();
 
-bool AM_ClassicAutomapVisible();
-bool AM_OverlayAutomapVisible();
+inline bool AM_ClassicAutomapVisible() { return automapactive && !viewactive; };
+inline bool AM_OverlayAutomapVisible() { return automapactive && viewactive; };
 
 void AM_SetBaseColorDoom();
 void AM_SetBaseColorRaven();
 void AM_SetBaseColorStrife();
+
+enum class am_lump_parse_error_t
+{
+	LUMP_NOT_FOUND,
+};
+
+nonstd::expected<std::vector<mline_t>, am_lump_parse_error_t> AM_ParseVectorLump(const OLumpName& name);

@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1998-2006 by Randy Heit (ZDoom).
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -43,29 +43,16 @@ struct hordeInfo_t
 	int waveTime;
 	int bossTime;
 	uint64_t defineID;
-	uint64_t legacyID;
 	int spawnedHealth;
 	int killedHealth;
 	int bossHealth;
 	int bossDamage;
 	int waveStartHealth;
 
-	int alive() const
-	{
-		return spawnedHealth - killedHealth;
-	}
-	int killed() const
-	{
-		return killedHealth - waveStartHealth;
-	}
-	bool hasBoss() const
-	{
-		return waveTime != bossTime;
-	}
-	int bossTic() const
-	{
-		return ::level.time - bossTime;
-	}
+	int alive() const { return spawnedHealth - killedHealth; }
+	int killed() const { return killedHealth - waveStartHealth; }
+	bool hasBoss() const { return waveTime != bossTime; }
+	int bossTic() const { return ::level.time - bossTime; }
 	bool equals(const hordeInfo_t& info) const
 	{
 		if (state != info.state)

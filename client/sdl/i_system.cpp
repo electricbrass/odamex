@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -27,6 +27,8 @@
 
 #include <limits>
 
+#include "nonstd/scope.hpp"
+
 #include "i_sdl.h"
 #include <stdlib.h>
 
@@ -39,27 +41,22 @@
 
 #include "win32inc.h"
 #ifdef _WIN32
-#include <direct.h>
-#include <io.h>
-#include <process.h>
-
-#ifdef _XBOX
-#include <xtl.h>
-#else
-#include <shlwapi.h>
-#include <winsock2.h>
-#include <mmsystem.h>
-#include <shlobj.h>
-#endif // !_XBOX
+	#include <direct.h>
+	#include <io.h>
+	#include <process.h>
+	#include <shlwapi.h>
+	#include <winsock2.h>
+	#include <mmsystem.h>
+	#include <shlobj.h>
 #endif // WIN32
 
 #ifdef UNIX
 // for getuid and geteuid
-#include <unistd.h>
-#include <sys/types.h>
-#include <limits.h>
-#include <time.h>
-#include <pwd.h>
+	#include <unistd.h>
+	#include <sys/types.h>
+	#include <limits.h>
+	#include <time.h>
+	#include <pwd.h>
 #endif
 
 #include <sstream>
@@ -87,16 +84,9 @@
 #include "i_system.h"
 #include "c_dispatch.h"
 #include "cl_main.h"
+#include "gi.h"
 #include "m_fileio.h"
 #include "txt_main.h"
-
-#ifdef _XBOX
-	#include "i_xbox.h"
-#endif
-
-#ifdef GEKKO
-	#include "i_wii.h"
-#endif
 
 #ifndef GCONSOLE // I will add this back later -- Hyper_Eye
 	// For libtextscreen to link properly
@@ -106,7 +96,7 @@
 	}
 	#define ENDOOM_W 80
 	#define ENDOOM_H 25
-#endif // _XBOX
+#endif // GCONSOLE
 
 EXTERN_CVAR (r_loadicon)
 EXTERN_CVAR (r_showendoom)
@@ -124,7 +114,7 @@ size_t def_heapsize = 16;
 #else
 size_t def_heapsize = 128;
 #endif
-const size_t min_heapsize = 8;
+constexpr size_t min_heapsize = 8;
 
 // The size we got back from I_ZoneBase in megabytes
 size_t got_heapsize = 0;
@@ -193,7 +183,7 @@ void *I_ZoneBase (size_t *size)
 	// Die if the system has insufficient memory
 	if (got_heapsize < min_heapsize)
 		I_FatalError("I_ZoneBase: Insufficient memory available! Minimum size "
-					 "is %lu MB but got %lu MB instead",
+					 "is {} MB but got {} MB instead",
 					 min_heapsize,
 					 got_heapsize);
 
@@ -227,12 +217,12 @@ dtime_t I_GetTime()
 	mach_port_deallocate(mach_task_self(), cclock);
 	return mts.tv_sec * 1000LL * 1000LL * 1000LL + mts.tv_nsec;
 
-#elif defined UNIX && !defined GEKKO
+#elif defined UNIX
 	timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts.tv_sec * 1000LL * 1000LL * 1000LL + ts.tv_nsec;
 
-#elif defined WIN32 && !defined _XBOX
+#elif defined WIN32
 	static bool initialized = false;
 	static LARGE_INTEGER initial_count;
 	static double nanoseconds_per_count;
@@ -274,7 +264,7 @@ dtime_t I_GetTime()
 #else
 	// [SL] use SDL_GetTicks, but account for the fact that after
 	// 49 days, it wraps around since it returns a 32-bit int
-	static const uint64_t mask = 0xFFFFFFFFLL;
+	static constexpr uint64_t mask = 0xFFFFFFFFLL;
 	static uint64_t last_time = 0LL;
 	uint64_t current_time = SDL_GetTicks();
 
@@ -316,7 +306,7 @@ void I_Sleep(dtime_t sleep_time)
 #if defined UNIX
 	usleep(sleep_time / 1000LL);
 
-#elif defined(WIN32) && !defined(_XBOX)
+#elif defined(WIN32)
 	Sleep(sleep_time / 1000000LL);
 
 #else
@@ -349,7 +339,7 @@ void I_WaitVBL(int count)
 //
 // SubsetLanguageIDs
 //
-#if defined _WIN32 && !defined _XBOX
+#if defined _WIN32
 static void SubsetLanguageIDs (LCID id, LCTYPE type, int idx)
 {
 	char buf[8];
@@ -378,23 +368,42 @@ void SetLanguageIDs()
 
 	if (strcmp(langid, "auto") == 0)
 	{
-#if defined _WIN32 && !defined _XBOX
+#if defined _WIN32
 		memset(LanguageIDs, 0, sizeof(LanguageIDs));
 		SubsetLanguageIDs(LOCALE_USER_DEFAULT, LOCALE_ILANGUAGE, 0);
 		SubsetLanguageIDs(LOCALE_USER_DEFAULT, LOCALE_IDEFAULTLANGUAGE, 1);
 		SubsetLanguageIDs(LOCALE_SYSTEM_DEFAULT, LOCALE_ILANGUAGE, 2);
 		SubsetLanguageIDs(LOCALE_SYSTEM_DEFAULT, LOCALE_IDEFAULTLANGUAGE, 3);
+#elif SDL_VERSION_ATLEAST(2, 0, 14)
+		SDL_Locale* locales = SDL_GetPreferredLocales();
+		size_t i;
+		for (i = 0; i < ARRAY_LENGTH(LanguageIDs) && locales && locales->language; i++)
+		{
+			char slang[4] = {'\0', '\0', '\0', '\0'};
+			strncpy(slang, locales->language, ARRAY_LENGTH(slang) - 1);
+			const uint32_t lang = MAKE_ID(slang[0], slang[1], slang[2], slang[3]);
+			LanguageIDs[i] = lang;
+		}
+		if (i < ARRAY_LENGTH(LanguageIDs))
+		{
+			// Fill the rest with the last valid entry
+			for (; i < ARRAY_LENGTH(LanguageIDs); i++)
+				LanguageIDs[i] = LanguageIDs[i - 1];
+		}
 #else
 		// Default to US English on non-windows systems
-		// FIXME: Use SDL Locale support if available.
-		langid = "enu";
+		static constexpr uint32_t lang = MAKE_ID('e', 'n', 'u', '\0');
+		LanguageIDs[0] = lang;
+		LanguageIDs[1] = lang;
+		LanguageIDs[2] = lang;
+		LanguageIDs[3] = lang;
 #endif
 	}
 	else
 	{
 		char slang[4] = {'\0', '\0', '\0', '\0'};
 		strncpy(slang, langid, ARRAY_LENGTH(slang) - 1);
-		uint32_t lang = MAKE_ID(slang[0], slang[1], slang[2], slang[3]);
+		const uint32_t lang = MAKE_ID(slang[0], slang[1], slang[2], slang[3]);
 		LanguageIDs[0] = lang;
 		LanguageIDs[1] = lang;
 		LanguageIDs[2] = lang;
@@ -405,13 +414,13 @@ void SetLanguageIDs()
 //
 // I_Init
 //
-void I_Init (void)
+void I_Init()
 {
 	I_InitSound ();
 	I_InitHardware ();
 }
 
-void I_FinishClockCalibration ()
+void I_FinishClockCalibration()
 {
 }
 
@@ -419,19 +428,17 @@ void I_FinishClockCalibration ()
 // Displays the text mode ending screen after the game quits
 //
 
-void I_Endoom(void)
+void I_Endoom()
 {
 #ifndef GCONSOLE // I will return to this -- Hyper_Eye
-	unsigned char *endoom_data;
-	unsigned char *screendata;
-	int y;
-	int indent;
 
 	if (!r_showendoom || Args.CheckParm ("-novideo"))
 		return;
 
 	int lump = -1;
 	int count = 0;
+	int y;
+	int indent;
 	while (count < 2 && (lump = W_FindLump("ENDOOM", lump)) != -1)
 	{
 		count++;
@@ -443,7 +450,7 @@ void I_Endoom(void)
 	// Hack to stop crash with disk icon
 	in_endoom = true;
 
-	endoom_data = (unsigned char *)W_CacheLumpName("ENDOOM", PU_STATIC);
+	unsigned char* endoom_data = (unsigned char*)W_CacheLumpName(gameinfo.endoom, PU_STATIC);
 
 	// Set up text mode screen
 
@@ -454,7 +461,7 @@ void I_Endoom(void)
 
 	// Write the data to the screen memory
 
-	screendata = TXT_GetScreenData();
+	unsigned char* screendata = TXT_GetScreenData();
 
 	if(NULL != screendata)
 	{
@@ -513,36 +520,64 @@ void STACK_ARGS I_Quit (void)
 //
 // I_Error
 //
-BOOL gameisdead;
+bool gameisdead;
 
 #define MAX_ERRORTEXT	1024
 
 void STACK_ARGS call_terms (void);
 
-NORETURN void STACK_ARGS I_FatalError(const char* error, ...)
+void I_BaseWarning(const std::string& warningtext)
 {
-	char errortext[MAX_ERRORTEXT];
-	char messagetext[MAX_ERRORTEXT];
+	PrintFmt(PRINT_WARNING, "\n{}\n", warningtext);
+}
 
-	static BOOL alreadyThrown = false;
+void I_BaseError(const std::string& errortext)
+{
+	std::string messagetext;
+
+	if (!has_exited)
+	{
+		throw CRecoverableError(errortext);
+	}
+
+	// Recursive atterm, we've used up all our chances.
+	if (SDL_GetError()[0] != '\0')
+	{
+		messagetext = fmt::sprintf(
+		    "Error while shutting down, aborting:\n%s\nLast SDL Error:\n%s\n", errortext,
+		    SDL_GetError());
+	}
+	else
+	{
+		messagetext =
+		    fmt::sprintf("Error while shutting down, aborting:\n%s\n", errortext);
+	}
+
+	I_ErrorMessageBox(messagetext.c_str());
+
+	abort();
+}
+
+[[noreturn]] void I_BaseFatalError(const std::string& errortext)
+{
+	std::string messagetext;
+
+	static bool alreadyThrown = false;
 	gameisdead = true;
 
 	if (!alreadyThrown) // ignore all but the first message -- killough
 	{
 		alreadyThrown = true;
-		va_list argptr;
-		va_start(argptr, error);
 		if (SDL_GetError()[0] != '\0')
 		{
-			snprintf(messagetext, ARRAY_LENGTH(messagetext), "%s\nLast SDL Error:\n%s\n",
-			         errortext, SDL_GetError());
+			messagetext =
+			    fmt::sprintf("%s\nLast SDL Error:\n%s\n", errortext, SDL_GetError());
 			SDL_ClearError();
 		}
 		else
 		{
-			snprintf(messagetext, ARRAY_LENGTH(messagetext), "%s\n", errortext);
+			messagetext = fmt::sprintf("%s\n", errortext);
 		}
-		va_end(argptr);
 
 		throw CFatalError(messagetext);
 	}
@@ -557,69 +592,21 @@ NORETURN void STACK_ARGS I_FatalError(const char* error, ...)
 	}
 
 	// Recursive atterm, we've used up all our chances.
-	va_list argptr;
-	va_start(argptr, error);
 	if (SDL_GetError()[0] != '\0')
 	{
-		snprintf(messagetext, ARRAY_LENGTH(messagetext),
-		         "Error while shutting down, aborting:\n%s\nLast SDL Error:\n%s\n",
-		         errortext, SDL_GetError());
+		messagetext = fmt::sprintf(
+		    "Error while shutting down, aborting:\n%s\nLast SDL Error:\n%s\n", errortext,
+		    SDL_GetError());
 	}
 	else
 	{
-		snprintf(messagetext, ARRAY_LENGTH(messagetext),
-		         "Error while shutting down, aborting:\n%s\n", errortext);
+		messagetext =
+		    fmt::sprintf("Error while shutting down, aborting:\n%s\n", errortext);
 	}
-	va_end(argptr);
 
-	I_ErrorMessageBox(messagetext);
+	I_ErrorMessageBox(messagetext.c_str());
 
 	abort();
-}
-
-void STACK_ARGS I_Error(const char* error, ...)
-{
-	va_list argptr;
-	char errortext[MAX_ERRORTEXT];
-	char messagetext[MAX_ERRORTEXT];
-
-	va_start(argptr, error);
-	vsnprintf(errortext, ARRAY_LENGTH(errortext), error, argptr);
-	va_end(argptr);
-
-	if (!has_exited)
-	{
-		throw CRecoverableError(errortext);
-	}
-
-	// Recursive atterm, we've used up all our chances.
-	if (SDL_GetError()[0] != '\0')
-	{
-		snprintf(messagetext, ARRAY_LENGTH(messagetext),
-		         "Error while shutting down, aborting:\n%s\nLast SDL Error:\n%s\n",
-		         errortext, SDL_GetError());
-	}
-	else
-	{
-		snprintf(messagetext, ARRAY_LENGTH(messagetext),
-		         "Error while shutting down, aborting:\n%s\n", errortext);
-	}
-
-	I_ErrorMessageBox(messagetext);
-
-	abort();
-}
-
-void STACK_ARGS I_Warning(const char *warning, ...)
-{
-	va_list argptr;
-	char warningtext[MAX_ERRORTEXT];
-
-	va_start (argptr, warning);
-	vsnprintf(warningtext, MAX_ERRORTEXT, warning, argptr);
-	va_end (argptr);
-
-	Printf (PRINT_WARNING, "\n%s\n", warningtext);
 }
 
 char DoomStartupTitle[256] = { 0 };
@@ -654,7 +641,7 @@ std::string I_GetClipboardText()
 
 	if (!dis)
 	{
-		Printf(PRINT_HIGH, "I_GetClipboardText: XOpenDisplay failed");
+		PrintFmt(PRINT_HIGH, "I_GetClipboardText: XOpenDisplay failed");
 		return "";
 	}
 
@@ -670,7 +657,7 @@ std::string I_GetClipboardText()
 			XDestroyWindow(dis, WindowEvents);
 			XUnlockDisplay(dis);
 			XCloseDisplay(dis);
-			Printf(PRINT_HIGH, "I_GetClipboardText: XConvertSelection failed");
+			PrintFmt(PRINT_HIGH, "I_GetClipboardText: XConvertSelection failed");
 			return "";
 		}
 
@@ -698,14 +685,14 @@ std::string I_GetClipboardText()
 			XDestroyWindow(dis, WindowEvents);
 			XUnlockDisplay(dis);
 			XCloseDisplay(dis);
-			Printf(PRINT_HIGH, "I_GetClipboardText: XGetWindowProperty failed(1)");
+			PrintFmt(PRINT_HIGH, "I_GetClipboardText: XGetWindowProperty failed(1)");
 			return "";
 		}
 
 		if (!bytes_left)
 		{
 			XDestroyWindow(dis, WindowEvents);
-			DPrintf("I_GetClipboardText: Len was: %lu", len);
+			DPrintFmt("I_GetClipboardText: Len was: {}", len);
 			XUnlockDisplay(dis);
 			XCloseDisplay(dis);
 			return "";
@@ -718,7 +705,7 @@ std::string I_GetClipboardText()
 			XDestroyWindow(dis, WindowEvents);
 			XUnlockDisplay(dis);
 			XCloseDisplay(dis);
-			Printf(PRINT_HIGH, "I_GetClipboardText: XGetWindowProperty failed(2)");
+			PrintFmt(PRINT_HIGH, "I_GetClipboardText: XGetWindowProperty failed(2)");
 			return "";
 		}
 
@@ -733,7 +720,7 @@ std::string I_GetClipboardText()
 	return ret;
 #endif
 
-#if defined _WIN32 && !defined _XBOX
+#if defined _WIN32
 	std::string ret;
 
 	if(!IsClipboardFormatAvailable(CF_TEXT))
@@ -782,7 +769,7 @@ std::string I_GetClipboardText()
 
 	if (err)
 	{
-		Printf(PRINT_HIGH, "GetCurrentScrap error: %d", err);
+		PrintFmt(PRINT_HIGH, "GetCurrentScrap error: {}", err);
 		return "";
 	}
 
@@ -790,7 +777,7 @@ std::string I_GetClipboardText()
 
 	if (err)
 	{
-		Printf(PRINT_HIGH, "GetScrapFlavorSize error: %d", err);
+		PrintFmt(PRINT_HIGH, "GetScrapFlavorSize error: {}", err);
 		return "";
 	}
 
@@ -801,7 +788,7 @@ std::string I_GetClipboardText()
 
 	if(err)
 	{
-		Printf(PRINT_HIGH, "GetScrapFlavorData error: %d", err);
+		PrintFmt(PRINT_HIGH, "GetScrapFlavorData error: {}", err);
 		delete[] data;
 
 		return "";
@@ -815,24 +802,24 @@ std::string I_GetClipboardText()
 #endif	// OSX < 1050
 
 #ifdef SDL20
-    char* textp = SDL_GetClipboardText();
+	char* textp = SDL_GetClipboardText();
+	auto textpExit = nonstd::make_scope_exit([&]() { SDL_free(textp); });
 
-    if(NULL == textp)
-    {
-        Printf(PRINT_HIGH, "SDL_GetClipboardText error: %s", SDL_GetError());
-        return "";
-    }
+	if (NULL == textp)
+	{
+		PrintFmt(PRINT_HIGH, "SDL_GetClipboardText error: {}", SDL_GetError());
+		return "";
+	}
 
-    std::string clipText(textp);
-    SDL_free(textp);
+	std::string clipText(textp);
 
 	return clipText;
-#endif  // SDL20
+#endif // SDL20
 
 	return "";
 }
 
-void I_PrintStr (int xp, const char *cp, int count, BOOL scroll)
+void I_PrintStr (int xp, const char *cp, int count, bool scroll)
 {
 	// used in the DOS version
 }
@@ -997,7 +984,7 @@ void I_ErrorMessageBox(const char* message)
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, ODAMEX_ERROR_TITLE, message, NULL);
 }
 
-#elif defined(WIN32) && !defined(_XBOX)
+#elif defined(WIN32)
 
 void I_ErrorMessageBox(const char* message)
 {
@@ -1019,7 +1006,7 @@ void I_ErrorMessageBox(const char* message)
 
 void I_ErrorMessageBox(const char* message)
 {
-	fprintf(stderr, "%s\n%s\n", ODAMEX_ERROR_TITLE, message);
+	fmt::print(stderr, "{}\n{}\n", ODAMEX_ERROR_TITLE, message);
 }
 
 #endif
@@ -1030,12 +1017,12 @@ BEGIN_COMMAND(debug_userfilename)
 {
 	if (argc < 2)
 	{
-		Printf("debug_userfilename: needs a path to check.\n");
+		PrintFmt("debug_userfilename: needs a path to check.\n");
 		return;
 	}
 
 	std::string userfile = M_GetUserFileName(argv[1]);
-	Printf("Resolved to: %s\n", userfile.c_str());
+	PrintFmt("Resolved to: {:s}\n", userfile);
 }
 END_COMMAND(debug_userfilename)
 

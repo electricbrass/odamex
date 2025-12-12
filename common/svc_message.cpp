@@ -76,7 +76,7 @@ odaproto::svc::PlayerInfo SVC_PlayerInfo(player_t& player)
 {
 	odaproto::svc::PlayerInfo msg;
 
-	uint32_t packedweapons = PackBoolArray(player.weaponowned, NUMWEAPONS);
+	uint32_t packedweapons = PackBoolArray(player.weaponowned.data(), NUMWEAPONS);
 	msg.mutable_player()->set_weaponowned(packedweapons);
 
 	uint32_t packedcards = PackBoolArray(player.cards, NUMCARDS);
@@ -147,11 +147,14 @@ odaproto::svc::MovePlayer SVC_MovePlayer(player_t& player, const int tic)
 	mom->set_y(player.mo->momy);
 	mom->set_z(player.mo->momz);
 
-	// [Russell] - hack, tell the client about the partial
-	// invisibility power of another player.. (cheaters can disable
-	// this but its all we have for now)
-	pl->mutable_powers()->Resize(pw_invisibility + 1, 0);
+	// Send all available powers information to show the clients
+	pl->mutable_powers()->Resize(NUMPOWERS + 1, 0);
+	pl->set_powers(pw_invulnerability, player.powers[pw_invulnerability]);
+	pl->set_powers(pw_strength, player.powers[pw_strength] > 0 ? 1 : 0);
 	pl->set_powers(pw_invisibility, player.powers[pw_invisibility]);
+	pl->set_powers(pw_ironfeet, player.powers[pw_ironfeet]);
+	pl->set_powers(pw_allmap, player.powers[pw_allmap]);
+	pl->set_powers(pw_infrared, player.powers[pw_infrared]);
 
 	return msg;
 }
@@ -341,7 +344,7 @@ odaproto::svc::SpawnMobj SVC_SpawnMobj(AActor* mo)
 	cur->set_netid(mo->netid);
 
 	// denis - sending state fixes monster ghosts appearing under doors
-	cur->set_statenum(mo->state - states);
+	cur->set_statenum(mo->state->statenum);
 
 	if (mo->type == MT_FOUNTAIN)
 	{
@@ -365,6 +368,12 @@ odaproto::svc::SpawnMobj SVC_SpawnMobj(AActor* mo)
 		cur->set_flags(mo->flags);
 	}
 
+	if (mo->flags2 & MF2_DORMANT)
+	{
+		spawnFlags |= SVC_SM_FLAGS2;
+		cur->set_flags2(mo->flags2);
+	}
+
 	// odamex flags - only monster flags for now
 	if (mo->oflags & hordeBossModMask)
 	{
@@ -373,7 +382,7 @@ odaproto::svc::SpawnMobj SVC_SpawnMobj(AActor* mo)
 	}
 
 	// animating corpses
-	if ((mo->flags & MF_CORPSE) && mo->state - states != S_GIBS)
+	if ((mo->flags & MF_CORPSE) && mo->state->statenum != S_GIBS)
 	{
 		// This sets off some additional logic on the client.
 		spawnFlags |= SVC_SM_CORPSE;
@@ -545,6 +554,8 @@ odaproto::svc::UpdateMobj SVC_UpdateMobj(AActor& mobj)
 	return msg;
 }
 
+EXTERN_CVAR(sv_sharekeys);
+
 odaproto::svc::SpawnPlayer SVC_SpawnPlayer(player_t& player)
 {
 	odaproto::svc::SpawnPlayer msg;
@@ -565,7 +576,14 @@ odaproto::svc::SpawnPlayer SVC_SpawnPlayer(player_t& player)
 		// The client hasn't yet received his own position from the server
 		// This happens with cl_autorecord
 		// Just fake a position for now
-		act->set_netid(MAXSHORT);
+		act->set_netid(limits::MAXSHORT);
+	}
+
+
+	if (sv_sharekeys)
+	{
+		const uint32_t packedcards = PackBoolArray(player.cards, NUMCARDS);
+		msg.set_cards(packedcards);
 	}
 
 	return msg;
@@ -629,6 +647,37 @@ odaproto::svc::KillMobj SVC_KillMobj(AActor* source, AActor* target, AActor* inf
 	tgtmom->set_x(target->momx);
 	tgtmom->set_y(target->momy);
 	tgtmom->set_z(target->momz);
+
+	return msg;
+}
+
+/**
+ * @brief Resurrect a mobj.
+ */
+odaproto::svc::RaiseMobj SVC_RaiseMobj(AActor* source, AActor* corpse)
+{
+	odaproto::svc::RaiseMobj msg;
+
+	odaproto::Actor* cps = msg.mutable_corpse();
+
+	// corpse netid
+	cps->set_netid(corpse->netid);
+
+	cps->set_rndindex(corpse->rndindex);
+
+	odaproto::Vec3* cpspos = cps->mutable_pos();
+	cpspos->set_x(corpse->x);
+	cpspos->set_y(corpse->y);
+	cpspos->set_z(corpse->z);
+
+	cps->set_angle(corpse->angle);
+
+	odaproto::Vec3* cpsmom = cps->mutable_mom();
+	cpsmom->set_x(corpse->momx);
+	cpsmom->set_y(corpse->momy);
+	cpsmom->set_z(corpse->momz);
+
+	msg.set_source_netid(source ? source->netid : 0);
 
 	return msg;
 }
@@ -983,7 +1032,7 @@ odaproto::svc::PlayerState SVC_PlayerState(player_t& player)
 	for (int i = 0; i < NUMPSPRITES; i++)
 	{
 		pspdef_t* psp = &player.psprites[i];
-		unsigned int state = psp->state - states;
+		const int32_t state = psp->state ? psp->state->statenum : 0;
 		odaproto::Player_Psp* plpsp = pl->add_psprites();
 		plpsp->set_statenum(state);
 	}
@@ -1067,16 +1116,16 @@ odaproto::svc::CTFRefresh SVC_CTFRefresh(const TeamsView& teams, const bool full
 
 	msg.set_full(full);
 
-	for (TeamsView::const_iterator it = teams.begin(); it != teams.end(); ++it)
+	for (const auto& team : teams)
 	{
 		odaproto::svc::CTFRefresh_TeamInfo* info = msg.add_team_info();
 
-		info->set_points((*it)->Points);
+		info->set_points(team->Points);
 
 		if (full)
 		{
-			info->set_flag_state((*it)->FlagData.state);
-			info->set_flag_flagger((*it)->FlagData.flagger);
+			info->set_flag_state(team->FlagData.state);
+			info->set_flag_flagger(team->FlagData.flagger);
 		}
 	}
 
@@ -1091,8 +1140,7 @@ odaproto::svc::CTFEvent SVC_CTFEvent(const flag_score_t event, const team_t targ
 	msg.set_event(event);
 	msg.set_target_team(target);
 
-	// [AM] FIXME: validplayer shouldn't need a const I don't think...
-	if (validplayer(const_cast<player_t&>(player)))
+	if (validplayer(player))
 	{
 		msg.set_player_team(player.userinfo.team);
 		msg.set_player_id(player.id);
@@ -1268,6 +1316,9 @@ odaproto::svc::SectorProperties SVC_SectorProperties(sector_t& sector)
 			secmsg->set_base_floor_angle(sector.base_floor_angle);
 			secmsg->set_base_floor_yoffs(sector.base_floor_yoffs);
 			break;
+		case SPC_Special:
+			secmsg->set_special(sector.special);
+			break;
 		default:
 			break;
 		}
@@ -1315,7 +1366,7 @@ odaproto::svc::MobjState SVC_MobjState(AActor* mo)
 {
 	odaproto::svc::MobjState msg;
 
-	statenum_t mostate = static_cast<statenum_t>(mo->state - states);
+	const int32_t mostate = mo->state ? mo->state->statenum : 0;
 
 	msg.set_netid(mo->netid);
 	msg.set_mostate(mostate);
@@ -1376,9 +1427,9 @@ odaproto::svc::ExecuteACSSpecial SVC_ExecuteACSSpecial(const byte special,
 		msg.set_print(print);
 	}
 
-	for (std::vector<int>::const_iterator it = args.begin(); it != args.end(); ++it)
+	for (const auto& arg : args)
 	{
-		msg.add_args(*it);
+		msg.add_args(arg);
 	}
 
 	return msg;
@@ -1502,34 +1553,35 @@ odaproto::svc::MaplistUpdate SVC_MaplistUpdate(const maplist_status_t status,
 		// are already known on the receiving end.
 		OStringIndexer indexer = OStringIndexer::maplistFactory();
 
-		for (maplist_qrows_t::const_iterator it = maplist->begin(); it != maplist->end();
-		     ++it)
+		for (const auto& [_, entry] : *maplist)
 		{
 			// Create a row and add an indexed map to it.
 			odaproto::svc::MaplistUpdate::Row* row = msg.add_maplist();
-			const std::string& map = it->second->map;
+			const std::string& map = entry->map;
 			const uint32_t mapidx = indexer.getIndex(map);
 			row->set_map(mapidx);
 
-			for (std::vector<std::string>::iterator itr = it->second->wads.begin();
-			     itr != it->second->wads.end(); ++itr)
+			const std::string lastmaps = fmt::format("{}", entry->lastmaps);
+			const uint32_t lastmapidx = indexer.getIndex(lastmaps);
+			row->set_lastmap(lastmapidx);
+
+			for (const auto& wad : entry->wads)
 			{
 				// Push an indexed WAD into the message.
-				std::string filename = D_CleanseFileName(*itr);
+				std::string filename = D_CleanseFileName(wad);
 				const uint32_t wadidx = indexer.getIndex(filename);
 				row->add_wads(wadidx);
 			}
 		}
 
 		// Populate the dictionary.
-		for (OStringIndexer::Indexes::const_iterator it = indexer.indexes.begin();
-		     it != indexer.indexes.end(); ++it)
+		for (const auto& [string, idx] : indexer.indexes)
 		{
-			if (!indexer.shouldTransmit(it->second))
+			if (!indexer.shouldTransmit(idx))
 				continue;
 
 			typedef google::protobuf::MapPair<uint32_t, std::string> DictPair;
-			msg.mutable_dict()->insert(DictPair(it->second, it->first));
+			msg.mutable_dict()->insert(DictPair(idx, string));
 		}
 	}
 
@@ -1577,7 +1629,6 @@ odaproto::svc::HordeInfo SVC_HordeInfo(const hordeInfo_t& horde)
 	msg.set_wave_time(horde.waveTime);
 	msg.set_boss_time(horde.bossTime);
 	msg.set_define_id(horde.defineID);
-	msg.set_legacy_id(horde.legacyID);
 	msg.set_spawned_health(horde.spawnedHealth);
 	msg.set_killed_health(horde.killedHealth);
 	msg.set_boss_health(horde.bossHealth);

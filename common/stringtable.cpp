@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1998-2006 by Randy Heit (ZDoom).
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -36,19 +36,26 @@
 /**
  * @brief Map a ZDoom game name to Odamex's internals and returns true if
  *        the current game is the passed string.
- * 
+ *
  * @param str String to check against.
  * @return True if the game matches the passed string, otherwise false.
  */
 static bool IfGameZDoom(const std::string& str)
 {
-	if (!stricmp(str.c_str(), "doom") && ::gamemode != retail_chex &&
-	    ::gamemode != undetermined)
+	// TODO: should this account for rekkr too? uzdoom seems to just have
+	// doom, strife, heretic, hexen, and chex here
+	if (!stricmp(str.c_str(), "doom") && !IsChexMission(::gamemission) &&
+	    ::gamemode != undetermined && ::gamemission != commercial_hacx)
 	{
 		return true;
 	}
 
-	if (!stricmp(str.c_str(), "chex") && ::gamemode == retail_chex)
+	if (!stricmp(str.c_str(), "chex") && IsChexMission(::gamemission))
+	{
+		return true;
+	}
+
+	if (!stricmp(str.c_str(), "hacx") && ::gamemission == commercial_hacx)
 	{
 		return true;
 	}
@@ -276,7 +283,7 @@ void StringTable::prepareIndexes()
 		if (it == _stringHash.end())
 		{
 			TableEntry entry = {std::make_pair(false, ""), 0xFF, static_cast<int>(i)};
-			_stringHash.insert(std::make_pair(name, entry));
+			_stringHash.emplace(name, entry);
 		}
 	}
 }
@@ -313,11 +320,10 @@ void StringTable::replaceEscapes(std::string& str)
 //
 void StringTable::dumpStrings()
 {
-	StringHash::const_iterator it = _stringHash.begin();
-	for (; it != _stringHash.end(); ++it)
+	for (const auto& [first, second] : _stringHash)
 	{
-		Printf(PRINT_HIGH, "%s (pass: %d, index: %d) = %s\n", (*it).first.c_str(),
-		       (*it).second.pass, (*it).second.index, (*it).second.string.second.c_str());
+		PrintFmt(PRINT_HIGH, "{} (pass: {}, index: {}) = {}\n", first,
+		         second.pass, second.index, second.string.second);
 	}
 }
 
@@ -357,13 +363,12 @@ void StringTable::loadStrings(const bool engOnly)
 //
 const OString& StringTable::matchString(const OString& string) const
 {
-	for (StringHash::const_iterator it = _stringHash.begin(); it != _stringHash.end();
-	     ++it)
+	for (const auto& [first, second] : _stringHash)
 	{
-		if ((*it).second.string.first == false)
+		if (second.string.first == false)
 			continue;
-		if ((*it).second.string.second == string)
-			return (*it).first;
+		if (second.string.second == string)
+			return first;
 	}
 
 	static OString empty = "";
@@ -380,9 +385,9 @@ void StringTable::setString(const OString& name, const OString& string)
 	StringHash::iterator it = _stringHash.find(name);
 	if (it == _stringHash.end())
 	{
-		// Stringtable entry does nto exist, insert it.
+		// Stringtable entry does not exist, insert it.
 		TableEntry entry = {std::make_pair(true, string), 0, -1};
-		_stringHash.insert(std::make_pair(name, entry));
+		_stringHash.emplace(name, entry);
 	}
 	else
 	{
@@ -404,7 +409,7 @@ void StringTable::setPassString(int pass, const OString& name, const OString& st
 	{
 		// Stringtable entry does not exist.
 		TableEntry entry = {std::make_pair(true, string), pass, -1};
-		_stringHash.insert(std::make_pair(name, entry));
+		_stringHash.emplace(name, entry);
 	}
 	else
 	{

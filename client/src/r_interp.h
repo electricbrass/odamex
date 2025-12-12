@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
-// Copyright (C) 2006-2024 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -32,7 +32,6 @@
 
 #include "m_fixed.h"
 #include "r_defs.h"
-#include <map>
 
 typedef std::pair<fixed_t, unsigned int> fixed_uint_pair;
 typedef std::pair<std::pair<fixed_t, fixed_t>, unsigned int> fixed_fixed_uint_pair;
@@ -54,7 +53,7 @@ public:
 	fixed_t getInterpolatedConsoleBottom(fixed_t amount);
 	// View interpolation
 	void interpolateView(player_t* player, fixed_t amount);
-	// State 
+	// State
 	void disable(); // enable gamesim interpolation
 	void enable();  // disable gamesim interpolation
 
@@ -93,8 +92,6 @@ private:
 	std::vector<fixed_fixed_uint_pair> saved_sectorfloorscrollingflat;
 
 	// Skies
-	fixed_t saved_sky1offset;
-	fixed_t prev_sky1offset;
 	fixed_t saved_sky2offset;
 	fixed_t prev_sky2offset;
 

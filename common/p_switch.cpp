@@ -4,7 +4,7 @@
 // $Id$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
-// Copyright (C) 2006-2020 by The Odamex Team.
+// Copyright (C) 2006-2025 by The Odamex Team.
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -23,8 +23,6 @@
 
 
 #include "odamex.h"
-
-#include <map>
 
 #include "p_local.h"
 #include "p_lnspec.h"
@@ -58,7 +56,7 @@ public:
 	DActiveButton ();
 	DActiveButton (line_t *, EWhere, SWORD tex, SDWORD time, fixed_t x, fixed_t y);
 
-	void RunThink ();
+	void RunThink () override;
 
 	line_t	*m_Line;
 	EWhere	m_Where;
@@ -111,6 +109,9 @@ void P_InitSwitchList(void)
 			{
 				// [RH] Skip this switch if it can't be found.
 				if (R_CheckTextureNumForName (list_p /* .name1 */) < 0)
+					continue;
+
+				if (R_CheckTextureNumForName (list_p + 9 /* .name2 */) < 0)
 					continue;
 
 				switchlist[i++] = R_TextureNumForName(list_p /* .name1 */);
