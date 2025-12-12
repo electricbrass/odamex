@@ -345,18 +345,18 @@ static void MdCvarRow(std::string& out, const cvar_t& cvar)
 	case CVARTYPE_INT: {
 		std::string buffer;
 		int val = atoi(cvar.getDefault().c_str());
-		StrFormat(buffer, "Default: %d", val);
+		buffer = fmt::format("Default: {}", val);
 		info.push_back(buffer);
 
 		if (cvar.getMinValue() != -FLT_MAX)
 		{
-			StrFormat(buffer, "Min: %d", static_cast<int>(cvar.getMinValue()));
+			buffer = fmt::format("Min: {}", static_cast<int>(cvar.getMinValue()));
 			info.push_back(buffer);
 		}
 
 		if (cvar.getMaxValue() != FLT_MAX)
 		{
-			StrFormat(buffer, "Max: %d", static_cast<int>(cvar.getMaxValue()));
+			buffer = fmt::format("Max: {}", static_cast<int>(cvar.getMaxValue()));
 			info.push_back(buffer);
 		}
 
@@ -365,18 +365,18 @@ static void MdCvarRow(std::string& out, const cvar_t& cvar)
 	case CVARTYPE_FLOAT: {
 		std::string buffer;
 		float val = atof(cvar.getDefault().c_str());
-		StrFormat(buffer, "Default: %f", val);
+		buffer = fmt::format("Default: {}", val);
 		info.push_back(buffer);
 
 		if (cvar.getMinValue() != -FLT_MAX)
 		{
-			StrFormat(buffer, "Min: %f", cvar.getMinValue());
+			buffer = fmt::format("Min: {}", cvar.getMinValue());
 			info.push_back(buffer);
 		}
 
 		if (cvar.getMaxValue() != FLT_MAX)
 		{
-			StrFormat(buffer, "Max: %f", cvar.getMaxValue());
+			buffer = fmt::format("Max: {}", cvar.getMaxValue());
 			info.push_back(buffer);
 		}
 
@@ -385,8 +385,7 @@ static void MdCvarRow(std::string& out, const cvar_t& cvar)
 	case CVARTYPE_STRING:
 		if (!cvar.getDefault().empty())
 		{
-			std::string buf;
-			StrFormat(buf, "Default: \"%s\"", cvar.getDefault().c_str());
+			std::string buf = fmt::format("Default: \"{}\"", cvar.getDefault());
 			info.push_back(buf);
 		}
 		break;
@@ -415,12 +414,12 @@ static void MdCvarRow(std::string& out, const cvar_t& cvar)
 
 	std::string flagstr = JoinStrings(info, ", ");
 
-	const char* ROW = "\n\n`%s%s`\n"
+	const char* ROW = "\n\n`{}{}`\n"
 	                  "<dd>"
-	                  "\n\n*%s*"
-	                  "\n\n%s"
+	                  "\n\n*{}*"
+	                  "\n\n{}"
 	                  "</dd>";
-	StrFormat(out, ROW, cvar.name(), type.c_str(), flagstr.c_str(), cvar.helptext());
+	out = fmt::format(ROW, cvar.name(), type, flagstr, cvar.helptext());
 }
 
 BEGIN_COMMAND(cvardocmd)
@@ -442,20 +441,19 @@ BEGIN_COMMAND(cvardocmd)
 	FILE* fh = fopen(path.c_str(), "wt+");
 	if (fh == NULL)
 	{
-		Printf("error: Could not open \"%s\" for writing.\n", path.c_str());
+		PrintFmt("error: Could not open \"{}\" for writing.\n", path);
 		return;
 	}
 
 	// First the header.
-	std::string title;
-	StrFormat(title, "%s %s Console Variables", CS_STRING, DOTVERSIONSTR);
+	std::string title = fmt::format("{} {} Console Variables", CS_STRING, DOTVERSIONSTR);
 	fwrite(buffer.data(), sizeof(char), buffer.size(), fh);
 
 	// Then the title and initial paragraph.
 	const char* PREAMBLE =
-	    "## %s"
+	    "## {}"
 	    "\n\n"
-	    "These are the console variables known to the " CS_STRING " as of revision %s."
+	    "These are the console variables known to the " CS_STRING " as of revision {}."
 	    "\n\n"
 	    "In order to understand some of the documentation below, it's important to get "
 	    "some definitions out of the way first. Console variables fall into the following categories:\n"
@@ -467,7 +465,7 @@ BEGIN_COMMAND(cvardocmd)
 		"- `[string]` is a text string (e.g., `\"My website\"`), and likely should be enclosed in quotation marks (especially if there are spaces present in your desired string). If you want newlines/returns in your text strings, you use the `\n` escape character. E.g., `\"My website:\nhttps://odamex.net\"`."
 	    "\n\n";
 
-	StrFormat(buffer, PREAMBLE, title.c_str(), NiceVersion());
+	buffer = fmt::format(PREAMBLE, title, NiceVersion());
 	fwrite(buffer.data(), sizeof(char), buffer.size(), fh);
 
 	// Initial tag for cvars.
@@ -489,6 +487,6 @@ BEGIN_COMMAND(cvardocmd)
 	fclose(fh);
 
 	// Success!
-	Printf("Wrote %ld bytes to \"%s\"\n", bytes, path.c_str());
+	PrintFmt("Wrote {} bytes to \"{}\"\n", bytes, path);
 }
 END_COMMAND(cvardocmd)
