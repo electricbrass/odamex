@@ -102,6 +102,7 @@ static void HTMLCvarRow(std::string& out, const cvar_t& cvar)
 		break;
 	case CVARTYPE_NONE:
 	case CVARTYPE_MAX:
+		out = "";
 		return;
 		break;
 	}
@@ -166,6 +167,7 @@ static void HTMLCvarRow(std::string& out, const cvar_t& cvar)
 		break;
 	case CVARTYPE_NONE:
 	case CVARTYPE_MAX:
+		out = "";
 		return;
 		break;
 	}
@@ -328,6 +330,7 @@ static void MdCvarRow(std::string& out, const cvar_t& cvar)
 		break;
 	case CVARTYPE_NONE:
 	case CVARTYPE_MAX:
+		out = "";
 		return;
 		break;
 	}
@@ -391,6 +394,7 @@ static void MdCvarRow(std::string& out, const cvar_t& cvar)
 		break;
 	case CVARTYPE_NONE:
 	case CVARTYPE_MAX:
+		out = "";
 		return;
 		break;
 	}
