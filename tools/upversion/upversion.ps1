@@ -164,7 +164,7 @@ foreach ($file in $metainfoReleaseFiles) {
    if ($content -match $metainfoReleaseRegex) {
         Write-Output "Metainfo Release Version Match found in $file"
 
-        $newcontent = $content -replace $metainfoReleaseRegex, '$1' + $majminpatch1 + '$2'
+        $newcontent = $content -replace $metainfoReleaseRegex, ('$1' + $majminpatch1 + '$2')
         Set-Content -Path $file -Value $newcontent -NoNewline
         Write-Output "Replaced Metainfo Release Version in $file"
    }
