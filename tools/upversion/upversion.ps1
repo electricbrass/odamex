@@ -49,7 +49,7 @@ $majminpatchFiles = @(
 '.\common\version.h',
 '.\odalaunch\res\Info.plist',
 '.\switch.cmake',
-'.\tools\upversion\upversion.ini',
+'.\tools\upversion\upversion.ini'
 )
 
 $majminpatchCfgs = Get-ChildItem '.\config-samples' -Filter "*.cfg"
