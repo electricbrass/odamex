@@ -17,6 +17,7 @@ RUN apk add --no-cache \
     zlib-dev \
     zstd-dev \
     ca-certificates \
+    linux-headers \
     tzdata
 
 # Use bash (needed for arrays / shopt / etc.)
