@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Base build deps (Alpine equivalents)
 RUN apk add --no-cache \
-    bash \
+    python3 \
     git \
     gcc \
     g++ \
