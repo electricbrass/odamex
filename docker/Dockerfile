@@ -46,10 +46,12 @@ RUN true \
         -D BUILD_CLIENT=0 \
         -D BUILD_LAUNCHER=0 \
         -D BUILD_TESTS=0 \
+        -D BUILD_MASTER=0 \
+        -D BUILD_SERVER=1 \
         -D CMAKE_C_FLAGS="-w" \
         -D CMAKE_CXX_FLAGS="-w" \
         .. \
-    && cmake --build . --parallel 4 --target odasrv
+    && cmake --build . --parallel 4
 
 # Install
 ENV INSTALL_DIR=/usr/local/games/odamex
