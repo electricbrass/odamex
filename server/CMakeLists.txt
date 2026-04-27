@@ -13,8 +13,6 @@ endif()
 # #define SERVER_APP for use in the source code
 add_definitions(-DSERVER_APP)
 
-add_dependencies(odasrv odawad)
-
 # Server
 file(GLOB SERVER_SOURCES src/*.cpp src/*.h)
 if(WIN32)
@@ -41,6 +39,8 @@ endif()
 add_executable(odasrv
   ${COMMON_SOURCES} ${SERVER_SOURCES} ${SERVER_WIN32_SOURCES})
 odamex_target_settings(odasrv)
+
+add_dependencies(odasrv odawad)
 
 target_include_directories(odasrv PRIVATE src)
 if(WIN32)
