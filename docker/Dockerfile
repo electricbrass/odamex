@@ -58,7 +58,7 @@ COPY docker-files/odamex-server.sh /usr/local/bin/odamex-server
 RUN true \
     && ls -l \
     && mkdir -p "$INSTALL_DIR" \
-    && cp "server/odamex.wad" "$INSTALL_DIR/" \
+    && cp "wad/odamex.wad" "$INSTALL_DIR/" \
     && cp "server/odasrv" "$INSTALL_DIR/" \
     && chmod a+x /usr/local/bin/odamex-server \
     && sed -i "s|INSTALL_DIR|${INSTALL_DIR}|" /usr/local/bin/odamex-server
