@@ -56,6 +56,7 @@ ENV INSTALL_DIR=/usr/local/games/odamex
 COPY docker-files/odamex-server.sh /usr/local/bin/odamex-server
 
 RUN true \
+    && ls -l \
     && mkdir -p "$INSTALL_DIR" \
     && cp "server/odamex.wad" "$INSTALL_DIR/" \
     && cp "server/odasrv" "$INSTALL_DIR/" \
