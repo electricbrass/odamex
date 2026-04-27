@@ -20,9 +20,6 @@ RUN apk add --no-cache \
     linux-headers \
     tzdata
 
-# Use bash (needed for arrays / shopt / etc.)
-SHELL ["/bin/bash", "-c"]
-
 ARG REPO_URL
 ARG REPO_TAG
 
@@ -68,12 +65,9 @@ ENV INSTALL_DIR=/usr/local/games/odamex
 COPY docker-files/odamex-server.sh /usr/local/bin/odamex-server
 
 RUN true \
-    && COPY_PATTERNS=(\
-        server/odamex.wad \
-        server/odasrv \
-    ) \
     && mkdir -p "$INSTALL_DIR" \
-    && cp "${COPY_PATTERNS[@]}" "$INSTALL_DIR/" \
+    && cp "server/odamex.wad" "$INSTALL_DIR/" \
+    && cp "server/odasrv" "$INSTALL_DIR/" \
     && chmod a+x /usr/local/bin/odamex-server \
     && sed -i "s|INSTALL_DIR|${INSTALL_DIR}|" /usr/local/bin/odamex-server
 
