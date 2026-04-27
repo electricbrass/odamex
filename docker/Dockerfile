@@ -13,7 +13,6 @@ RUN apk add --no-cache \
     musl-dev \
     cmake \
     make \
-    patch \
     zlib-dev \
     zstd-dev \
     ca-certificates \
@@ -29,14 +28,6 @@ RUN true \
     && git clone --depth 1 --branch "$REPO_TAG" "$REPO_URL" odamex
 
 WORKDIR /build/odamex
-
-# Apply patches
-RUN mkdir /patches
-COPY docker-files/patches /patches
-
-RUN true \
-    && shopt -s nullglob \
-    && for p in /patches/*.patch; do patch -p1 < "$p"; done
 
 # Submodules
 RUN git submodule init \

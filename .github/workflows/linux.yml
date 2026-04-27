@@ -188,5 +188,4 @@ jobs:
       shell: bash
       run: |
         cd docker
-        mkdir docker-files/patches
         make
