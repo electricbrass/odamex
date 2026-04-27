@@ -174,3 +174,18 @@ jobs:
         arch: aarch64
         bundle: odamex.flatpak
         branch: ${{ env.MODIFIED_BRANCH_NAME }}
+  build-docker-image:
+    name: Build Docker Image (Alpine)
+    needs: pre_job
+    if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v6
+      with:
+        submodules: recursive
+    - name: Build
+      shell: bash
+      run: |
+        cd docker
+        make
