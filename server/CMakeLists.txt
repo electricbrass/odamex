@@ -13,6 +13,8 @@ endif()
 # #define SERVER_APP for use in the source code
 add_definitions(-DSERVER_APP)
 
+add_dependencies(odasrv odawad)
+
 # Server
 file(GLOB SERVER_SOURCES src/*.cpp src/*.h)
 if(WIN32)
