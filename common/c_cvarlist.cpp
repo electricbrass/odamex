@@ -24,6 +24,7 @@
 
 #include "odamex.h"
 
+#define HEY_A_MACRO 3254
 
 // Server settings
 // ---------------
